@@ -13,26 +13,31 @@ thread_local! {
     static FILE_MAP: RefCell<HashMap<String, File>> = RefCell::new(HashMap::new());
 }
 
-fn timestamp_string(data: &str) -> String {
+fn timestamped(data: &str) -> String {
     format!("[{}] {}", Utc::now().format("%Y-%m-%d %H:%M:%S%.3f"), data)
 }
 
 fn write(filename: &str, data: String) -> Result<(), io::Error> {
     FILE_MAP.with(|cell| {
+        let path = Path::new(filename);
+        let filename = path.file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+
         let mut map = cell.borrow_mut();
-        let file = match map.entry(filename.to_owned()) {
+        let file = match map.entry(filename) {
             Occupied(elem) => elem.into_mut(),
             Vacant(elem) => {
-                let path = Path::new(filename);
                 match path.parent() {
                     Some(p) => fs::create_dir_all(p)?,
                     None => {},
                 };
-
                 let file = OpenOptions::new()
                     .append(true)
                     .create(true)
                     .open(path)?;
+
                 elem.insert(file)
             },
         };
@@ -49,7 +54,7 @@ fn close() {
 }
 
 byond_function! { log_write(filename, line) {
-    let line = timestamp_string(line);
+    let line = timestamped(line);
 
     match write(filename, line) {
         Ok(_) => None,
