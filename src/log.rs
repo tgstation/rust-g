@@ -21,7 +21,7 @@ fn write(filename: &str, data: String) -> Result<(), io::Error> {
     FILE_MAP.with(|cell| {
         let path = Path::new(filename);
         let filename = path.file_name()
-            .unwrap()
+            .expect("invalid filename passed to write()")
             .to_string_lossy()
             .into_owned();
 
@@ -30,7 +30,7 @@ fn write(filename: &str, data: String) -> Result<(), io::Error> {
             Occupied(elem) => elem.into_mut(),
             Vacant(elem) => {
                 match path.parent() {
-                    Some(p) => fs::create_dir_all(p)?,
+                    Some(parent) => fs::create_dir_all(parent)?,
                     None => {},
                 };
                 let file = OpenOptions::new()
@@ -54,8 +54,11 @@ fn close() {
 }
 
 byond_function! { log_write(filename, line) {
-    let line = timestamped(line);
+    if filename.is_empty() {
+        return Some("no logfile specified!".to_string())
+    }
 
+    let line = timestamped(line);
     match write(filename, line) {
         Ok(_) => None,
         Err(err) => Some(err.to_string()),
