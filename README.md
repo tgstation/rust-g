@@ -33,3 +33,9 @@ to correctly resolve the library.
 [Rust]: https://rust-lang.org
 [cargo]: https://doc.rust-lang.org/cargo/
 [rustup]: https://rustup.rs/
+
+## LICENSE
+
+This project is licensed under the [MIT](https://en.wikipedia.org/wiki/MIT_License) license.
+
+See LICENSE for more details.
