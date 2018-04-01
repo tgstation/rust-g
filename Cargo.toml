@@ -1,6 +1,6 @@
 [package]
 name = "rust-g"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Bjorn Neergaard <bjorn@neersighted.com>"]
 
 [lib]

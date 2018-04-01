@@ -5,8 +5,9 @@ use std::slice;
 
 use libc::{c_char, c_int};
 
+static EMPTY_STRING: &[c_char; 1] = &[0];
 thread_local! {
-    static RETURN_STRING: Cell<CString> = Cell::new(Default::default());
+    static RETURN_STRING: Cell<CString> = Cell::new(CString::default());
 }
 
 pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
@@ -20,24 +21,25 @@ pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, st
 }
 
 pub fn return_string(string: Option<String>) -> *const c_char {
-    let cstring = match string {
-        Some(msg) => CString::new(msg).expect("null in returned string!"),
-        None => CString::new("").unwrap(),
-    };
-    let ptr = cstring.as_ptr();
+    match string {
+        Some(string) =>  {
+            RETURN_STRING.with(|cell| {
+                let cstring = CString::new(string).expect("null in returned string!");
+                let ptr = cstring.as_ptr();
 
-    RETURN_STRING.with(|cell| {
-        cell.set(cstring);
-    });
-
-    ptr as *const c_char
+                cell.set(cstring);
+                ptr as *const c_char
+            })
+        },
+        None => EMPTY_STRING as *const c_char,
+    }
 }
 
 #[macro_export]
 macro_rules! byond_function {
     ($name:ident() $body:block) => {
         #[no_mangle]
-        pub extern "C" fn $name(
+        pub unsafe extern "C" fn $name(
             _argc: ::libc::c_int, _argv: *const *const ::libc::c_char
         ) -> *const ::libc::c_char {
             $crate::byond::return_string((|| $body)())
@@ -46,7 +48,7 @@ macro_rules! byond_function {
 
     ($name:ident($($arg:ident),*) $body:block) => {
         #[no_mangle]
-        pub extern "C" fn $name(
+        pub unsafe extern "C" fn $name(
             _argc: ::libc::c_int, _argv: *const *const ::libc::c_char
         ) -> *const ::libc::c_char {
             let __args = $crate::byond::parse_args(_argc, _argv);
