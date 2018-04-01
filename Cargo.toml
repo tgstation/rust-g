@@ -1,6 +1,6 @@
 [package]
 name = "rust-g"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Bjorn Neergaard <bjorn@neersighted.com>"]
 
 [lib]
@@ -11,4 +11,5 @@ lto = true
 
 [dependencies]
 chrono = "0.4"
-libc = "0.2.0"
+failure = "0.1"
+libc = "0.2"

@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::fs;
 use std::fs::{File, OpenOptions};
-use std::io;
 use std::io::Write;
 use std::path::Path;
 
 use chrono::Utc;
+use failure::Error;
 
 thread_local! {
     static FILE_MAP: RefCell<HashMap<String, File>> = RefCell::new(HashMap::new());
@@ -17,13 +17,16 @@ fn timestamped(data: &str) -> String {
     format!("[{}] {}", Utc::now().format("%Y-%m-%d %H:%M:%S%.3f"), data)
 }
 
-fn write(filename: &str, data: String) -> Result<(), io::Error> {
+fn write(filename: &str, data: String) -> Result<usize, Error> {
+    let mut data = data;
+    data.push('\n');
+
     FILE_MAP.with(|cell| {
         let path = Path::new(filename);
-        let filename = path.file_name()
-            .expect("invalid filename passed to write()")
-            .to_string_lossy()
-            .into_owned();
+        let filename = match path.file_name() {
+            Some(filename) => filename.to_string_lossy().into_owned(),
+            None => return Err(format_err!("invalid or empty filename")),
+        };
 
         let mut map = cell.borrow_mut();
         let file = match map.entry(filename) {
@@ -42,7 +45,8 @@ fn write(filename: &str, data: String) -> Result<(), io::Error> {
             },
         };
 
-        writeln!(file, "{}", data)
+        let written = file.write(&data.into_bytes())?;
+        Ok(written)
     })
 }
 
@@ -54,10 +58,6 @@ fn close() {
 }
 
 byond_function! { log_write(filename, line) {
-    if filename.is_empty() {
-        return Some("no logfile specified!".to_string())
-    }
-
     let line = timestamped(line);
     match write(filename, line) {
         Ok(_) => None,
