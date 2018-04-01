@@ -34,19 +34,15 @@ fn write(filename: &str, data: String) -> Result<usize, Error> {
             Vacant(elem) => {
                 match path.parent() {
                     Some(parent) => fs::create_dir_all(parent)?,
-                    None => {},
+                    None => {}
                 };
-                let file = OpenOptions::new()
-                    .append(true)
-                    .create(true)
-                    .open(path)?;
 
+                let file = OpenOptions::new().append(true).create(true).open(path)?;
                 elem.insert(file)
-            },
+            }
         };
 
-        let written = file.write(&data.into_bytes())?;
-        Ok(written)
+        Ok(file.write(&data.into_bytes())?)
     })
 }
 
@@ -58,11 +54,11 @@ fn close() {
 }
 
 byond_function! { log_write(filename, data) {
-    let results: Result<Vec<_>, Error> = data.split("\n")
+    let result: Result<Vec<_>, Error> = data.split("\n")
         .map(|line| write(filename, timestamped(line)))
         .collect();
 
-    match results {
+    match result {
         Ok(_) => None,
         Err(err) => Some(err.to_string()),
     }

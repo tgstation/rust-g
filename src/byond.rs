@@ -12,7 +12,8 @@ thread_local! {
 
 pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
     unsafe {
-        slice::from_raw_parts(argv, argc as usize).into_iter()
+        slice::from_raw_parts(argv, argc as usize)
+            .into_iter()
             .map(|ptr| CStr::from_ptr(*ptr))
             .map(|cstr| cstr.to_string_lossy())
             .collect()
@@ -21,15 +22,13 @@ pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, st
 
 pub fn return_string(string: Option<String>) -> *const c_char {
     match string {
-        Some(string) =>  {
-            RETURN_STRING.with(|cell| {
-                let cstring = CString::new(string).expect("null in returned string!");
-                let ptr = cstring.as_ptr();
+        Some(str) => RETURN_STRING.with(|cell| {
+            let cstr = CString::new(str).expect("null in returned string!");
+            let ptr = cstr.as_ptr();
 
-                cell.set(cstring);
-                ptr as *const c_char
-            })
-        },
+            cell.set(cstr);
+            ptr as *const c_char
+        }),
         None => EMPTY_STRING as *const c_char,
     }
 }
@@ -62,4 +61,3 @@ macro_rules! byond_function {
         }
     };
 }
-
