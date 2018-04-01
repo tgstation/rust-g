@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::ffi::{CStr, CString};
 use std::slice;
@@ -8,18 +9,14 @@ thread_local! {
     static RETURN_STRING: Cell<CString> = Cell::new(Default::default());
 }
 
-pub fn parse_args(argc: c_int, argv: *const *const c_char) -> Vec<String> {
-    let args: Vec<&CStr> = unsafe {
+pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
+    unsafe {
         slice::from_raw_parts(argv, argc as usize)
             .into_iter()
             .map(|ptr| CStr::from_ptr(*ptr))
+            .map(|cstr| cstr.to_string_lossy())
             .collect()
-    };
-
-    args.into_iter()
-        .map(|cstr| cstr.to_string_lossy())
-        .map(|str| str.into_owned())
-        .collect()
+    }
 }
 
 pub fn return_string(string: Option<String>) -> *const c_char {
