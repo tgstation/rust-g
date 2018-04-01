@@ -57,9 +57,12 @@ fn close() {
     });
 }
 
-byond_function! { log_write(filename, line) {
-    let line = timestamped(line);
-    match write(filename, line) {
+byond_function! { log_write(filename, data) {
+    let results: Result<Vec<_>, Error> = data.split("\n")
+        .map(|line| write(filename, timestamped(line)))
+        .collect();
+
+    match results {
         Ok(_) => None,
         Err(err) => Some(err.to_string()),
     }
