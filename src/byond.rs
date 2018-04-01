@@ -43,7 +43,7 @@ macro_rules! byond_function {
         pub extern "C" fn $name(
             _argc: ::libc::c_int, _argv: *const *const ::libc::c_char
         ) -> *const ::libc::c_char {
-            ::byond::return_string((|| $body)())
+            $crate::byond::return_string((|| $body)())
         }
     };
 
@@ -52,7 +52,7 @@ macro_rules! byond_function {
         pub extern "C" fn $name(
             _argc: ::libc::c_int, _argv: *const *const ::libc::c_char
         ) -> *const ::libc::c_char {
-            let __args = ::byond::parse_args(_argc, _argv);
+            let __args = $crate::byond::parse_args(_argc, _argv);
 
             let mut __argn = 0;
             $(
@@ -60,7 +60,7 @@ macro_rules! byond_function {
                 __argn += 1;
             )*
 
-            ::byond::return_string((|| $body)())
+            $crate::byond::return_string((|| $body)())
         }
     };
 }
