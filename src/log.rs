@@ -1,6 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::hash_map::{Entry, HashMap};
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
@@ -14,7 +13,7 @@ thread_local! {
 }
 
 fn timestamped(data: &str) -> String {
-    format!("[{}] {}", Utc::now().format("%Y-%m-%d %H:%M:%S%.3f"), data)
+    format!("[{}] {}", Utc::now().format("%F %T%.3f"), data)
 }
 
 fn write(filename: &str, data: String) -> Result<usize, Error> {
@@ -30,15 +29,13 @@ fn write(filename: &str, data: String) -> Result<usize, Error> {
 
         let mut map = cell.borrow_mut();
         let file = match map.entry(filename) {
-            Occupied(elem) => elem.into_mut(),
-            Vacant(elem) => {
-                match path.parent() {
-                    Some(parent) => fs::create_dir_all(parent)?,
-                    None => {}
-                };
+            Entry::Occupied(elem) => elem.into_mut(),
+            Entry::Vacant(elem) => {
+                if let Some(parent) = path.parent() {
+                    fs::create_dir_all(parent)?
+                }
 
-                let file = OpenOptions::new().append(true).create(true).open(path)?;
-                elem.insert(file)
+                elem.insert(OpenOptions::new().append(true).create(true).open(path)?)
             }
         };
 
@@ -54,7 +51,7 @@ fn close() {
 }
 
 byond_function! { log_write(filename, data) {
-    let result: Result<Vec<_>, Error> = data.split("\n")
+    let result: Result<Vec<_>, Error> = data.split('\n')
         .map(|line| write(filename, timestamped(line)))
         .collect();
 
@@ -66,6 +63,5 @@ byond_function! { log_write(filename, data) {
 
 byond_function! { log_close_all() {
     close();
-
     None
 } }
