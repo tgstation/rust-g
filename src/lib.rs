@@ -6,4 +6,5 @@ extern crate libc;
 #[macro_use]
 mod byond;
 mod error;
+pub mod file;
 pub mod log;
