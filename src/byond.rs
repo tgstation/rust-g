@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::slice;
 
@@ -7,7 +7,7 @@ use libc::{c_char, c_int};
 
 static EMPTY_STRING: &[c_char; 1] = &[0];
 thread_local! {
-    static RETURN_STRING: Cell<CString> = Cell::new(CString::default());
+    static RETURN_STRING: RefCell<CString> = RefCell::new(CString::default());
 }
 
 pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
@@ -23,15 +23,13 @@ pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, st
 pub fn byond_return<F, S>(inner: F) -> *const c_char
 where
     F: FnOnce() -> Option<S>,
-    S: Into<String>,
+    S: Into<Vec<u8>>,
 {
     match inner() {
-        Some(str) => RETURN_STRING.with(|cell| {
-            let cstr = CString::new(str.into()).expect("null in returned string!");
-            let ptr = cstr.as_ptr();
-
-            cell.set(cstr);
-            ptr as *const c_char
+        Some(string) => RETURN_STRING.with(|cell| {
+            let cstring = CString::new(string).expect("null in returned string!");
+            cell.replace(cstring);
+            cell.borrow().as_ptr() as *const c_char
         }),
         None => EMPTY_STRING as *const c_char,
     }

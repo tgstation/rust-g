@@ -79,3 +79,8 @@ impl From<Error> for String {
     }
 }
 
+impl From<Error> for Vec<u8> {
+    fn from(error: Error) -> Vec<u8> {
+        error.to_string().into_bytes()
+    }
+}
