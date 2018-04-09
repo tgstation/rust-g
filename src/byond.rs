@@ -20,10 +20,14 @@ pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, st
     }
 }
 
-pub fn return_string(string: Option<String>) -> *const c_char {
-    match string {
+pub fn byond_return<F, S>(inner: F) -> *const c_char
+where
+    F: FnOnce() -> Option<S>,
+    S: Into<String>,
+{
+    match inner() {
         Some(str) => RETURN_STRING.with(|cell| {
-            let cstr = CString::new(str).expect("null in returned string!");
+            let cstr = CString::new(str.into()).expect("null in returned string!");
             let ptr = cstr.as_ptr();
 
             cell.set(cstr);
@@ -40,7 +44,7 @@ macro_rules! byond_function {
         pub unsafe extern "C" fn $name(
             _argc: ::libc::c_int, _argv: *const *const ::libc::c_char
         ) -> *const ::libc::c_char {
-            $crate::byond::return_string((|| $body)())
+            $crate::byond::byond_return(|| $body)
         }
     };
 
@@ -57,7 +61,21 @@ macro_rules! byond_function {
                 __argn += 1;
             )*
 
-            $crate::byond::return_string((|| $body)())
+            $crate::byond::byond_return(|| $body)
         }
+    };
+
+    ($name:ident()! $body:block) => {
+        byond_function!{ $name() {
+            $body
+            None as Option<String>
+        } }
+    };
+
+    ($name:ident($($arg:ident),*)! $body:block) => {
+        byond_function!{ $name($($arg),*) {
+            $body
+            None as Option<String>
+        } }
     };
 }
