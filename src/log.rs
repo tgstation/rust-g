@@ -51,7 +51,7 @@ fn filename(path: &Path) -> Result<String, Error> {
     }
 }
 
-fn open(path: &Path) -> Result<fs::File, io::Error> {
+fn open(path: &Path) -> Result<File, io::Error> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?
     }
@@ -61,9 +61,9 @@ fn open(path: &Path) -> Result<fs::File, io::Error> {
 
 #[derive(Fail, Debug)]
 pub enum Error {
-    #[fail(display = "invalid or empty filename")]
+    #[fail(display = "Invalid or empty filename specified.")]
     Filename,
-    #[fail(display = "io error: {}", _0)]
+    #[fail(display = "{}", _0)]
     Io(#[cause] io::Error),
 }
 
