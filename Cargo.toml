@@ -13,3 +13,4 @@ lto = true
 chrono = "0.4"
 failure = "0.1"
 libc = "0.2"
+percent-encoding = "1.0"

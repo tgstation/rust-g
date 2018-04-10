@@ -1,10 +1,15 @@
 use std::io;
 use std::result;
+use std::str::Utf8Error;
 
 pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Fail, Debug)]
 pub enum Error {
+    #[fail(display = "Illegal null character in string.")]
+    Null,
+    #[fail(display = "Invalid UTF-8 character at position {}.", _1)]
+    Utf8(#[cause] Utf8Error, usize),
     #[fail(display = "Invalid or empty filename specified.")]
     InvalidName,
     #[fail(display = "{}", _0)]
@@ -14,6 +19,12 @@ pub enum Error {
 impl From<io::Error> for Error {
     fn from(error: io::Error) -> Error {
         Error::Io(error)
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(error: Utf8Error) -> Error {
+        Error::Utf8(error, error.valid_up_to())
     }
 }
 
