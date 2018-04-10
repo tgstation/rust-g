@@ -14,7 +14,7 @@ thread_local! {
     static FILE_MAP: RefCell<HashMap<OsString, File>> = RefCell::new(HashMap::new());
 }
 
-byond_function! { log_write(path, data) {
+byond_fn! { log_write(path, data) {
     data.split('\n')
         .map(|line| format(line))
         .map(|line| write(path, line))
@@ -22,7 +22,7 @@ byond_function! { log_write(path, data) {
         .err()
 } }
 
-byond_function! { log_close_all()! {
+byond_fn! { log_close_all()! {
     FILE_MAP.with(|cell| {
         let mut map = cell.borrow_mut();
         map.clear();

@@ -7,11 +7,11 @@ use hex;
 
 use error::{Error, Result};
 
-byond_function! { hash_string(algorithm, string) {
+byond_fn! { hash_string(algorithm, string) {
     string_hash(algorithm, string).ok()
 } }
 
-byond_function! { hash_file(algorithm, string) {
+byond_fn! { hash_file(algorithm, string) {
     file_hash(algorithm, string).ok()
 } }
 

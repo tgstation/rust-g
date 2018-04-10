@@ -3,11 +3,11 @@ use std::io::{Read, Write};
 
 use error::Result;
 
-byond_function! { file_read(path) {
+byond_fn! { file_read(path) {
     read(path).ok()
 } }
 
-byond_function! { file_write(data, path) {
+byond_fn! { file_write(data, path) {
     write(data, path).err()
 } }
 

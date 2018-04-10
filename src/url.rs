@@ -2,11 +2,11 @@ use percent_encoding::{percent_decode, utf8_percent_encode, PATH_SEGMENT_ENCODE_
 
 use error::{Error, Result};
 
-byond_function! { url_encode(data) {
+byond_fn! { url_encode(data) {
     Some(encode(data))
 } }
 
-byond_function! { url_decode(data) {
+byond_fn! { url_decode(data) {
     decode(data).ok()
 } }
 

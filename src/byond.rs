@@ -36,7 +36,7 @@ where
 }
 
 #[macro_export]
-macro_rules! byond_function {
+macro_rules! byond_fn {
     ($name:ident() $body:block) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(
@@ -64,14 +64,14 @@ macro_rules! byond_function {
     };
 
     ($name:ident()! $body:block) => {
-        byond_function!{ $name() {
+        byond_fn!{ $name() {
             $body
             None as Option<String>
         } }
     };
 
     ($name:ident($($arg:ident),*)! $body:block) => {
-        byond_function!{ $name($($arg),*) {
+        byond_fn!{ $name($($arg),*) {
             $body
             None as Option<String>
         } }
