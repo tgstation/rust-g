@@ -11,9 +11,11 @@ pub enum Error {
     #[fail(display = "Invalid UTF-8 character at position {}.", _1)]
     Utf8(#[cause] Utf8Error, usize),
     #[fail(display = "Invalid or empty filename specified.")]
-    InvalidName,
+    InvalidFilename,
     #[fail(display = "{}", _0)]
     Io(#[cause] io::Error),
+    #[fail(display = "Invalid algorithm specified.")]
+    InvalidAlgorithm,
 }
 
 impl From<io::Error> for Error {

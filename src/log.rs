@@ -49,7 +49,7 @@ fn write(path: &str, data: String) -> Result<usize> {
 fn filename(path: &Path) -> Result<OsString> {
     match path.file_name() {
         Some(filename) => Ok(filename.to_os_string()),
-        None => Err(Error::InvalidName),
+        None => Err(Error::InvalidFilename),
     }
 }
 

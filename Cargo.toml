@@ -7,10 +7,13 @@ authors = ["Bjorn Neergaard <bjorn@neersighted.com>"]
 crate-type = ["lib", "cdylib"]
 
 [profile.release]
+opt-level = 3
 lto = true
 
 [dependencies]
 chrono = "0.4"
+crypto-hash = "0.3"
 failure = "0.1"
+hex = "0.3"
 libc = "0.2"
 percent-encoding = "1.0"
