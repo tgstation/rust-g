@@ -64,14 +64,14 @@ macro_rules! byond_fn {
     };
 
     ($name:ident()! $body:block) => {
-        byond_fn!{ $name() {
+        byond_fn! { $name() {
             $body
             None as Option<String>
         } }
     };
 
     ($name:ident($($arg:ident),*)! $body:block) => {
-        byond_fn!{ $name($($arg),*) {
+        byond_fn! { $name($($arg),*) {
             $body
             None as Option<String>
         } }
