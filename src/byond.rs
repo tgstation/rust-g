@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::slice;
 
-use libc::{c_char, c_int};
+use std::os::raw::{c_char, c_int};
 
 static EMPTY_STRING: &[c_char; 1] = &[0];
 thread_local! {
@@ -40,8 +40,8 @@ macro_rules! byond_fn {
     ($name:ident() $body:block) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(
-            _argc: ::libc::c_int, _argv: *const *const ::libc::c_char
-        ) -> *const ::libc::c_char {
+            _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
+        ) -> *const ::std::os::raw::c_char {
             $crate::byond::byond_return(|| $body)
         }
     };
@@ -49,8 +49,8 @@ macro_rules! byond_fn {
     ($name:ident($($arg:ident),*) $body:block) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(
-            _argc: ::libc::c_int, _argv: *const *const ::libc::c_char
-        ) -> *const ::libc::c_char {
+            _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
+        ) -> *const ::std::os::raw::c_char {
             let __args = $crate::byond::parse_args(_argc, _argv);
 
             let mut __argn = 0;
