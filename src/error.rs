@@ -2,6 +2,8 @@ use std::io;
 use std::result;
 use std::str::Utf8Error;
 
+use png::{DecodingError, EncodingError};
+
 pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Fail, Debug)]
@@ -16,6 +18,10 @@ pub enum Error {
     Io(#[cause] io::Error),
     #[fail(display = "Invalid algorithm specified.")]
     InvalidAlgorithm,
+    #[fail(display = "{}", _0)]
+    Decoding(#[cause] DecodingError),
+    #[fail(display = "{}", _0)]
+    Encoding(#[cause] EncodingError),
 }
 
 impl From<io::Error> for Error {
@@ -27,6 +33,18 @@ impl From<io::Error> for Error {
 impl From<Utf8Error> for Error {
     fn from(error: Utf8Error) -> Error {
         Error::Utf8(error, error.valid_up_to())
+    }
+}
+
+impl From<DecodingError> for Error {
+    fn from(error: DecodingError) -> Error {
+        Error::Decoding(error)
+    }
+}
+
+impl From<EncodingError> for Error {
+    fn from(error: EncodingError) -> Error {
+        Error::Encoding(error)
     }
 }
 
