@@ -3,7 +3,7 @@ use png::{Decoder, Encoder, HasParameters};
 
 use error::Result;
 
-byond_fn! { strip_dmi_metadata(path) {
+byond_fn! { dmi_strip_metadata(path) {
     strip_metadata(path).err()
 } }
 

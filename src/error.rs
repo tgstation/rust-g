@@ -19,9 +19,9 @@ pub enum Error {
     #[fail(display = "Invalid algorithm specified.")]
     InvalidAlgorithm,
     #[fail(display = "{}", _0)]
-    Decoding(#[cause] DecodingError),
+    ImageDecoding(#[cause] DecodingError),
     #[fail(display = "{}", _0)]
-    Encoding(#[cause] EncodingError),
+    ImageEncoding(#[cause] EncodingError),
 }
 
 impl From<io::Error> for Error {
@@ -38,13 +38,13 @@ impl From<Utf8Error> for Error {
 
 impl From<DecodingError> for Error {
     fn from(error: DecodingError) -> Error {
-        Error::Decoding(error)
+        Error::ImageDecoding(error)
     }
 }
 
 impl From<EncodingError> for Error {
     fn from(error: EncodingError) -> Error {
-        Error::Encoding(error)
+        Error::ImageEncoding(error)
     }
 }
 

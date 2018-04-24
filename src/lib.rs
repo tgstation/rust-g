@@ -8,9 +8,9 @@ extern crate png;
 
 #[macro_use]
 mod byond;
+pub mod dmi;
 mod error;
 pub mod file;
 pub mod hash;
 pub mod log;
 pub mod url;
-pub mod dmi;
