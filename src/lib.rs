@@ -4,9 +4,11 @@ extern crate crypto_hash;
 extern crate failure;
 extern crate hex;
 extern crate percent_encoding;
+extern crate png;
 
 #[macro_use]
 mod byond;
+pub mod dmi;
 mod error;
 pub mod file;
 pub mod hash;
