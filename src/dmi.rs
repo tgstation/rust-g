@@ -17,8 +17,7 @@ fn strip_metadata(path: &str) -> Result<()> {
 
 fn read_png(path: &str) -> Result<(OutputInfo, Vec<u8>)> {
     let (info, mut reader) = Decoder::new(File::open(path)?).read_info()?;
-    let mut buf = Vec::with_capacity(info.buffer_size());
-    unsafe { buf.set_len(info.buffer_size()) }
+    let mut buf = vec![0; info.buffer_size()];
 
     reader.next_frame(&mut buf)?;
     Ok((info, buf))
