@@ -10,9 +10,7 @@ byond_fn! { dmi_strip_metadata(path) {
 
 fn strip_metadata(path: &str) -> Result<()> {
     let (info, image) = read_png(path)?;
-    write_png(path, info, image)?;
-
-    Ok(())
+    Ok(write_png(path, info, image)?)
 }
 
 fn read_png(path: &str) -> Result<(OutputInfo, Vec<u8>)> {
