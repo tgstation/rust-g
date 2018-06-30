@@ -2,6 +2,7 @@ use std::io;
 use std::result;
 use std::str::Utf8Error;
 
+#[cfg(feature="png")]
 use png::{DecodingError, EncodingError};
 
 pub type Result<T> = result::Result<T, Error>;
@@ -18,8 +19,11 @@ pub enum Error {
     Io(#[cause] io::Error),
     #[fail(display = "Invalid algorithm specified.")]
     InvalidAlgorithm,
+    #[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ImageDecoding(#[cause] DecodingError),
+
+#[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ImageEncoding(#[cause] EncodingError),
 }
@@ -36,12 +40,14 @@ impl From<Utf8Error> for Error {
     }
 }
 
+#[cfg(feature="png")]
 impl From<DecodingError> for Error {
     fn from(error: DecodingError) -> Error {
         Error::ImageDecoding(error)
     }
 }
 
+#[cfg(feature="png")]
 impl From<EncodingError> for Error {
     fn from(error: EncodingError) -> Error {
         Error::ImageEncoding(error)
