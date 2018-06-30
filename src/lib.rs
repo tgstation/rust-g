@@ -14,6 +14,7 @@ extern crate png;
 
 #[macro_use]
 mod byond;
+#[allow(dead_code)]
 mod error;
 
 #[cfg(feature="dmi")]

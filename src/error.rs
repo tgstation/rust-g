@@ -22,8 +22,7 @@ pub enum Error {
     #[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ImageDecoding(#[cause] DecodingError),
-
-#[cfg(feature="png")]
+    #[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ImageEncoding(#[cause] EncodingError),
 }
