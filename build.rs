@@ -37,6 +37,14 @@ fn main() {
 "#).unwrap();
     }
 
+    // module: git
+    if enabled!("GIT") {
+        write!(f, r#"
+#define rustg_git_rev_parse(rev) call(RUST_G, "git_rev_parse")(rev)
+#define rustg_git_commit_date(rev) call(RUST_G, "git_commit_date")(rev)
+"#).unwrap();
+    }
+
     // module: hash
     if enabled!("HASH") {
         write!(f, r#"
