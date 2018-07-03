@@ -14,3 +14,4 @@ pub mod file;
 pub mod hash;
 pub mod log;
 pub mod url;
+pub mod html;
