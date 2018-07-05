@@ -11,8 +11,14 @@ this repo at your preference.
 
 The [Rust] compiler:
 
+1. Install the Rust compiler's dependencies (primarily the system linker):
+
+   * Ubuntu: `sudo apt-get install gcc-multilib`
+   * Windows (MSVC): [Build Tools for Visual Studio 2017][msvc]
+   * Windows (GNU): No action required
+
 1. Use [the Rust installer](https://rustup.rs/), or another Rust installation method,
-   or run this command:
+   or run the following:
 
     ```sh
     curl https://sh.rustup.rs -sSfo rustup-init.sh
@@ -36,7 +42,7 @@ OpenSSL (**Optional**, not required by the default configuration):
 * Ubuntu and Debian users run:
 
     ```sh
-    sudo apt-get install libssl-dev:i386 libssl1.0.0:i386 pkg-config gcc-multilib
+    sudo apt-get install libssl-dev:i386 pkg-config:i386
     ```
 
 * Other distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
@@ -81,9 +87,8 @@ Compiling will also create the file `target/rust_g.dm` which contains the DM API
 of the enabled modules. To use rust-g, copy-paste this file into your project.
 
 It is also possible to automatically override the built-in versions of the
-functions being replaced, though this ability is not well-tested. To enable
-this, create and include `rust_g.config.dm` in the same directory you placed
-`rust_g.dm`, with the contents:
+functions being replaced. To enable this, create and include `rust_g.config.dm`
+in the same directory you placed `rust_g.dm`, with the contents:
 
 ```dm
 #define RUSTG_OVERRIDE_BUILTINS
@@ -98,7 +103,7 @@ build, make sure you are using the 32-bit Rust compiler. Correct output for a
 
 ```sh
 $ file rust_g  # Linux
-ELF 32-bit LSB shared object, Intel 80386, version 1 (SYSV), dynamically linked, BuildID[sha1]=..., not stripped
+ELF 32-bit LSB shared object, Intel 80386, version 1 (SYSV), dynamically linked, BuildID[sha1]=..., with debug_info, not stripped
 
 $ file rust_g.dll  # Windows
 PE32 executable (DLL) (GUI) Intel 80386 (stripped to external PDB), for MS Windows
@@ -129,6 +134,7 @@ If you're still having problems, ask in [tgstation]'s IRC, `#coderbus` on Rizon.
 [Rust]: https://rust-lang.org
 [cargo]: https://doc.rust-lang.org/cargo/
 [rustup]: https://rustup.rs/
+[msvc]: https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15
 
 ## License
 
