@@ -15,7 +15,9 @@ The [Rust] compiler:
    or run this command:
 
     ```sh
-    curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable
+    curl https://sh.rustup.rs -sSfo rustup-init.sh
+    chmod +x rustup-init.sh
+    ./rustup-init.sh
     ```
 
 1. Set the default compiler to **32-bit**:
