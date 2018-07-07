@@ -11,9 +11,17 @@ opt-level = 3
 lto = true
 
 [dependencies]
-chrono = "0.4"
-crypto-hash = "0.3"
 failure = "0.1"
-hex = "0.3"
-percent-encoding = "1.0"
-png = "0.11.0"
+chrono = { version = "0.4", optional = true }
+crypto-hash = { version = "0.3", optional = true }
+hex = { version = "0.3", optional = true }
+percent-encoding = { version = "1.0", optional = true }
+png = { version = "0.11.0", optional = true }
+
+[features]
+default = ["dmi", "log"]
+dmi = ["png"]
+file = []
+hash = ["crypto-hash", "hex"]
+log = ["chrono"]
+url = ["percent-encoding"]
