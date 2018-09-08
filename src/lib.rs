@@ -5,6 +5,8 @@ extern crate failure;
 extern crate chrono;
 #[cfg(feature="crypto-hash")]
 extern crate crypto_hash;
+#[cfg(feature="git2")]
+extern crate git2;
 #[cfg(feature="hex")]
 extern crate hex;
 #[cfg(feature="percent-encoding")]
@@ -21,6 +23,8 @@ mod error;
 pub mod dmi;
 #[cfg(feature="file")]
 pub mod file;
+#[cfg(feature="git")]
+pub mod git;
 #[cfg(feature="hash")]
 pub mod hash;
 #[cfg(feature="log")]

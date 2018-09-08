@@ -17,11 +17,13 @@ crypto-hash = { version = "0.3", optional = true }
 hex = { version = "0.3", optional = true }
 percent-encoding = { version = "1.0", optional = true }
 png = { version = "0.11.0", optional = true }
+git2 = { version = "0.7.1", optional = true, default-features = false }
 
 [features]
-default = ["dmi", "log"]
+default = ["dmi", "log", "git"]
 dmi = ["png"]
 file = []
 hash = ["crypto-hash", "hex"]
 log = ["chrono"]
 url = ["percent-encoding"]
+git = ["git2", "chrono"]
