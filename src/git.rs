@@ -5,7 +5,7 @@ thread_local! {
     static REPOSITORY: Result<Repository, Error> = Repository::open(".");
 }
 
-byond_fn! { git_rev_parse(rev) {
+byond_fn! { rg_git_revparse(rev) {
     REPOSITORY.with(|repo| -> Result<String, ErrorCode> {
         let repo = repo.as_ref().map_err(Error::code)?;
         let object = repo.revparse_single(rev).map_err(|e| e.code())?;
@@ -13,7 +13,7 @@ byond_fn! { git_rev_parse(rev) {
     }).ok()
 } }
 
-byond_fn! { git_commit_date(rev) {
+byond_fn! { rg_git_commit_date(rev) {
     REPOSITORY.with(|repo| -> Result<String, ErrorCode> {
         let repo = repo.as_ref().map_err(Error::code)?;
         let object = repo.revparse_single(rev).map_err(|e| e.code())?;

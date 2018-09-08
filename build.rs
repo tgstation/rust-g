@@ -40,8 +40,8 @@ fn main() {
     // module: git
     if enabled!("GIT") {
         write!(f, r#"
-#define rustg_git_rev_parse(rev) call(RUST_G, "git_rev_parse")(rev)
-#define rustg_git_commit_date(rev) call(RUST_G, "git_commit_date")(rev)
+#define rustg_git_revparse(rev) call(RUST_G, "rg_git_revparse")(rev)
+#define rustg_git_commit_date(rev) call(RUST_G, "rg_git_commit_date")(rev)
 "#).unwrap();
     }
 
