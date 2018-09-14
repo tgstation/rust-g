@@ -2,6 +2,9 @@
 name = "rust-g"
 version = "0.4.0"
 authors = ["Bjorn Neergaard <bjorn@neersighted.com>"]
+repository = "https://github.com/tgstation/rust-g"
+license-file = "LICENSE"
+description = "Offloaded task library for the /tg/ Space Station 13 codebase"
 
 [lib]
 crate-type = ["lib", "cdylib"]
