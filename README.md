@@ -109,6 +109,8 @@ $ file rust_g.dll  # Windows
 PE32 executable (DLL) (GUI) Intel 80386 (stripped to external PDB), for MS Windows
 ```
 
+### Linux
+
 On Linux systems where the `hash` module is in use, `ldd` can be used to check
 that the OpenSSL runtime libraries are installed, without which BYOND will fail
 to load rust-g. Use the `ldd` command to check that the dependencies are being
@@ -126,6 +128,35 @@ $ ldd rust_g  # Linux
         libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf728b000)
         /lib/ld-linux.so.2 (0x5657d000)
         libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf7236000)
+```
+
+If BYOND cannot find the shared library, ensure that the directory containing
+it is included in the `LD_LIBRARY_PATH` environment variable:
+
+```sh
+$ export LD_LIBRARY_PATH=/path/to/tgstation
+```
+
+To examine what locations BYOND is searching for the shared library, use
+`strace`:
+
+```sh
+$ strace DreamDaemon tgstation.dmb 45000 -trusted -logself 2>&1 | grep 'rust_g'
+# Early in output, the file will be listed when BYOND examines every file it can see:
+open("rust_g", O_RDONLY|O_NONBLOCK|O_LARGEFILE|O_DIRECTORY|O_CLOEXEC) = -1 ENOTDIR (Not a directory)
+# BYOND will then search some common directories...
+stat64("/home/game/.byond/bin/rust_g", 0xffef1110) = -1 ENOENT (No such file or directory)
+stat64("/home/game/.byond/bin/rust_g", 0xffef1190) = -1 ENOENT (No such file or directory)
+# Then anywhere in LD_LIBRARY_PATH...
+open("/home/game/work/ss13/byond/bin/rust_g", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+# Then in several interesting places where ld-linux looks...
+open("tls/i686/sse2/cmov/rust_g", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+    ... snip ...
+open("cmov/rust_g", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+# Until finding the library fails or succeeds (a value other than -1 indicates success):
+open("rust_g", O_RDONLY|O_CLOEXEC)      = 4
+# After that it goes back to the scanning from startup.
+open("rust_g", O_RDONLY|O_NONBLOCK|O_LARGEFILE|O_DIRECTORY|O_CLOEXEC) = -1 ENOTDIR (Not a directory)
 ```
 
 If you're still having problems, ask in [tgstation]'s IRC, `#coderbus` on Rizon.
