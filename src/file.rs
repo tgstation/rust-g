@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::{Read, Write};
 
 use error::Result;
@@ -22,7 +23,7 @@ fn read(path: &str) -> Result<String> {
 }
 
 fn write(data: &str, path: &str) -> Result<usize> {
-    let mut file = File::create(path)?;
+    let file = OpenOptions::new().append(true).create(true).open(path)?;
 
     Ok(file.write(data.as_bytes())?)
 }
