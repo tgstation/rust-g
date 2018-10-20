@@ -33,7 +33,7 @@ fn write(data: &str, path: &str) -> Result<usize> {
 }
 
 fn append(data: &str, path: &str) -> Result<usize> {
-    let file = OpenOptions::new().append(true).create(true).open(path)?;
+    let mut file = OpenOptions::new().append(true).create(true).open(path)?;
 
     Ok(file.write(data.as_bytes())?)
 }
