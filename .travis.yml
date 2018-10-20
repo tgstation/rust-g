@@ -1,5 +1,11 @@
 language: rust
 cache: cargo
+matrix:
+  include:
+  - name: "Default Features"
+    env: CARGO_FLAGS=
+  - name: "All Features"
+    env: CARGO_FLAGS=--all-features
 script:
-  - cargo build --verbose --all --release
-  - cargo test --verbose --all --release
+  - cargo build --verbose --all --release $CARGO_FLAGS
+  - cargo test --verbose --all --release $CARGO_FLAGS
