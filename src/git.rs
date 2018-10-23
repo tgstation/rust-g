@@ -41,7 +41,7 @@ byond_fn! { get_repository_at_reference_start(repo_path, repo_url, rev) {
         //fetch origin
         repo.fetch();  //on error, return the message
     }
-    repo.checkout(rev);   //on error, return the message
+    repo.checkout("origin/" + rev);   //on error, return the message
     return "SUCCESS";
 } }
 
