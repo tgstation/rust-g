@@ -18,6 +18,7 @@ extern crate png;
 mod byond;
 #[allow(dead_code)]
 mod error;
+mod jobs;
 
 #[cfg(feature="dmi")]
 pub mod dmi;

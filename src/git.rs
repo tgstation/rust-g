@@ -1,6 +1,7 @@
 use git2::{Repository, Error, ErrorCode};
 use chrono::{Utc, TimeZone};
-use std::fs;
+
+use jobs;
 
 thread_local! {
     static REPOSITORY: Result<Repository, Error> = Repository::open(".");
@@ -24,27 +25,34 @@ byond_fn! { rg_git_commit_date(rev) {
     }).ok()
 } }
 
-//ideally this shouldn't block BYOND somehow, probably by returning a job id or some shit
-//i'm having a time getting into rust
-//help fixing this is needful
-byond_fn! { get_repository_at_reference_start(repo_path, repo_url, rev) {
+// Repository download
+fn get_repository_at_reference(repo_path: &str, repo_url: &str, revision: &str) -> Result<(), Error> {
+    let repo = match Repository::open(repo_path) {
+        Ok(r) => r,
+        Err(_) => Repository::clone(repo_url, repo_path).unwrap(),
+    };
+    repo.find_remote("origin")?.fetch(&[], None, None).unwrap();
+    let obj = repo.revparse_single(revision)?;
+    repo.reset(&obj, ::git2::ResetType::Hard, None)?;
+    Ok(())
+}
 
-    let mut repo = Repository::open(repo_path);
+byond_fn! { rg_get_repository(repo_path, repo_url, rev) {
+    let repo_path = repo_path.to_owned();
+    let repo_url = repo_url.to_owned();
+    let mut rev = rev.to_owned();
+    Some(jobs::start(move || {
+        if rev.is_empty() {
+            // default
+            rev = "FETCH_HEAD".into();
+        }
+        match get_repository_at_reference(&repo_path, &repo_url, &rev) {
+            Ok(()) => "OK".to_owned(),
+            Err(e) => e.to_string(),
+        }
+    }))
+}}
 
-    if(error)
-    {
-        //delete the shitty repo if it exists
-        fs::remove_dir_all(repo_path);  //on error, return the message
-
-        repo = Repository::clone(repo_url, repo_path);   //on error, return the message
-    }else{
-        //fetch origin
-        repo.fetch();  //on error, return the message
-    }
-    repo.checkout("origin/" + rev);   //on error, return the message
-    return "SUCCESS";
-} }
-
-byond_fn! { get_repository_at_reference_start(job_id) {
-    return get_result_from_job_id_or_null_if_still_running(job_id);
-} }
+byond_fn! { rg_get_repository_job_check(job_id) {
+    Some(jobs::check(job_id))
+}}
