@@ -32,7 +32,7 @@ byond_fn! { log_write(path, data) {
 
         // write remaining lines
         for line in iter {
-            write!(file, " - {}\n", line);
+            write!(file, " - {}\n", line)?;
         }
 
         Ok(())
