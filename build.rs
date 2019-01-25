@@ -43,6 +43,13 @@ fn main() {
         write!(f, r#"
 #define rustg_git_revparse(rev) call(RUST_G, "rg_git_revparse")(rev)
 #define rustg_git_commit_date(rev) call(RUST_G, "rg_git_commit_date")(rev)
+#define rustg_get_repository(path, url, rev) call(RUST_G, "rg_get_repository")(path, url, rev)
+
+#define RUSTG_JOB_NO_RESULTS_YET "NO_RESULTS_YET"
+#define RUSTG_JOB_NO_SUCH_JOB "NO_SUCH_JOB"
+#define RUSTG_JOB_ERROR "JOB_PANICKED"
+
+#define rustg_job_check(job_id) call(RUST_G, "rg_get_repository_job_check")(job_id)
 "#).unwrap();
     }
 

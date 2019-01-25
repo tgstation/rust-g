@@ -12,7 +12,7 @@ struct Job {
 type Output = String;
 type JobId = String;
 
-const NO_RESULTS_YET: &str = "";
+const NO_RESULTS_YET: &str = "NO RESULTS YET";
 const NO_SUCH_JOB: &str = "NO SUCH JOB";
 const JOB_PANICKED: &str = "JOB PANICKED";
 
