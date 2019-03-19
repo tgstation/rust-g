@@ -5,7 +5,9 @@ tasks from BYOND.
 
 This library is currently used in the [tgstation] codebase, and is required for it to run.
 A pre-compiled DLL version can be found in the repo root, but you can build your own from
-this repo at your preference.
+this repo at your preference. Builds can also be found on the [releases page].
+
+[releases page]: https://github.com/tgstation/rust-g/releases
 
 ## Dependencies
 
