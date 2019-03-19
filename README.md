@@ -37,6 +37,16 @@ The [Rust] compiler:
     rustup override add stable-i686-pc-windows-msvc
     ```
 
+System libraries:
+
+* Ubuntu and Debian users run:
+
+    ```sh
+    sudo apt-get install zlib1g-dev:i386
+    ```
+
+* Other distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
+
 OpenSSL (**Optional**, not required by the default configuration):
 
 * Ubuntu and Debian users run:
