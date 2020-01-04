@@ -14,7 +14,7 @@ thread_local! {
     static FILE_MAP: RefCell<HashMap<OsString, File>> = RefCell::new(HashMap::new());
 }
 
-byond_fn! { log_write(path, data) {
+byond_fn! { log_write(path, data, format) {
     FILE_MAP.with(|cell| -> Result<()> {
         // open file
         let mut map = cell.borrow_mut();
@@ -24,15 +24,20 @@ byond_fn! { log_write(path, data) {
             Entry::Vacant(elem) => elem.insert(open(path)?),
         };
 
-        // write first line, timestamped
-        let mut iter = data.split('\n');
-        if let Some(line) = iter.next() {
-            write!(file, "[{}] {}\n", Utc::now().format("%F %T%.3f"), line)?;
-        }
+        let format_bool: bool = format.parse().unwrap();
+        if format_bool {
+            // write first line, timestamped
+            let mut iter = data.split('\n');
+            if let Some(line) = iter.next() {
+                write!(file, "[{}] {}\n", Utc::now().format("%F %T%.3f"), line)?;
+            }
 
-        // write remaining lines
-        for line in iter {
-            write!(file, " - {}\n", line)?;
+            // write remaining lines
+            for line in iter {
+                write!(file, " - {}\n", line)?;
+            }
+        } else {
+            write!(file, "{}", data)?;
         }
 
         Ok(())
