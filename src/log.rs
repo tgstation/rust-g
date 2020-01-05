@@ -24,7 +24,7 @@ byond_fn! { log_write(path, data, format) {
             Entry::Vacant(elem) => elem.insert(open(path)?),
         };
 
-        let format_bool: bool = format.parse().unwrap();
+        if let Some(format_bool) = format.parse() {
         if format_bool {
             // write first line, timestamped
             let mut iter = data.split('\n');
