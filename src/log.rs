@@ -25,19 +25,21 @@ byond_fn! { log_write(path, data, format) {
         };
 
         if let Some(format_bool) = format.parse() {
-        if format_bool {
-            // write first line, timestamped
-            let mut iter = data.split('\n');
-            if let Some(line) = iter.next() {
-                write!(file, "[{}] {}\n", Utc::now().format("%F %T%.3f"), line)?;
-            }
+            if format_bool {
+                // write first line, timestamped
+                let mut iter = data.split('\n');
+                if let Some(line) = iter.next() {
+                    write!(file, "[{}] {}\n", Utc::now().format("%F %T%.3f"), line)?;
+                }
 
-            // write remaining lines
-            for line in iter {
-                write!(file, " - {}\n", line)?;
+                // write remaining lines
+                for line in iter {
+                    write!(file, " - {}\n", line)?;
+                }
+            } else {
+                //Format turns data into a string literal
+                write!(file, "{}", data)?;
             }
-        } else {
-            write!(file, "{}", data)?;
         }
 
         Ok(())
