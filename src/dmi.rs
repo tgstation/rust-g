@@ -1,5 +1,4 @@
 use std::fs::File;
-
 use png::{Decoder, Encoder, HasParameters, OutputInfo};
 
 use error::Result;
@@ -7,6 +6,10 @@ use error::Result;
 byond_fn! { dmi_strip_metadata(path) {
     strip_metadata(path).err()
 } }
+
+byond_fn! { dmi_create_png(path, width, height , data) {
+    create_png(path, width, height , data).err()
+}}
 
 fn strip_metadata(path: &str) -> Result<()> {
     let (info, image) = read_png(path)?;
@@ -27,4 +30,26 @@ fn write_png(path: &str, info: OutputInfo, image: Vec<u8>) -> Result<()> {
 
     let mut writer = encoder.write_header()?;
     Ok(writer.write_image_data(&image)?)
+}
+
+fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {  
+    let width = u32::from_str_radix(width,10)?;
+    let height = u32::from_str_radix(height,10)?;
+    
+    let mut result : Vec<u8> = Vec::new();
+    for chunk in data.chars().collect::<Vec<char>>().chunks(7) {
+        let single: String = chunk.into_iter().collect();
+        let r = u8::from_str_radix(&single[1..3], 16)?;
+        let g = u8::from_str_radix(&single[3..5], 16)?;
+        let b = u8::from_str_radix(&single[5..7], 16)?;
+        result.push(r);
+        result.push(g);
+        result.push(b);
+    }
+
+    let mut encoder = Encoder::new(File::create(path)?, width, height);
+    encoder.set(png::ColorType::RGB);
+    encoder.set(png::BitDepth::Eight);
+    let mut writer = encoder.write_header()?;
+    Ok(writer.write_image_data(&result)?)
 }

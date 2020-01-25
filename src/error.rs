@@ -1,6 +1,7 @@
 use std::io;
 use std::result;
 use std::str::Utf8Error;
+use std::num::ParseIntError;
 
 #[cfg(feature="png")]
 use png::{DecodingError, EncodingError};
@@ -25,6 +26,9 @@ pub enum Error {
     #[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ImageEncoding(#[cause] EncodingError),
+    #[cfg(feature="png")]
+    #[fail(display = "{}", _0)]
+    ParseIntError(#[cause] ParseIntError),
 }
 
 impl From<io::Error> for Error {
@@ -50,6 +54,13 @@ impl From<DecodingError> for Error {
 impl From<EncodingError> for Error {
     fn from(error: EncodingError) -> Error {
         Error::ImageEncoding(error)
+    }
+}
+
+#[cfg(feature="png")]
+impl From<ParseIntError> for Error {
+    fn from(error: ParseIntError) -> Error {
+        Error::ParseIntError(error)
     }
 }
 
