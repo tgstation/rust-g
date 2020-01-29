@@ -37,8 +37,9 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     let height = u32::from_str_radix(height,10)?;
     
     let mut result : Vec<u8> = Vec::new();
-    for chunk in data.chars().collect::<Vec<char>>().chunks(7) {
-        let single: String = chunk.into_iter().collect();
+    let mut str_iter = data.chars().peekable();
+    while str_iter.peek().is_some(){
+        let single: String = str_iter.by_ref().take(7).collect();
         let r = u8::from_str_radix(&single[1..3], 16)?;
         let g = u8::from_str_radix(&single[3..5], 16)?;
         let b = u8::from_str_radix(&single[5..7], 16)?;
