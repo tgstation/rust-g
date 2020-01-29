@@ -1,7 +1,7 @@
 use std::fs::File;
 use png::{Decoder, Encoder, HasParameters, OutputInfo};
 
-use error::Result;
+use error::{Result, Error};
 
 byond_fn! { dmi_strip_metadata(path) {
     strip_metadata(path).err()
@@ -35,11 +35,14 @@ fn write_png(path: &str, info: OutputInfo, image: Vec<u8>) -> Result<()> {
 fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {  
     let width = u32::from_str_radix(width,10)?;
     let height = u32::from_str_radix(height,10)?;
-    
+
     let mut result : Vec<u8> = Vec::new();
     let mut str_iter = data.chars().peekable();
     while str_iter.peek().is_some(){
         let single: String = str_iter.by_ref().take(7).collect();
+        if single.chars().count() != 7{
+            return Err(Error::InvalidPngDataError);
+        }
         let r = u8::from_str_radix(&single[1..3], 16)?;
         let g = u8::from_str_radix(&single[3..5], 16)?;
         let b = u8::from_str_radix(&single[5..7], 16)?;

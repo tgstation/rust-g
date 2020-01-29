@@ -29,6 +29,9 @@ pub enum Error {
     #[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ParseIntError(#[cause] ParseIntError),
+    #[cfg(feature="png")]
+    #[fail(display = "Invalid png data.")]
+    InvalidPngDataError,
 }
 
 impl From<io::Error> for Error {
