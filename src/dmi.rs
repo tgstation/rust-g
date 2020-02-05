@@ -7,9 +7,9 @@ byond_fn! { dmi_strip_metadata(path) {
     strip_metadata(path).err()
 } }
 
-byond_fn! { dmi_create_png(path, width, height , data) {
+byond_fn! { dmi_create_png(path, width, height, data) {
     create_png(path, width, height , data).err()
-}}
+} }
 
 fn strip_metadata(path: &str) -> Result<()> {
     let (info, image) = read_png(path)?;
@@ -32,24 +32,20 @@ fn write_png(path: &str, info: OutputInfo, image: Vec<u8>) -> Result<()> {
     Ok(writer.write_image_data(&image)?)
 }
 
-fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {  
-    let width = u32::from_str_radix(width,10)?;
-    let height = u32::from_str_radix(height,10)?;
-    
-    if data.chars().count() % 7 != 0 {
+fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
+    let width = u32::from_str_radix(width, 10)?;
+    let height = u32::from_str_radix(height, 10)?;
+
+    let bytes = data.as_bytes();
+    if bytes.len() % 7 != 0 {
         return Err(Error::InvalidPngDataError);
     }
-    
-    let mut result : Vec<u8> = Vec::new();
-    let mut str_iter = data.chars().peekable();
-    while str_iter.peek().is_some(){
-        let single: String = str_iter.by_ref().take(7).collect();
-        let r = u8::from_str_radix(&single[1..3], 16)?;
-        let g = u8::from_str_radix(&single[3..5], 16)?;
-        let b = u8::from_str_radix(&single[5..7], 16)?;
-        result.push(r);
-        result.push(g);
-        result.push(b);
+
+    let mut result: Vec<u8> = Vec::new();
+    for pixel in bytes.chunks_exact(7) {
+        for channel in pixel[1..].chunks_exact(2) {
+            result.push(u8::from_str_radix(std::str::from_utf8(channel)?, 16)?);
+        }
     }
 
     let mut encoder = Encoder::new(File::create(path)?, width, height);
