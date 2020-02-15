@@ -1,4 +1,5 @@
-use std::fs::File;
+use std::fs::{File, create_dir_all};
+use std::path::Path;
 use png::{Decoder, Encoder, HasParameters, OutputInfo};
 
 use error::{Result, Error};
@@ -45,6 +46,12 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     for pixel in bytes.chunks_exact(7) {
         for channel in pixel[1..].chunks_exact(2) {
             result.push(u8::from_str_radix(std::str::from_utf8(channel)?, 16)?);
+        }
+    }
+
+    if let Some(fdir) = Path::new(path).parent() {
+        if !fdir.is_dir() {
+            create_dir_all(fdir)?;
         }
     }
 
