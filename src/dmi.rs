@@ -50,10 +50,10 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     }
 
     if let Some(fdir) = Path::new(path).parent() {
-        if !fdir.is_dir(){
+        if !fdir.is_dir() {
             create_dir_all(fdir)?;
         }
-    };
+    }
 
     let mut encoder = Encoder::new(File::create(path)?, width, height);
     encoder.set(png::ColorType::RGB);
