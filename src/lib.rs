@@ -43,4 +43,4 @@ pub mod log;
 #[cfg(feature="url")]
 pub mod url;
 #[cfg(feature="http")]
-pub mod http; 
+pub mod http;
