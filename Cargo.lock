@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "rust-g"
-version = "0.4.3"
+version = "0.4.4"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "crypto-hash 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
