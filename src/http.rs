@@ -74,27 +74,6 @@ lazy_static! {
 // ----------------------------------------------------------------------------
 // Request construction and execution
 
-fn sanitize_args(method: &str, url: &str, body: &str, headers: &str) -> (String, String, Option<String>, Option<String>) {
-    let method = method.to_string();
-    let url = url.to_string();
-
-    let body = body.to_string();
-    let body = if !body.is_empty() {
-        Some(body)
-    } else {
-        None
-    };
-
-    let headers = headers.to_string();
-    let headers = if !headers.is_empty() {
-        Some(headers)
-    } else {
-        None
-    };
-
-    (method, url, body, headers)
-}
-
 fn create_response(response: &mut reqwest::Response) -> Result<Response> {
     let mut resp = Response {
         status_code: response.status().as_u16(),
@@ -112,23 +91,21 @@ fn create_response(response: &mut reqwest::Response) -> Result<Response> {
 }
 
 fn construct_request(method: &str, url: &str, body: &str, headers: &str) -> Result<reqwest::RequestBuilder> {
-    let (method, url, body, headers) = sanitize_args(&method, &url, &body, &headers);
-
-    let mut req = match &method[..] {
-        "post" => HTTP_CLIENT.post(&url),
-        "put" => HTTP_CLIENT.put(&url),
-        "patch" => HTTP_CLIENT.patch(&url),
-        "delete" => HTTP_CLIENT.delete(&url),
-        "head" => HTTP_CLIENT.head(&url),
-        _ => HTTP_CLIENT.get(&url),
+    let mut req = match method {
+        "post" => HTTP_CLIENT.post(url),
+        "put" => HTTP_CLIENT.put(url),
+        "patch" => HTTP_CLIENT.patch(url),
+        "delete" => HTTP_CLIENT.delete(url),
+        "head" => HTTP_CLIENT.head(url),
+        _ => HTTP_CLIENT.get(url),
     };
 
-    if let Some(body) = body {
-        req = req.body(body);
+    if !body.is_empty() {
+        req = req.body(body.to_owned());
     }
 
-    if let Some(headers) = headers {
-        let headers: BTreeMap<&str, &str> = serde_json::from_str(&headers)?;
+    if !headers.is_empty() {
+        let headers: BTreeMap<&str, &str> = serde_json::from_str(headers)?;
         for (key, value) in headers {
             req = req.header(key, value);
         }
