@@ -15,6 +15,10 @@ fn main() {
     // header
     write!(f, r#"// rust_g.dm - DM API for rust_g extension library
 #define RUST_G "rust_g"
+
+#define RUSTG_JOB_NO_RESULTS_YET "NO RESULTS YET"
+#define RUSTG_JOB_NO_SUCH_JOB "NO SUCH JOB"
+#define RUSTG_JOB_ERROR "JOB PANICKED"
 "#).unwrap();
 
     // module: dmi
@@ -84,4 +88,19 @@ fn main() {
 #endif
 "#).unwrap();
     }
+
+    // module: http
+    if enabled!("HTTP") {
+        write!(f, r#"
+#define RUSTG_HTTP_METHOD_GET "get"
+#define RUSTG_HTTP_METHOD_PUT "put"
+#define RUSTG_HTTP_METHOD_DELETE "delete"
+#define RUSTG_HTTP_METHOD_PATCH "patch"
+#define RUSTG_HTTP_METHOD_HEAD "head"
+#define RUSTG_HTTP_METHOD_POST "post"
+#define rustg_http_request_blocking(method, url, body, headers) call(RUST_G, "http_request_blocking")(method, url, body, headers)
+#define rustg_http_request_async(method, url, body, headers) call(RUST_G, "http_request_async")(method, url, body, headers)
+#define rustg_http_check_request(req_id) call(RUST_G, "http_check_request")(req_id)
+"#).unwrap();
+    }    
 }

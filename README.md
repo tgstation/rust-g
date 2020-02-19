@@ -78,7 +78,7 @@ On Windows, the output will be `target/release/rust_g.dll`.
 For more advanced configuration, a list of modules may be passed:
 
 ```sh
-cargo build --release --features dmi,file,log,url
+cargo build --release --features dmi,file,log,url,http
 ```
 
 * **dmi** (default): DMI manipulations which are impossible from within BYOND.
@@ -87,6 +87,7 @@ cargo build --release --features dmi,file,log,url
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 * **log** (default): Faster log output.
 * url: Faster replacements for `url_encode` and `url_decode`.
+* http: HTTP client to allow `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and `HEAD`. 
 
 ## Installing
 
