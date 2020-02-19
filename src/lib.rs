@@ -13,6 +13,16 @@ extern crate hex;
 extern crate percent_encoding;
 #[cfg(feature="png")]
 extern crate png;
+#[cfg(feature="http")]
+extern crate reqwest;
+#[cfg(feature="http")]
+#[macro_use]
+extern crate serde_derive;
+#[cfg(feature="http")]
+extern crate serde_json;
+#[cfg(feature="http")]
+#[macro_use]
+extern crate lazy_static;
 
 #[macro_use]
 mod byond;
@@ -32,3 +42,5 @@ pub mod hash;
 pub mod log;
 #[cfg(feature="url")]
 pub mod url;
+#[cfg(feature="http")]
+pub mod http;

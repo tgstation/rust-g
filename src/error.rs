@@ -1,6 +1,7 @@
 use std::io;
 use std::result;
 use std::str::Utf8Error;
+use std::num::ParseIntError;
 
 #[cfg(feature="png")]
 use png::{DecodingError, EncodingError};
@@ -25,6 +26,18 @@ pub enum Error {
     #[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ImageEncoding(#[cause] EncodingError),
+    #[cfg(feature="png")]
+    #[fail(display = "{}", _0)]
+    ParseIntError(#[cause] ParseIntError),
+    #[cfg(feature="png")]
+    #[fail(display = "Invalid png data.")]
+    InvalidPngDataError,
+    #[cfg(feature="http")]
+    #[fail(display = "{}", _0)]
+    RequestError(#[cause] reqwest::Error),
+    #[cfg(feature="http")]
+    #[fail(display = "{}", _0)]
+    SerializationError(#[cause] serde_json::Error),
 }
 
 impl From<io::Error> for Error {
@@ -50,6 +63,27 @@ impl From<DecodingError> for Error {
 impl From<EncodingError> for Error {
     fn from(error: EncodingError) -> Error {
         Error::ImageEncoding(error)
+    }
+}
+
+#[cfg(feature="png")]
+impl From<ParseIntError> for Error {
+    fn from(error: ParseIntError) -> Error {
+        Error::ParseIntError(error)
+    }
+}
+
+#[cfg(feature="http")]
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Error {
+        Error::RequestError(error)
+    }
+}
+
+#[cfg(feature="http")]
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Error {
+        Error::SerializationError(error)
     }
 }
 

@@ -5,7 +5,9 @@ tasks from BYOND.
 
 This library is currently used in the [tgstation] codebase, and is required for it to run.
 A pre-compiled DLL version can be found in the repo root, but you can build your own from
-this repo at your preference.
+this repo at your preference. Builds can also be found on the [releases page].
+
+[releases page]: https://github.com/tgstation/rust-g/releases
 
 ## Dependencies
 
@@ -37,6 +39,16 @@ The [Rust] compiler:
     rustup override add stable-i686-pc-windows-msvc
     ```
 
+System libraries:
+
+* Ubuntu and Debian users run:
+
+    ```sh
+    sudo apt-get install zlib1g-dev:i386
+    ```
+
+* Other distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
+
 OpenSSL (**Optional**, not required by the default configuration):
 
 * Ubuntu and Debian users run:
@@ -66,7 +78,7 @@ On Windows, the output will be `target/release/rust_g.dll`.
 For more advanced configuration, a list of modules may be passed:
 
 ```sh
-cargo build --release --features dmi,file,log,url
+cargo build --release --features dmi,file,log,url,http
 ```
 
 * **dmi** (default): DMI manipulations which are impossible from within BYOND.
@@ -75,6 +87,7 @@ cargo build --release --features dmi,file,log,url
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 * **log** (default): Faster log output.
 * url: Faster replacements for `url_encode` and `url_decode`.
+* http: HTTP client to allow `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and `HEAD`. 
 
 ## Installing
 
