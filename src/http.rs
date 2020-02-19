@@ -4,24 +4,8 @@ use std::collections::BTreeMap;
 use error::Result;
 use jobs;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-const PKG_NAME: &str = env!("CARGO_PKG_NAME");
-
-fn setup_http_client() -> reqwest::Client {
-    use reqwest::{ Client, header::{ HeaderMap, USER_AGENT } };
-
-    let mut headers = HeaderMap::new();
-    headers.insert(USER_AGENT, format!("{}/{}", PKG_NAME, VERSION).parse().unwrap());
-
-    Client::builder()
-            .default_headers(headers)
-            .build()
-            .unwrap()
-}
-
-lazy_static! {
-    static ref HTTP_CLIENT: reqwest::Client = setup_http_client();
-}
+// ----------------------------------------------------------------------------
+// Interface
 
 #[derive(Serialize)]
 struct Response {
@@ -68,6 +52,31 @@ byond_fn! { http_request_async(method, url, body, headers) {
 byond_fn! { http_check_request(id) {
     Some(jobs::check(id))
 } }
+
+// ----------------------------------------------------------------------------
+// Shared HTTP client state
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+
+fn setup_http_client() -> reqwest::Client {
+    use reqwest::{ Client, header::{ HeaderMap, USER_AGENT } };
+
+    let mut headers = HeaderMap::new();
+    headers.insert(USER_AGENT, format!("{}/{}", PKG_NAME, VERSION).parse().unwrap());
+
+    Client::builder()
+        .default_headers(headers)
+        .build()
+        .unwrap()
+}
+
+lazy_static! {
+    static ref HTTP_CLIENT: reqwest::Client = setup_http_client();
+}
+
+// ----------------------------------------------------------------------------
+// Request construction and execution
 
 fn sanitize_args(method: &str, url: &str, body: &str, headers: &str) -> (String, String, Option<String>, Option<String>) {
     let method = method.to_string();
