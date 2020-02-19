@@ -8,10 +8,10 @@ use jobs;
 // Interface
 
 #[derive(Serialize)]
-struct Response {
+struct Response<'a> {
     status_code: u16,
-    headers: HashMap<String, String>,
-    body: String
+    headers: HashMap<&'a str, &'a str>,
+    body: &'a str,
 }
 
 // If the response can be deserialized -> success.
@@ -74,22 +74,6 @@ lazy_static! {
 // ----------------------------------------------------------------------------
 // Request construction and execution
 
-fn create_response(response: &mut reqwest::Response) -> Result<Response> {
-    let mut resp = Response {
-        status_code: response.status().as_u16(),
-        headers: HashMap::new(),
-        body: response.text()?
-    };
-
-    for (key, value) in response.headers().iter() {
-        if let Ok(value) = value.to_str() {
-            resp.headers.insert(key.to_string(), value.to_string());
-        }
-    }
-
-    Ok(resp)
-}
-
 fn construct_request(method: &str, url: &str, body: &str, headers: &str) -> Result<reqwest::RequestBuilder> {
     let mut req = match method {
         "post" => HTTP_CLIENT.post(url),
@@ -117,9 +101,19 @@ fn construct_request(method: &str, url: &str, body: &str, headers: &str) -> Resu
 fn submit_request(req: reqwest::RequestBuilder) -> Result<String> {
     let mut response = req.send()?;
 
-    let res = create_response(&mut response)?;
+    let body = response.text()?;
 
-    let deserialized = serde_json::to_string(&res)?;
+    let mut resp = Response {
+        status_code: response.status().as_u16(),
+        headers: HashMap::new(),
+        body: &body,
+    };
 
-    Ok(deserialized)
+    for (key, value) in response.headers().iter() {
+        if let Ok(value) = value.to_str() {
+            resp.headers.insert(key.as_str(), value);
+        }
+    }
+
+    Ok(serde_json::to_string(&resp)?)
 }
