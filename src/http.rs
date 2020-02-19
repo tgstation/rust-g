@@ -17,8 +17,6 @@ struct Response {
 // If the response can be deserialized -> success.
 // If the response can't be deserialized -> failure.
 byond_fn! { http_request_blocking(method, url, body, headers) {
-    let (method, url, body, headers) = sanitize_args(&method, &url, &body, &headers);
-
     let req = match construct_request(method, url, body, headers) {
         Ok(r) => r,
         Err(e) => return Some(e.to_string())
@@ -32,8 +30,6 @@ byond_fn! { http_request_blocking(method, url, body, headers) {
 
 // Returns new job-id.
 byond_fn! { http_request_async(method, url, body, headers) {
-    let (method, url, body, headers) = sanitize_args(&method, &url, &body, &headers);
-
     let req = match construct_request(method, url, body, headers) {
         Ok(r) => r,
         Err(e) => return Some(e.to_string())
@@ -115,7 +111,9 @@ fn create_response(response: &mut reqwest::Response) -> Result<Response> {
     Ok(resp)
 }
 
-fn construct_request(method: String, url: String, body: Option<String>, headers: Option<String>) -> Result<reqwest::RequestBuilder> {
+fn construct_request(method: &str, url: &str, body: &str, headers: &str) -> Result<reqwest::RequestBuilder> {
+    let (method, url, body, headers) = sanitize_args(&method, &url, &body, &headers);
+
     let mut req = match &method[..] {
         "post" => HTTP_CLIENT.post(&url),
         "put" => HTTP_CLIENT.put(&url),
