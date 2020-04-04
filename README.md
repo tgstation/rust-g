@@ -31,6 +31,8 @@ The [Rust] compiler:
 1. Set the default compiler to **32-bit**:
 
     ```sh
+    # Clone the `rust-g` repository to a directory of your choice
+    git clone https://github.com/tgstation/rust-g.git
     # in the `rust-g` directory...
     cd rust-g
     # Linux
