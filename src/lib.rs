@@ -23,6 +23,8 @@ extern crate serde_json;
 #[cfg(feature="http")]
 #[macro_use]
 extern crate lazy_static;
+#[cfg(feature="sql")]
+extern crate mysql;
 
 #[macro_use]
 mod byond;
@@ -44,3 +46,5 @@ pub mod log;
 pub mod url;
 #[cfg(feature="http")]
 pub mod http;
+#[cfg(feature="sql")]
+pub mod sql;
