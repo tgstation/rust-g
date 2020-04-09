@@ -53,6 +53,10 @@ byond_fn! { sql_connect_pool(host, port, user, pass, db, timeout, min_threads, m
     }
 } }
 
+// TODO: sql_disconnect_pool. 
+// Will probably need to re-work the jobs system slightly, 
+// so we can wait for all queries to finish before we yank the cord
+
 byond_fn! { sql_connected() {
     Some(match POOL.lock() {
         Ok(o) => {
