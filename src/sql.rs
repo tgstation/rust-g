@@ -53,6 +53,22 @@ byond_fn! { sql_connect_pool(host, port, user, pass, db, timeout, min_threads, m
     }
 } }
 
+byond_fn! { sql_connected() {
+    Some(match POOL.lock() {
+        Ok(o) => {
+            match *o {
+                Some(_) => json!({
+                    "status": "online"
+                }).to_string(),
+                None => json!({
+                    "status": "offline"
+                }).to_string()
+            }
+        },
+        Err(e) => err_to_json(Box::new(e))
+    })
+} }
+
 byond_fn! { sql_check_query(id) {
     Some(jobs::check(id))
 } }
