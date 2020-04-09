@@ -3,11 +3,11 @@ use mysql::{OptsBuilder, Params, Pool};
 use serde_json::{json, Number};
 use std::error::Error;
 use std::io::Result;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::time::Duration;
 
 lazy_static! {
-    static ref POOL: Arc<Mutex<Option<Pool>>> = Arc::new(Mutex::new(None));
+    static ref POOL: Mutex<Option<Pool>> = Mutex::new(None);
 }
 
 // helper functions to prevent uglification
