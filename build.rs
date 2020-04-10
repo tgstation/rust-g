@@ -107,11 +107,11 @@ fn main() {
     // module: sql
     if enabled!("SQL") {
         write!(f, r#"
-#define rustg_sql_connect_pool(host, port, user, pass, db, timeout, min_threads, max_threads) call(RUST_G, "sql_connect_pool")(host, port, user, pass, db, timeout, min_threads, max_threads)
-#define rustg_sql_query_async(query, params) call(RUST_G, "sql_query_async")(query, params)
-#define rustg_sql_query_blocking(query, params) call(RUST_G, "sql_query_blocking")(query, params)
-#define rustg_sql_connected() call(RUST_G, "sql_connected")()
-#define rustg_sql_check_query(job_id) call(RUST_G, "sql_check_query")(job_id)
+#define rustg_sql_connect_pool(host, port, user, pass, db, timeout, min_threads, max_threads) call(RUST_G, "sql_connect_pool")("host", "[port]", user, pass, db, "[timeout]", "[min_threads]", "[max_threads]")
+#define rustg_sql_query_async(query, params) call(RUST_G, "sql_query_async")(query, "[params]")
+#define rustg_sql_query_blocking(query, params) call(RUST_G, "sql_query_blocking")(query, "[params]")
+/proc/rustg_sql_connected() return call(RUST_G, "sql_connected")()
+#define rustg_sql_check_query(job_id) call(RUST_G, "sql_check_query")("[job_id]")
 "#).unwrap();
     }   
 }

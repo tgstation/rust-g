@@ -1,4 +1,5 @@
 use jobs;
+use mysql::consts::ColumnFlags;
 use mysql::consts::ColumnType::*;
 use mysql::{OptsBuilder, Params, Pool};
 use serde_json::map::Map;
@@ -97,11 +98,10 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
         None => return Ok(json!({"status": "offline"}).to_string()),
     };
     let mut conn = pool.get_conn()?;
-    let mut parms = Params::Empty;
-    if !params.is_empty() {
-        let val: serde_json::Value = serde_json::from_str(params)?;
-        parms = json_to_params(val);
-    }
+    let parms = match serde_json::from_str(params) {
+        Ok(v) => json_to_params(v),
+        _ => Params::Empty,
+    };
 
     let ret = conn.prep_exec(query, parms)?;
     let mut out = Map::new();
@@ -124,11 +124,15 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
                     | MYSQL_TYPE_LONG_BLOB
                     | MYSQL_TYPE_MEDIUM_BLOB
                     | MYSQL_TYPE_TINY_BLOB => {
-                        let mut bytes: Vec<serde_json::Value> = Vec::new();
-                        for byte in b {
-                            bytes.push(serde_json::Value::Number(Number::from(*byte)));
+                        if col.flags().contains(ColumnFlags::BINARY_FLAG) {
+                            let mut bytes: Vec<serde_json::Value> = Vec::new();
+                            for byte in b {
+                                bytes.push(serde_json::Value::Number(Number::from(*byte)));
+                            }
+                            serde_json::Value::Array(bytes)
+                        } else {
+                            serde_json::Value::String(String::from_utf8_lossy(&b).to_string())
                         }
-                        serde_json::Value::Array(bytes)
                     }
                     _ => serde_json::Value::Null,
                 },
@@ -162,7 +166,7 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
 }
 
 byond_fn! { sql_query_blocking(query, params) {
-    Some(match do_query(query, params) {
+    Some(match do_query(&query.to_owned(), &params.to_owned()) {
         Ok(o) => o,
         Err(e) => err_to_json(e)
     })
