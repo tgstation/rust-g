@@ -39,19 +39,21 @@ fn json_to_mysql(val: &serde_json::Value) -> mysql::Value {
             ret
         }
         serde_json::Value::String(s) => mysql::Value::Bytes(s.as_bytes().to_vec()),
-        serde_json::Value::Array(a) => {
-            let mut bytes: Vec<u8> = Vec::new();
-            for v in a {
-                if let serde_json::Value::Number(n) = v {
-                    if let Some(v) = n.as_u64() {
-                        bytes.push(v as u8);
+        serde_json::Value::Array(a) => mysql::Value::Bytes(
+            a.into_iter()
+                .map(|x| {
+                    if let serde_json::Value::Number(n) = x {
+                        if let Some(v) = n.as_u64() {
+                            v as u8
+                        } else {
+                            0
+                        }
                     } else {
-                        bytes.push(0);
+                        0
                     }
-                }
-            }
-            mysql::Value::Bytes(bytes)
-        }
+                })
+                .collect(),
+        ),
         _ => mysql::Value::NULL,
     }
 }
@@ -92,13 +94,15 @@ fn json_to_params(params: serde_json::Value) -> Params {
 }
 
 fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
+    let query = query.to_string();
+    let params = params.to_string();
     let p = POOL.lock()?;
     let pool = match &*p {
         Some(s) => s,
         None => return Ok(json!({"status": "offline"}).to_string()),
     };
     let mut conn = pool.get_conn()?;
-    let parms = match serde_json::from_str(params) {
+    let parms = match serde_json::from_str(&params) {
         Ok(v) => json_to_params(v),
         _ => Params::Empty,
     };
@@ -125,11 +129,11 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
                     | MYSQL_TYPE_MEDIUM_BLOB
                     | MYSQL_TYPE_TINY_BLOB => {
                         if col.flags().contains(ColumnFlags::BINARY_FLAG) {
-                            let mut bytes: Vec<serde_json::Value> = Vec::new();
-                            for byte in b {
-                                bytes.push(serde_json::Value::Number(Number::from(*byte)));
-                            }
-                            serde_json::Value::Array(bytes)
+                            serde_json::Value::Array(
+                                b.into_iter()
+                                    .map(|x| serde_json::Value::Number(Number::from(*x)))
+                                    .collect(),
+                            )
                         } else {
                             serde_json::Value::String(String::from_utf8_lossy(&b).to_string())
                         }
