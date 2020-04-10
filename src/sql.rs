@@ -223,9 +223,25 @@ byond_fn! { sql_connect_pool(host, port, user, pass, db, timeout, min_threads, m
     })
 } }
 
-// TODO: sql_disconnect_pool.
-// Will probably need to re-work the jobs system slightly,
-// so we can wait for all queries to finish before we yank the cord
+// hopefully won't panic if queries are running
+byond_fn! { sql_disconnect_pool() {
+    Some(match POOL.lock() {
+        Ok(mut o) => {
+            match *o {
+                Some(_) => {
+                    *o = None;
+                    json!({
+                        "status": "success"
+                    }).to_string()
+                },
+                None => json!({
+                    "status": "offline"
+                }).to_string()
+            }
+        },
+        Err(e) => err_to_json(Box::new(e))
+    })
+} }
 
 byond_fn! { sql_connected() {
     Some(match POOL.lock() {
