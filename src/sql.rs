@@ -165,15 +165,15 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
 }
 
 byond_fn! { sql_query_blocking(query, params) {
-    Some(match do_query(&query.to_string(), &params.to_string()) {
+    Some(match do_query(&query.to_owned(), &params.to_owned()) {
         Ok(o) => o,
         Err(e) => err_to_json(e)
     })
 } }
 
 byond_fn! { sql_query_async(query, params) {
-    let query = query.to_string();
-    let params = params.to_string();
+    let query = query.to_owned();
+    let params = params.to_owned();
     Some(jobs::start(move || {
         match do_query(&query, &params) {
             Ok(o) => o,
