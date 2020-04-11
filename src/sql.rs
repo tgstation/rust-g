@@ -4,12 +4,9 @@ use mysql::consts::ColumnType::*;
 use mysql::{OptsBuilder, Params, Pool};
 use serde_json::map::Map;
 use serde_json::{json, Number};
-use std::collections::HashMap;
 use std::error::Error;
-use std::hash::BuildHasherDefault;
 use std::sync::Mutex;
 use std::time::Duration;
-use twox_hash::XxHash64;
 
 lazy_static! {
     static ref POOL: Mutex<Option<Pool>> = Mutex::new(None);
@@ -43,11 +40,7 @@ fn json_to_mysql(val: &serde_json::Value) -> mysql::Value {
             a.into_iter()
                 .map(|x| {
                     if let serde_json::Value::Number(n) = x {
-                        if let Some(v) = n.as_u64() {
-                            v as u8
-                        } else {
-                            0
-                        }
+                        n.as_u64().unwrap_or(0)
                     } else {
                         0
                     }
@@ -60,30 +53,29 @@ fn json_to_mysql(val: &serde_json::Value) -> mysql::Value {
 
 fn array_to_params(params: Vec<serde_json::Value>) -> Params {
     if params.is_empty() {
-        return Params::Empty;
+        Params::Empty
+    } else {
+        Params::Positional(params.iter().map(|x| json_to_mysql(x)).collect())
     }
-    Params::Positional(params.iter().map(|x| json_to_mysql(x)).collect())
 }
 
 fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Params {
     if params.is_empty() {
         return Params::Empty;
+    } else {
+        Params::Named(
+            params
+                .iter()
+                .map(|(key, val)| (key.to_string(), json_to_mysql(val)))
+                .collect(),
+        )
     }
-    let post: HashMap<String, mysql::Value, BuildHasherDefault<XxHash64>> = params
-        .iter()
-        .map(|(key, val)| (key.to_string(), json_to_mysql(val)))
-        .collect();
-    Params::Named(post)
 }
 
 fn json_to_params(params: serde_json::Value) -> Params {
     match params {
-        serde_json::Value::Object(o) => {
-            return object_to_params(o);
-        }
-        serde_json::Value::Array(a) => {
-            return array_to_params(a);
-        }
+        serde_json::Value::Object(o) => return object_to_params(o),
+        serde_json::Value::Array(a) => array_to_params(a),
         _ => return Params::Empty,
     }
 }

@@ -25,8 +25,6 @@ extern crate serde_json;
 extern crate lazy_static;
 #[cfg(feature="sql")]
 extern crate mysql;
-#[cfg(feature="sql")]
-extern crate twox_hash;
 
 #[macro_use]
 mod byond;
