@@ -62,22 +62,17 @@ fn array_to_params(params: Vec<serde_json::Value>) -> Params {
     if params.is_empty() {
         return Params::Empty;
     }
-    let mut post: Vec<mysql::Value> = Vec::default();
-    for val in params.iter() {
-        post.push(json_to_mysql(val));
-    }
-    Params::Positional(post)
+    Params::Positional(params.iter().map(|x| json_to_mysql(x)).collect())
 }
 
 fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Params {
     if params.is_empty() {
         return Params::Empty;
     }
-    let mut post: HashMap<String, mysql::Value, BuildHasherDefault<XxHash64>> =
-        HashMap::<String, mysql::Value, BuildHasherDefault<XxHash64>>::default();
-    for (key, val) in params.iter() {
-        post.insert(key.to_string(), json_to_mysql(val));
-    }
+    let post: HashMap<String, mysql::Value, BuildHasherDefault<XxHash64>> = params
+        .iter()
+        .map(|key, val| (key.to_string(), json_to_mysql(val)))
+        .collect();
     Params::Named(post)
 }
 
