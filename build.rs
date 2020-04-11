@@ -111,6 +111,7 @@ fn main() {
 #define rustg_sql_query_async(query, params) call(RUST_G, "sql_query_async")(query, params)
 #define rustg_sql_query_blocking(query, params) call(RUST_G, "sql_query_blocking")(query, params)
 /proc/rustg_sql_connected() return call(RUST_G, "sql_connected")()
+/proc/rustg_sql_disconnect_pool() return call(RUST_G, "sql_disconnect_pool")()
 #define rustg_sql_check_query(job_id) call(RUST_G, "sql_check_query")("[job_id]")
 "#).unwrap();
     }   
