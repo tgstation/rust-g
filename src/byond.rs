@@ -55,7 +55,7 @@ macro_rules! byond_fn {
 
             let mut __argn = 0;
             $(
-                let $arg = &__args[__argn];
+                let $arg = &*__args[__argn];
                 __argn += 1;
             )*
 
