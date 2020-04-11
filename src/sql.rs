@@ -28,15 +28,15 @@ fn json_to_mysql(val: &serde_json::Value) -> mysql::Value {
     match val {
         serde_json::Value::Bool(b) => mysql::Value::UInt(*b as u64),
         serde_json::Value::Number(i) => {
-            let mut ret: mysql::Value = mysql::Value::NULL;
             if let Some(v) = i.as_u64() {
-                ret = mysql::Value::UInt(v);
+                mysql::Value::UInt(v)
             } else if let Some(v) = i.as_i64() {
-                ret = mysql::Value::Int(v);
+                mysql::Value::Int(v)
             } else if let Some(v) = i.as_f64() {
-                ret = mysql::Value::Float(v);
+                mysql::Value::Float(v)
+            } else {
+                mysql::Value::NULL
             }
-            ret
         }
         serde_json::Value::String(s) => mysql::Value::Bytes(s.as_bytes().to_vec()),
         serde_json::Value::Array(a) => mysql::Value::Bytes(
