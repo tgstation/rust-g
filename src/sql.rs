@@ -71,7 +71,7 @@ fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Para
     }
     let post: HashMap<String, mysql::Value, BuildHasherDefault<XxHash64>> = params
         .iter()
-        .map(|key, val| (key.to_string(), json_to_mysql(val)))
+        .map(|(key, val)| (key.to_string(), json_to_mysql(val)))
         .collect();
     Params::Named(post)
 }
