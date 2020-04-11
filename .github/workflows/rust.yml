@@ -1,0 +1,29 @@
+name: rust-g
+on: [push]
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          target: stable-i686-pc-windows-msvc
+          command: build
+          args: --release
+      - uses: actions/upload-artifact@v1
+        with:
+          name: rust_g.dll
+          path: target/release/rust_g.dll
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          target: stable-i686-unknown-linux-gnu
+          command: build
+          args: --release
+      - uses: actions/upload-artifact@v1
+        with:
+          name: rust_g
+          path: target/release/librust_g.so
