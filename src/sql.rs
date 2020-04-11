@@ -40,12 +40,12 @@ fn json_to_mysql(val: &serde_json::Value) -> mysql::Value {
             a.into_iter()
                 .map(|x| {
                     if let serde_json::Value::Number(n) = x {
-                        n.as_u64().unwrap_or(0)
+                        n.as_u64().unwrap_or(0) as u8
                     } else {
                         0
                     }
                 })
-                .collect(),
+                .collect()
         ),
         _ => mysql::Value::NULL,
     }
