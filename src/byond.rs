@@ -10,9 +10,9 @@ thread_local! {
     static RETURN_STRING: RefCell<CString> = RefCell::new(CString::default());
 }
 
-pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
+pub fn parse_args<'a>(argc: c_int, argv: &'a *const *const c_char) -> Vec<Cow<'a, str>> {
     unsafe {
-        slice::from_raw_parts(argv, argc as usize)
+        slice::from_raw_parts(*argv, argc as usize)
             .into_iter()
             .map(|ptr| CStr::from_ptr(*ptr))
             .map(|cstr| cstr.to_string_lossy())
@@ -51,7 +51,7 @@ macro_rules! byond_fn {
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
-            let __args = $crate::byond::parse_args(_argc, _argv);
+            let __args = $crate::byond::parse_args(_argc, &_argv);
 
             let mut __argn = 0;
             $(
