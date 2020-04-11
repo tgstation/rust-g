@@ -61,7 +61,7 @@ fn array_to_params(params: Vec<serde_json::Value>) -> Params {
 
 fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Params {
     if params.is_empty() {
-        return Params::Empty;
+        Params::Empty
     } else {
         Params::Named(
             params
@@ -74,9 +74,9 @@ fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Para
 
 fn json_to_params(params: serde_json::Value) -> Params {
     match params {
-        serde_json::Value::Object(o) => return object_to_params(o),
+        serde_json::Value::Object(o) => object_to_params(o),
         serde_json::Value::Array(a) => array_to_params(a),
-        _ => return Params::Empty,
+        _ => Params::Empty,
     }
 }
 
