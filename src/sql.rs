@@ -45,7 +45,7 @@ fn json_to_mysql(val: &serde_json::Value) -> mysql::Value {
                         0
                     }
                 })
-                .collect()
+                .collect(),
         ),
         _ => mysql::Value::NULL,
     }
