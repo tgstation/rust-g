@@ -22,8 +22,17 @@ pub fn parse_args<'a>(argc: c_int, argv: &'a *const *const c_char) -> Vec<Cow<'a
 
 pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
     match value {
-        Some(string) => RETURN_STRING.with(|cell| {
-            let cstring = CString::new(string).expect("null in returned string!");
+        Some(vec) => RETURN_STRING.with(|cell| {
+            // Panicking over an FFI boundary is bad form, so if a NUL ends up
+            // in the result, just truncate.
+            let cstring = match CString::new(vec) {
+                Ok(s) => s,
+                Err(e) => {
+                    let (pos, mut vec) = (e.nul_position(), e.into_vec());
+                    vec.truncate(pos);
+                    CString::new(vec).unwrap_or_default()
+                }
+            };
             cell.replace(cstring);
             cell.borrow().as_ptr() as *const c_char
         }),
