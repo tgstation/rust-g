@@ -81,15 +81,13 @@ fn json_to_params(params: serde_json::Value) -> Params {
 }
 
 fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
-    let query = query.to_string();
-    let params = params.to_string();
     let p = POOL.lock()?;
     let pool = match &*p {
         Some(s) => s,
         None => return Ok(json!({"status": "offline"}).to_string()),
     };
     let mut conn = pool.get_conn()?;
-    let parms = match serde_json::from_str(&params) {
+    let parms = match serde_json::from_str(params) {
         Ok(v) => json_to_params(v),
         _ => Params::Empty,
     };
