@@ -21,9 +21,9 @@ fn err_to_json(e: Box<dyn Error>) -> String {
     .to_string()
 }
 
-fn json_to_mysql(val: &serde_json::Value) -> mysql::Value {
+fn json_to_mysql(val: serde_json::Value) -> mysql::Value {
     match val {
-        serde_json::Value::Bool(b) => mysql::Value::UInt(*b as u64),
+        serde_json::Value::Bool(b) => mysql::Value::UInt(b as u64),
         serde_json::Value::Number(i) => {
             if let Some(v) = i.as_u64() {
                 mysql::Value::UInt(v)
@@ -35,7 +35,7 @@ fn json_to_mysql(val: &serde_json::Value) -> mysql::Value {
                 mysql::Value::NULL
             }
         }
-        serde_json::Value::String(s) => mysql::Value::Bytes(s.as_bytes().to_vec()),
+        serde_json::Value::String(s) => mysql::Value::Bytes(s.into()),
         serde_json::Value::Array(a) => mysql::Value::Bytes(
             a.into_iter()
                 .map(|x| {
@@ -55,7 +55,7 @@ fn array_to_params(params: Vec<serde_json::Value>) -> Params {
     if params.is_empty() {
         Params::Empty
     } else {
-        Params::Positional(params.iter().map(|x| json_to_mysql(x)).collect())
+        Params::Positional(params.into_iter().map(|x| json_to_mysql(x)).collect())
     }
 }
 
@@ -65,7 +65,7 @@ fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Para
     } else {
         Params::Named(
             params
-                .iter()
+                .into_iter()
                 .map(|(key, val)| (key.to_string(), json_to_mysql(val)))
                 .collect(),
         )
