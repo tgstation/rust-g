@@ -5,11 +5,11 @@ use mysql::{OptsBuilder, Params, Pool};
 use serde_json::map::Map;
 use serde_json::{json, Number};
 use std::error::Error;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::time::Duration;
 
 lazy_static! {
-    static ref POOL: Mutex<Option<Pool>> = Mutex::new(None);
+    static ref POOL: RwLock<Option<Pool>> = RwLock::new(None);
 }
 
 // HELPER FUNCTIONS
@@ -81,12 +81,15 @@ fn json_to_params(params: serde_json::Value) -> Params {
 }
 
 fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
-    let p = POOL.lock()?;
-    let pool = match &*p {
-        Some(s) => s,
-        None => return Ok(json!({"status": "offline"}).to_string()),
+    let mut conn = {
+        let p = POOL.read()?;
+        let pool = match &*p {
+            Some(s) => s,
+            None => return Ok(json!({"status": "offline"}).to_string()),
+        };
+        pool.get_conn()?
     };
-    let mut conn = pool.get_conn()?;
+
     let parms = match serde_json::from_str(params) {
         Ok(v) => json_to_params(v),
         _ => Params::Empty,
@@ -191,7 +194,7 @@ fn sql_connect(
         .read_timeout(Some(timeout))
         .write_timeout(Some(timeout));
     let pool = Pool::new_manual(min_threads, max_threads, builder)?;
-    let mut poolguard = POOL.lock()?;
+    let mut poolguard = POOL.write()?;
     *poolguard = Some(pool);
     Ok(json!({"status": "ok"}).to_string())
 }
@@ -209,11 +212,10 @@ byond_fn! { sql_connect_pool(host, port, user, pass, db, timeout, min_threads, m
 
 // hopefully won't panic if queries are running
 byond_fn! { sql_disconnect_pool() {
-    Some(match POOL.lock() {
+    Some(match POOL.write() {
         Ok(mut o) => {
-            match *o {
+            match o.take() {
                 Some(_) => {
-                    *o = None;
                     json!({
                         "status": "success"
                     }).to_string()
@@ -228,7 +230,7 @@ byond_fn! { sql_disconnect_pool() {
 } }
 
 byond_fn! { sql_connected() {
-    Some(match POOL.lock() {
+    Some(match POOL.read() {
         Ok(o) => {
             match *o {
                 Some(_) => json!({
