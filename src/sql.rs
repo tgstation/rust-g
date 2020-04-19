@@ -72,10 +72,10 @@ fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Para
     }
 }
 
-fn json_to_params(params: serde_json::Value) -> Params {
-    match params {
-        serde_json::Value::Object(o) => object_to_params(o),
-        serde_json::Value::Array(a) => array_to_params(a),
+fn params_from_json(params: &str) -> Params {
+    match serde_json::from_str(params) {
+        Ok(serde_json::Value::Object(o)) => object_to_params(o),
+        Ok(serde_json::Value::Array(a)) => array_to_params(a),
         _ => Params::Empty,
     }
 }
@@ -90,22 +90,17 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
         pool.get_conn()?
     };
 
-    let parms = match serde_json::from_str(params) {
-        Ok(v) => json_to_params(v),
-        _ => Params::Empty,
-    };
-
-    let ret = conn.prep_exec(query, parms)?;
-    query_result_to_json(ret)
+    let query_result = conn.prep_exec(query, params_from_json(params))?;
+    query_result_to_json(query_result)
 }
 
-fn query_result_to_json(ret: mysql::QueryResult) -> Result<String, Box<dyn Error>> {
+fn query_result_to_json(query_result: mysql::QueryResult) -> Result<String, Box<dyn Error>> {
     let mut rows: Vec<serde_json::Value> = Vec::new();
-    let affected = ret.affected_rows();
-    for r in ret {
-        let row = r?;
+    let affected = query_result.affected_rows();
+    for row in query_result {
+        let row = row?;
         let columns = row.columns_ref();
-        let mut ro: Vec<serde_json::Value> = Vec::new();
+        let mut json_row: Vec<serde_json::Value> = Vec::new();
         for i in 0..(row.len()) {
             let col = &columns[i];
             let ctype = col.column_type();
@@ -113,7 +108,7 @@ fn query_result_to_json(ret: mysql::QueryResult) -> Result<String, Box<dyn Error
             let converted = match value {
                 mysql::Value::Bytes(b) => match ctype {
                     MYSQL_TYPE_VARCHAR | MYSQL_TYPE_STRING | MYSQL_TYPE_VAR_STRING => {
-                        serde_json::Value::String(String::from_utf8_lossy(&b).to_string())
+                        serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
                     }
                     MYSQL_TYPE_BLOB
                     | MYSQL_TYPE_LONG_BLOB
@@ -126,7 +121,7 @@ fn query_result_to_json(ret: mysql::QueryResult) -> Result<String, Box<dyn Error
                                     .collect(),
                             )
                         } else {
-                            serde_json::Value::String(String::from_utf8_lossy(&b).to_string())
+                            serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
                         }
                     }
                     _ => serde_json::Value::Null,
@@ -144,9 +139,9 @@ fn query_result_to_json(ret: mysql::QueryResult) -> Result<String, Box<dyn Error
                 }
                 _ => serde_json::Value::Null,
             };
-            ro.push(converted)
+            json_row.push(converted)
         }
-        rows.push(serde_json::Value::Array(ro));
+        rows.push(serde_json::Value::Array(json_row));
     }
 
     Ok(json! {{
@@ -157,7 +152,7 @@ fn query_result_to_json(ret: mysql::QueryResult) -> Result<String, Box<dyn Error
 }
 
 byond_fn! { sql_query_blocking(query, params) {
-    Some(match do_query(&query.to_owned(), &params.to_owned()) {
+    Some(match do_query(query, params) {
         Ok(o) => o,
         Err(e) => err_to_json(e)
     })
