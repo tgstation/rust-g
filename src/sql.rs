@@ -55,7 +55,7 @@ fn array_to_params(params: Vec<serde_json::Value>) -> Params {
     if params.is_empty() {
         Params::Empty
     } else {
-        Params::Positional(params.into_iter().map(|x| json_to_mysql(x)).collect())
+        Params::Positional(params.into_iter().map(json_to_mysql).collect())
     }
 }
 
@@ -66,7 +66,7 @@ fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Para
         Params::Named(
             params
                 .into_iter()
-                .map(|(key, val)| (key.to_string(), json_to_mysql(val)))
+                .map(|(key, val)| (key, json_to_mysql(val)))
                 .collect(),
         )
     }
@@ -93,7 +93,10 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
     };
 
     let ret = conn.prep_exec(query, parms)?;
-    let mut out = Map::new();
+    query_result_to_json(ret)
+}
+
+fn query_result_to_json(ret: mysql::QueryResult) -> Result<String, Box<dyn Error>> {
     let mut rows: Vec<serde_json::Value> = Vec::new();
     let affected = ret.affected_rows();
     for r in ret {
@@ -142,16 +145,12 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
         }
         rows.push(serde_json::Value::Array(ro));
     }
-    out.insert(
-        String::from("status"),
-        serde_json::Value::String(String::from("ok")),
-    );
-    out.insert(
-        String::from("affected"),
-        serde_json::Value::Number(Number::from(affected)),
-    );
-    out.insert(String::from("rows"), serde_json::Value::Array(rows));
-    Ok(serde_json::Value::Object(out).to_string())
+
+    Ok(json! {{
+        "status": "ok",
+        "affected": affected,
+        "rows": rows,
+    }}.to_string())
 }
 
 byond_fn! { sql_query_blocking(query, params) {
