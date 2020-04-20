@@ -20,14 +20,19 @@ pub fn parse_args<'a>(argc: c_int, argv: &'a *const *const c_char) -> Vec<Cow<'a
     }
 }
 
-pub fn byond_return<F, S>(inner: F) -> *const c_char
-where
-    F: FnOnce() -> Option<S>,
-    S: Into<Vec<u8>>,
-{
-    match inner() {
-        Some(string) => RETURN_STRING.with(|cell| {
-            let cstring = CString::new(string).expect("null in returned string!");
+pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
+    match value {
+        Some(vec) => RETURN_STRING.with(|cell| {
+            // Panicking over an FFI boundary is bad form, so if a NUL ends up
+            // in the result, just truncate.
+            let cstring = match CString::new(vec) {
+                Ok(s) => s,
+                Err(e) => {
+                    let (pos, mut vec) = (e.nul_position(), e.into_vec());
+                    vec.truncate(pos);
+                    CString::new(vec).unwrap_or_default()
+                }
+            };
             cell.replace(cstring);
             cell.borrow().as_ptr() as *const c_char
         }),
@@ -42,7 +47,7 @@ macro_rules! byond_fn {
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
-            $crate::byond::byond_return(|| $body)
+            $crate::byond::byond_return((|| $body)().map(From::from))
         }
     };
 
@@ -59,7 +64,7 @@ macro_rules! byond_fn {
                 __argn += 1;
             )*
 
-            $crate::byond::byond_return(|| $body)
+            $crate::byond::byond_return((|| $body)().map(From::from))
         }
     };
 
