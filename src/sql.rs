@@ -5,11 +5,12 @@ use mysql::{OptsBuilder, Params, Pool};
 use serde_json::map::Map;
 use serde_json::{json, Number};
 use std::error::Error;
-use std::sync::RwLock;
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 lazy_static! {
     static ref POOL: RwLock<Option<Pool>> = RwLock::new(None);
+//    static ref CONNECTIONS: Arc<Mutex<Vec<>>>>
 }
 
 // HELPER FUNCTIONS
@@ -91,7 +92,9 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
     };
 
     let query_result = conn.prep_exec(query, params_from_json(params))?;
-    query_result_to_json(query_result)
+    let result = query_result_to_json(query_result);
+    std::mem::drop(conn);
+    result
 }
 
 fn query_result_to_json(query_result: mysql::QueryResult) -> Result<String, Box<dyn Error>> {
@@ -148,7 +151,8 @@ fn query_result_to_json(query_result: mysql::QueryResult) -> Result<String, Box<
         "status": "ok",
         "affected": affected,
         "rows": rows,
-    }}.to_string())
+    }}
+    .to_string())
 }
 
 byond_fn! { sql_query_blocking(query, params) {
