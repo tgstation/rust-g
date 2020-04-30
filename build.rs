@@ -110,7 +110,7 @@ fn main() {
     if enabled!("crypt") {
         write!(f, r#"
 #define rustg_bcrypt_hash(data) call(RUST_G, "bcrypt_hash")(data)
-#define rustg_bcrypt_verify(data, hash) call(RUST_G, "bcrypt_verify")(data, hash)
+#define rustg_bcrypt_verify(data, hash) (call(RUST_G, "bcrypt_verify")(data, hash) == "yes")
 #define rustg_ed25519_verify(data, sig, key) call(RUST_G, "ed25519_verify")(data, sig, key)
 "#).unwrap();
     }
