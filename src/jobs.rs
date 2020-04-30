@@ -62,5 +62,5 @@ pub fn check(id: &str) -> String {
 }
 
 byond_fn! { check_job(id) {
-    Some(jobs::check(id))
+    Some(check(id))
 } }
