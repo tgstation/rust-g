@@ -23,6 +23,10 @@ extern crate serde_json;
 #[cfg(feature="http")]
 #[macro_use]
 extern crate lazy_static;
+#[cfg(feature="crypt")]
+extern crate bcrypt;
+#[cfg(feature="crypt")]
+extern crate ed25519_dalek;
 
 #[macro_use]
 mod byond;
@@ -44,3 +48,5 @@ pub mod log;
 pub mod url;
 #[cfg(feature="http")]
 pub mod http;
+#[cfg(feature="crypt")]
+pub mod crypt;
