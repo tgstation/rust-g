@@ -60,3 +60,7 @@ pub fn start<F: FnOnce() -> Output + Send + 'static>(f: F) -> JobId {
 pub fn check(id: &str) -> String {
     JOBS.with(|jobs| jobs.borrow_mut().check(id))
 }
+
+byond_fn! { check_job(id) {
+    Some(jobs::check(id))
+} }

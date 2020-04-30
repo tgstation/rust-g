@@ -19,6 +19,8 @@ fn main() {
 #define RUSTG_JOB_NO_RESULTS_YET "NO RESULTS YET"
 #define RUSTG_JOB_NO_SUCH_JOB "NO SUCH JOB"
 #define RUSTG_JOB_ERROR "JOB PANICKED"
+
+#define rustg_job_check(req_id) call(RUST_G, "check_job")(req_id)
 "#).unwrap();
 
     // module: dmi
@@ -101,8 +103,15 @@ fn main() {
 #define rustg_http_request_blocking(method, url, body, headers) call(RUST_G, "http_request_blocking")(method, url, body, headers)
 #define rustg_http_request_async(method, url, body, headers) call(RUST_G, "http_request_async")(method, url, body, headers)
 #define rustg_http_check_request(req_id) call(RUST_G, "http_check_request")(req_id)
-
-#define rustg_job_check(req_id) call(RUST_G, "http_check_request")(req_id)
 "#).unwrap();
-    }    
+    }
+
+    // module: http
+    if enabled!("crypt") {
+        write!(f, r#"
+#define rustg_bcrypt_hash(data) call(RUST_G, "bcrypt_hash")(data)
+#define rustg_bcrypt_verify(data, hash) call(RUST_G, "bcrypt_verify")(data, hash)
+#define rustg_ed25519_verify(data, sig, key) call(RUST_G, "ed25519_verify")(data, sig, key)
+"#).unwrap();
+    }
 }
