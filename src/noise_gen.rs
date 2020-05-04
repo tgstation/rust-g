@@ -31,6 +31,8 @@ fn seed_generator(generator_id: &str, seed_as_str: &str) -> Result<()>{
     });
     Ok(())
 }
+
+//note that this will be 0 at integer x & y, scaling is left up to the caller
 fn get_at_coordinates(generator_id: &str, x_as_str: &str, y_as_str: &str) -> Result<String>{
     let x = x_as_str.parse::<f64>()?;
     let y = y_as_str.parse::<f64>()?;
@@ -38,7 +40,7 @@ fn get_at_coordinates(generator_id: &str, x_as_str: &str, y_as_str: &str) -> Res
         let generators = cell.borrow();
         let generator = generators.get(&generator_id.to_string());
         if let Some(generator) = generator{
-            //perlin noise produces a result from - sqrt(0.5) to +sqrt(0.5), change this to [0,1] for convenience
+            //perlin noise produces a result in [-sqrt(0.5), sqrt(0.5)] which we scale to [0, 1] for simplicity
             let unscaled = generator.get([x,y]);
             let scaled_from_0_to_1 = (unscaled * 2.0.sqrt() + 1)/2.0;
             Result::Ok(scaled_from_0_to_1.to_string()))
@@ -49,6 +51,7 @@ fn get_at_coordinates(generator_id: &str, x_as_str: &str, y_as_str: &str) -> Res
     })
 }
 
+//outputs a 255*255 noise file, with rows seperated by newlines and columns separated by commas
 fn make_noise_file(filename: &str, seed_as_str: &str, scaling_as_str: &str) -> Result<()> {
     let seed = seed_as_str.parse::<u32>()?;
     let scaling = scaling_as_str.parse::<f64>()?;
