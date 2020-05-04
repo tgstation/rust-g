@@ -32,8 +32,7 @@ fn main() {
     //module: noise
     if enabled!("2D_NOISE"){
         write!(f, r#"
-#define rustg_perlin_noise_seed_generator(generator_id, seed) call(RUST_G, "seed_noise_generator")(generator_id, seed)
-#define rustg_perlin_noise_get_at_coordinates(generator_id, x, y) call(RUST_G, "get_noise_at_coordinates")(generator_id, x, y)
+#define rustg_perlin_noise_get_at_coordinates(seed, x, y) call(RUST_G, "get_noise_at_coordinates")(seed, x, y)
 "#).unwrap()
     }
 
