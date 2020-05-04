@@ -11,9 +11,6 @@ thread_local! {
     static GENERATORS: RefCell<HashMap<String,  Perlin>> = RefCell::new(HashMap::new());
 }
 
-byond_fn! {perlin_noise_2d_file(filename, seed, scaling) {
-    make_noise_file(filename, seed, scaling).err()
-} }
 
 byond_fn! {seed_noise_generator(generator_id, seed) {
     seed_generator(generator_id, seed).err()
@@ -49,23 +46,4 @@ fn get_at_coordinates(generator_id: &str, x_as_str: &str, y_as_str: &str) -> Res
             Result::Err(crate::error::Error::Io(Error::new(ErrorKind::Other, "No such generator")))
         }
     })
-}
-
-//outputs a 255*255 noise file, with rows seperated by newlines and columns separated by commas
-fn make_noise_file(filename: &str, seed_as_str: &str, scaling_as_str: &str) -> Result<()> {
-    let seed = seed_as_str.parse::<u32>()?;
-    let scaling = scaling_as_str.parse::<f64>()?;
-    let mut file = BufWriter::new(File::create(filename)?);
-    let noise = Perlin::new().set_seed(seed);
-    for y in 0..255{
-        let row_string = (0u32..255u32).map(|x|noise.get([x as f64*scaling,y as f64*scaling]))
-              .map(|noise|noise.to_string())
-              .collect::<Vec<String>>()
-              .join(",");
-
-        write!(&mut file, "{}", row_string)?;
-        file.write(b"\n")?;
-    }
-    file.flush()?;
-    Ok(())
 }
