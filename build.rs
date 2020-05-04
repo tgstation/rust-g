@@ -29,6 +29,15 @@ fn main() {
 "#).unwrap();
     }
 
+    //module: noise
+    if enabled!("2D_NOISE"){
+        write!(f, r#"
+#define rustg_perlin_noise_2d_file(filename, seed, scaling) call(RUST_G, "perlin_noise_2d")(filename, seed, scaling)
+#define rustg_perlin_noise_seed_generator(generator_id, seed) call(RUST_G, "seed_noise_generator")(generator_id, seed)
+#define rustg_perlin_noise_get_at_coordinates(generator_id, x, y) call(RUST_G, "get_noise_at_coordinates")(generator_id, x, y)
+"#).unwrap()
+    }
+
     // module: file
     if enabled!("FILE") {
         write!(f, r#"

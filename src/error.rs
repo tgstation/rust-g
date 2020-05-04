@@ -1,7 +1,7 @@
 use std::io;
 use std::result;
 use std::str::Utf8Error;
-use std::num::ParseIntError;
+use std::num::{ParseIntError, ParseFloatError};
 
 #[cfg(feature="png")]
 use png::{DecodingError, EncodingError};
@@ -26,9 +26,10 @@ pub enum Error {
     #[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ImageEncoding(#[cause] EncodingError),
-    #[cfg(feature="png")]
     #[fail(display = "{}", _0)]
     ParseIntError(#[cause] ParseIntError),
+    #[fail(display = "{}", _0)]
+    ParseFloatError(#[cause] ParseFloatError),
     #[cfg(feature="png")]
     #[fail(display = "Invalid png data.")]
     InvalidPngDataError,
@@ -66,13 +67,17 @@ impl From<EncodingError> for Error {
     }
 }
 
-#[cfg(feature="png")]
 impl From<ParseIntError> for Error {
     fn from(error: ParseIntError) -> Error {
         Error::ParseIntError(error)
     }
 }
 
+impl From<ParseFloatError> for Error {
+    fn from(error: ParseFloatError) -> Error {
+        Error::ParseFloatError(error)
+    }
+}
 #[cfg(feature="http")]
 impl From<reqwest::Error> for Error {
     fn from(error: reqwest::Error) -> Error {

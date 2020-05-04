@@ -13,6 +13,8 @@ extern crate hex;
 extern crate percent_encoding;
 #[cfg(feature="png")]
 extern crate png;
+#[cfg(feature="2d-noise")]
+extern crate noise;
 #[cfg(feature="http")]
 extern crate reqwest;
 #[cfg(feature="http")]
@@ -42,5 +44,7 @@ pub mod hash;
 pub mod log;
 #[cfg(feature="url")]
 pub mod url;
+#[cfg(feature="2d-noise")]
+pub mod noise_gen;
 #[cfg(feature="http")]
 pub mod http;
