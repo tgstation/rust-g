@@ -9,7 +9,7 @@ thread_local! {
     static GENERATORS: RefCell<HashMap<String,  Perlin>> = RefCell::new(HashMap::new());
 }
 
-byond_fn! {get_noise_at_coordinates(seed, x, y){
+byond_fn! { get_noise_at_coordinates(seed, x, y) {
     get_at_coordinates(seed, x, y).ok()
 } }
 
@@ -31,6 +31,6 @@ fn get_at_coordinates(seed_as_str: &str, x_as_str: &str, y_as_str: &str) -> Resu
         //perlin noise produces a result in [-sqrt(0.5), sqrt(0.5)] which we scale to [0, 1] for simplicity
         let unscaled = generator.get([x, y]);
         let scaled_from_0_to_1 = (unscaled * 2.0_f64.sqrt() + 1.0) / 2.0;
-        Result::Ok(scaled_from_0_to_1.to_string())
+        Ok(scaled_from_0_to_1.to_string())
     })
 }
