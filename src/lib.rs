@@ -44,7 +44,7 @@ pub mod hash;
 pub mod log;
 #[cfg(feature="url")]
 pub mod url;
-#[cfg(feature="2d-noise")]
+#[cfg(feature="noise")]
 pub mod noise_gen;
 #[cfg(feature="http")]
 pub mod http;
