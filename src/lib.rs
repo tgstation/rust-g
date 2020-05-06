@@ -48,3 +48,6 @@ pub mod url;
 pub mod noise_gen;
 #[cfg(feature="http")]
 pub mod http;
+
+#[cfg(not(target_pointer_width="32"))]
+const _: () = "rust-g must be compiled for a 32-bit target";
