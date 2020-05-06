@@ -1,7 +1,7 @@
 #include "common.dm"
 
-/test/proc/ok()
-    world.log << rustg_git_revparse("HEAD")
+/test/proc/rev_parse_head()
+    ASSERT(rustg_git_revparse("HEAD"))
 
-/test/proc/not_ok()
-    CRASH("meme")
+/test/proc/rev_parse_tag()
+    ASSERT(rustg_git_revparse("0.4.4") == "3d8727ba92a34135fd78b3079c791ba65147a1d9")
