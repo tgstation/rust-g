@@ -52,7 +52,7 @@ macro_rules! byond_fn {
         }
     };
 
-    ($name:ident($($arg:ident),*) $body:block) => {
+    ($name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
@@ -64,6 +64,9 @@ macro_rules! byond_fn {
                 let $arg = &*__args[__argn];
                 __argn += 1;
             )*
+            $(
+                let $rest = &__args[__argn..];
+            )?
 
             $crate::byond::byond_return((|| $body)().map(From::from))
         }
