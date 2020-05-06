@@ -1,11 +1,19 @@
 language: rust
-cache: cargo
+cache:
+  cargo: true
+  directories:
+    - /home/travis/BYOND/
+
 matrix:
   include:
   - name: "Default Features"
     env: CARGO_FLAGS=
   - name: "All Features"
     env: CARGO_FLAGS=--all-features
+
+install:
+  - env BYOND_MAJOR=513 BYOND_MINOR=1521 ./scripts/install_byond.sh
+
 script:
   - cargo build --verbose --all --release $CARGO_FLAGS
-  - cargo test --verbose --all --release $CARGO_FLAGS
+  - env BYOND_BIN=/home/travis/BYOND/byond/bin cargo test --verbose --all --release $CARGO_FLAGS
