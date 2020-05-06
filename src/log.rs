@@ -46,11 +46,12 @@ byond_fn! { log_write(path, data, format) {
     }).err()
 } }
 
-byond_fn! { log_close_all()! {
+byond_fn! { log_close_all() {
     FILE_MAP.with(|cell| {
         let mut map = cell.borrow_mut();
         map.clear();
-    })
+    });
+    Some("")
 } }
 
 fn filename(path: &Path) -> Result<OsString> {

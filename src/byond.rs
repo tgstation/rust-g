@@ -68,18 +68,4 @@ macro_rules! byond_fn {
             $crate::byond::byond_return((|| $body)().map(From::from))
         }
     };
-
-    ($name:ident()! $body:block) => {
-        byond_fn! { $name() {
-            $body
-            None as Option<String>
-        } }
-    };
-
-    ($name:ident($($arg:ident),*)! $body:block) => {
-        byond_fn! { $name($($arg),*) {
-            $body
-            None as Option<String>
-        } }
-    };
 }
