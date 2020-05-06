@@ -7,7 +7,7 @@ license-file = "LICENSE"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
 
 [lib]
-crate-type = ["lib", "cdylib"]
+crate-type = ["cdylib"]
 
 [profile.release]
 opt-level = 3
