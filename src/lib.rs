@@ -13,7 +13,7 @@ extern crate hex;
 extern crate percent_encoding;
 #[cfg(feature="png")]
 extern crate png;
-#[cfg(feature="2d-noise")]
+#[cfg(feature="noise")]
 extern crate noise;
 #[cfg(feature="http")]
 extern crate reqwest;

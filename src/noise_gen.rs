@@ -9,7 +9,7 @@ thread_local! {
     static GENERATORS: RefCell<HashMap<String,  Perlin>> = RefCell::new(HashMap::new());
 }
 
-byond_fn! { get_noise_at_coordinates(seed, x, y) {
+byond_fn! { noise_get_at_coordinates(seed, x, y) {
     get_at_coordinates(seed, x, y).ok()
 } }
 
