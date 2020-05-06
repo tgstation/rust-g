@@ -22,6 +22,8 @@ pub fn parse_args<'a>(argc: c_int, argv: &'a *const *const c_char) -> Vec<Cow<'a
 
 pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
     match value {
+        None => EMPTY_STRING as *const c_char,
+        Some(vec) if vec.is_empty() => EMPTY_STRING as *const c_char,
         Some(vec) => RETURN_STRING.with(|cell| {
             // Panicking over an FFI boundary is bad form, so if a NUL ends up
             // in the result, just truncate.
@@ -36,7 +38,6 @@ pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
             cell.replace(cstring);
             cell.borrow().as_ptr() as *const c_char
         }),
-        None => EMPTY_STRING as *const c_char,
     }
 }
 
