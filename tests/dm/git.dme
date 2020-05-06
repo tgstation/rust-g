@@ -1,0 +1,7 @@
+#include "common.dm"
+
+/test/proc/ok()
+    world.log << rustg_git_revparse("HEAD")
+
+/test/proc/not_ok()
+    CRASH("meme")
