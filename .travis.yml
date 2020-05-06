@@ -4,6 +4,11 @@ cache:
   directories:
     - /home/travis/BYOND/
 
+addons:
+  apt:
+    - g++-multilib
+    - libssl-dev:i386
+
 matrix:
   include:
   - name: "Default Features"
@@ -13,7 +18,10 @@ matrix:
 
 install:
   - env BYOND_MAJOR=513 BYOND_MINOR=1521 ./scripts/install_byond.sh
+  - export BYOND_BIN=/home/travis/BYOND/byond/bin
+  - rustup target add i686-unknown-linux-gnu
+  - export PKG_CONFIG_ALLOW_CROSS=1
 
 script:
-  - cargo build --verbose --all --release $CARGO_FLAGS
-  - env BYOND_BIN=/home/travis/BYOND/byond/bin cargo test --verbose --all --release $CARGO_FLAGS
+  - cargo build --target i686-unknown-linux-gnu --verbose --all --release $CARGO_FLAGS || travis_terminate 1
+  - cargo test --target i686-unknown-linux-gnu --verbose --all --release $CARGO_FLAGS

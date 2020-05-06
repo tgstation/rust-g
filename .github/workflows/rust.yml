@@ -5,25 +5,34 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: i686-pc-windows-msvc
       - uses: actions-rs/cargo@v1
         with:
-          target: stable-i686-pc-windows-msvc
+          toolchain: stable
           command: build
-          args: --release
+          args: --target i686-pc-windows-msvc --release
       - uses: actions/upload-artifact@v1
         with:
           name: rust_g.dll
-          path: target/release/rust_g.dll
+          path: target/i686-pc-windows-msvc/release/rust_g.dll
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - run: sudo apt-get update && sudo apt-get install g++-multilib
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: i686-unknown-linux-gnu
       - uses: actions-rs/cargo@v1
         with:
-          target: stable-i686-unknown-linux-gnu
+          toolchain: stable
           command: build
-          args: --release
+          args: --target i686-unknown-linux-gnu --release
       - uses: actions/upload-artifact@v1
         with:
           name: rust_g
-          path: target/release/librust_g.so
+          path: target/i686-unknown-linux-gnu/release/librust_g.so
