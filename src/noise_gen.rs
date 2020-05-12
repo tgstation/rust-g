@@ -31,6 +31,15 @@ fn get_at_coordinates(seed_as_str: &str, x_as_str: &str, y_as_str: &str) -> Resu
         //perlin noise produces a result in [-sqrt(0.5), sqrt(0.5)] which we scale to [0, 1] for simplicity
         let unscaled = generator.get([x, y]);
         let scaled_from_0_to_1 = (unscaled * 2.0_f64.sqrt() + 1.0) / 2.0;
-        Ok(scaled_from_0_to_1.to_string())
+        let clamped = if scaled_from_0_to_1 < 0.0 {
+            0.0
+        }
+        else if scaled_from_0_to_1 > 1.0 {
+            1.0
+        }
+        else {
+            scaled_from_0_to_1
+        };
+        Ok(clamped.to_string())
     })
 }
