@@ -10,7 +10,6 @@ use std::time::Duration;
 
 lazy_static! {
     static ref POOL: RwLock<Option<Pool>> = RwLock::new(None);
-//    static ref CONNECTIONS: Arc<Mutex<Vec<>>>>
 }
 
 // HELPER FUNCTIONS
