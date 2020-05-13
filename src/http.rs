@@ -11,13 +11,13 @@ use jobs;
 struct Response<'a> {
     status_code: u16,
     headers: HashMap<&'a str, &'a str>,
-    body: &'a str,
+    body: Option<&'a str>,
 }
 
 // If the response can be deserialized -> success.
 // If the response can't be deserialized -> failure.
-byond_fn! { http_request_blocking(method, url, body, headers) {
-    let req = match construct_request(method, url, body, headers) {
+byond_fn! { http_request_blocking(method, url, body, headers, ...rest) {
+    let req = match construct_request(method, url, body, headers, rest.first().map(|x| &**x)) {
         Ok(r) => r,
         Err(e) => return Some(e.to_string())
     };
@@ -29,8 +29,8 @@ byond_fn! { http_request_blocking(method, url, body, headers) {
 } }
 
 // Returns new job-id.
-byond_fn! { http_request_async(method, url, body, headers) {
-    let req = match construct_request(method, url, body, headers) {
+byond_fn! { http_request_async(method, url, body, headers, ...rest) {
+    let req = match construct_request(method, url, body, headers, rest.first().map(|x| &**x)) {
         Ok(r) => r,
         Err(e) => return Some(e.to_string())
     };
@@ -74,7 +74,12 @@ lazy_static! {
 // ----------------------------------------------------------------------------
 // Request construction and execution
 
-fn construct_request(method: &str, url: &str, body: &str, headers: &str) -> Result<reqwest::RequestBuilder> {
+struct RequestPrep {
+    req: reqwest::RequestBuilder,
+    output_filename: Option<String>,
+}
+
+fn construct_request(method: &str, url: &str, body: &str, headers: &str, options: Option<&str>) -> Result<RequestPrep> {
     let mut req = match method {
         "post" => HTTP_CLIENT.post(url),
         "put" => HTTP_CLIENT.put(url),
@@ -95,19 +100,36 @@ fn construct_request(method: &str, url: &str, body: &str, headers: &str) -> Resu
         }
     }
 
-    Ok(req)
+    let mut output_filename = None;
+    if let Some(options) = options {
+        let options: BTreeMap<&str, &str> = serde_json::from_str(options)?;
+        if let Some(fname) = options.get("output_filename") {
+            output_filename = Some(fname.to_string());
+        }
+        if let Some(fname) = options.get("body_filename") {
+            req = req.body(std::fs::File::open(fname)?);
+        }
+    }
+
+    Ok(RequestPrep { req, output_filename })
 }
 
-fn submit_request(req: reqwest::RequestBuilder) -> Result<String> {
-    let mut response = req.send()?;
+fn submit_request(prep: RequestPrep) -> Result<String> {
+    let mut response = prep.req.send()?;
 
-    let body = response.text()?;
-
+    let body;
     let mut resp = Response {
         status_code: response.status().as_u16(),
         headers: HashMap::new(),
-        body: &body,
+        body: None,
     };
+
+    if let Some(output_filename) = prep.output_filename {
+        std::io::copy(&mut response, &mut std::fs::File::create(&output_filename)?)?;
+    } else {
+        body = response.text()?;
+        resp.body = Some(&body);
+    }
 
     for (key, value) in response.headers().iter() {
         if let Ok(value) = value.to_str() {

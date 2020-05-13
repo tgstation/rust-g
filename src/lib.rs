@@ -13,6 +13,8 @@ extern crate hex;
 extern crate percent_encoding;
 #[cfg(feature="png")]
 extern crate png;
+#[cfg(feature="noise")]
+extern crate noise;
 #[cfg(feature="http")]
 extern crate reqwest;
 #[cfg(feature="http")]
@@ -44,7 +46,12 @@ pub mod hash;
 pub mod log;
 #[cfg(feature="url")]
 pub mod url;
+#[cfg(feature="noise")]
+pub mod noise_gen;
 #[cfg(feature="http")]
 pub mod http;
 #[cfg(feature="sql")]
 pub mod sql;
+
+#[cfg(not(target_pointer_width="32"))]
+const _: () = "rust-g must be compiled for a 32-bit target";

@@ -5,7 +5,7 @@ use mysql::{OptsBuilder, Params, Pool};
 use serde_json::map::Map;
 use serde_json::{json, Number};
 use std::error::Error;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::RwLock;
 use std::time::Duration;
 
 lazy_static! {

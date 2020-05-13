@@ -5,7 +5,7 @@ use std::slice;
 
 use std::os::raw::{c_char, c_int};
 
-static EMPTY_STRING: &[c_char; 1] = &[0];
+static EMPTY_STRING: c_char = 0;
 thread_local! {
     static RETURN_STRING: RefCell<CString> = RefCell::new(CString::default());
 }
@@ -22,6 +22,8 @@ pub fn parse_args<'a>(argc: c_int, argv: &'a *const *const c_char) -> Vec<Cow<'a
 
 pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
     match value {
+        None => &EMPTY_STRING,
+        Some(vec) if vec.is_empty() => &EMPTY_STRING,
         Some(vec) => RETURN_STRING.with(|cell| {
             // Panicking over an FFI boundary is bad form, so if a NUL ends up
             // in the result, just truncate.
@@ -34,9 +36,8 @@ pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
                 }
             };
             cell.replace(cstring);
-            cell.borrow().as_ptr() as *const c_char
+            cell.borrow().as_ptr()
         }),
-        None => EMPTY_STRING as *const c_char,
     }
 }
 
@@ -51,7 +52,7 @@ macro_rules! byond_fn {
         }
     };
 
-    ($name:ident($($arg:ident),*) $body:block) => {
+    ($name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
         #[no_mangle]
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
@@ -63,22 +64,11 @@ macro_rules! byond_fn {
                 let $arg = &*__args[__argn];
                 __argn += 1;
             )*
+            $(
+                let $rest = &__args[__argn..];
+            )?
 
             $crate::byond::byond_return((|| $body)().map(From::from))
         }
-    };
-
-    ($name:ident()! $body:block) => {
-        byond_fn! { $name() {
-            $body
-            None as Option<String>
-        } }
-    };
-
-    ($name:ident($($arg:ident),*)! $body:block) => {
-        byond_fn! { $name($($arg),*) {
-            $body
-            None as Option<String>
-        } }
     };
 }

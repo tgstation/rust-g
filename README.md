@@ -85,11 +85,13 @@ cargo build --release --features dmi,file,log,url,http
 
 * **dmi** (default): DMI manipulations which are impossible from within BYOND.
   Used by the asset cache subsystem to improve load times.
+* **log** (default): Faster log output.
+* **http**: HTTP client to allow `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and `HEAD`.
+* **git**: Functions for robustly checking the current git revision.
+* noise: 2d Perlin noise.
+* url: Faster replacements for `url_encode` and `url_decode`.
 * file: Faster replacements for `file2text` and `text2file`.
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
-* **log** (default): Faster log output.
-* url: Faster replacements for `url_encode` and `url_decode`.
-* http: HTTP client to allow `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and `HEAD`. 
 
 ## Installing
 

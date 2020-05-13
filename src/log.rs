@@ -14,7 +14,7 @@ thread_local! {
     static FILE_MAP: RefCell<HashMap<OsString, File>> = RefCell::new(HashMap::new());
 }
 
-byond_fn! { log_write(path, data, format) {
+byond_fn! { log_write(path, data, ...rest) {
     FILE_MAP.with(|cell| -> Result<()> {
         // open file
         let mut map = cell.borrow_mut();
@@ -24,21 +24,19 @@ byond_fn! { log_write(path, data, format) {
             Entry::Vacant(elem) => elem.insert(open(path)?),
         };
 
-        if let Ok(format_bool) = format.parse() {
-            if format_bool {
-                // write first line, timestamped
-                let mut iter = data.split('\n');
-                if let Some(line) = iter.next() {
-                    write!(file, "[{}] {}\n", Utc::now().format("%F %T%.3f"), line)?;
-                }
+        if rest.first().map(|x| &**x) == Some("false") {
+            // Write the data to the file with no accoutrements.
+            write!(file, "{}", data)?;
+        } else {
+            // write first line, timestamped
+            let mut iter = data.split('\n');
+            if let Some(line) = iter.next() {
+                write!(file, "[{}] {}\n", Utc::now().format("%F %T%.3f"), line)?;
+            }
 
-                // write remaining lines
-                for line in iter {
-                    write!(file, " - {}\n", line)?;
-                }
-            } else {
-                //Format turns data into a string literal
-                write!(file, "{}", data)?;
+            // write remaining lines
+            for line in iter {
+                write!(file, " - {}\n", line)?;
             }
         }
 
@@ -46,11 +44,12 @@ byond_fn! { log_write(path, data, format) {
     }).err()
 } }
 
-byond_fn! { log_close_all()! {
+byond_fn! { log_close_all() {
     FILE_MAP.with(|cell| {
         let mut map = cell.borrow_mut();
         map.clear();
-    })
+    });
+    Some("")
 } }
 
 fn filename(path: &Path) -> Result<OsString> {
