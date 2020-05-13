@@ -106,6 +106,9 @@ fn construct_request(method: &str, url: &str, body: &str, headers: &str, options
         if let Some(fname) = options.get("output_filename") {
             output_filename = Some(fname.to_string());
         }
+        if let Some(fname) = options.get("body_filename") {
+            req = req.body(std::fs::File::open(fname)?);
+        }
     }
 
     Ok(RequestPrep { req, output_filename })
