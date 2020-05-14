@@ -25,6 +25,8 @@ extern crate serde_json;
 #[cfg(feature="http")]
 #[macro_use]
 extern crate lazy_static;
+#[cfg(feature="sql")]
+extern crate mysql;
 
 #[macro_use]
 mod byond;
@@ -48,6 +50,8 @@ pub mod url;
 pub mod noise_gen;
 #[cfg(feature="http")]
 pub mod http;
+#[cfg(feature="sql")]
+pub mod sql;
 
 #[cfg(not(target_pointer_width="32"))]
 const _: () = "rust-g must be compiled for a 32-bit target";
