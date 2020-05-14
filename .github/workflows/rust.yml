@@ -20,10 +20,14 @@ jobs:
           path: target/i686-pc-windows-msvc/release/rust_g.dll
   build-linux:
     runs-on: ubuntu-latest
+    env:
+      PKG_CONFIG_ALLOW_CROSS: 1
     steps:
       - uses: actions/checkout@v1
-      - run: sudo apt-get update && sudo apt-get install g++-multilib libssl-dev:i386
-      - run: export PKG_CONFIG_ALLOW_CROSS=1
+      - run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install g++-multilib libssl-dev:i386
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
