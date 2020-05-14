@@ -90,68 +90,68 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
         pool.get_conn()?
     };
 
-    let query_result = conn.prep_exec(query, params_from_json(params))?;
-    let result = query_result_to_json(query_result);
-    std::mem::drop(conn);
-    result
-}
+    let result_json = {
+        use mysql::prelude::Queryable;
 
-fn query_result_to_json(query_result: mysql::QueryResult) -> Result<String, Box<dyn Error>> {
-    let mut rows: Vec<serde_json::Value> = Vec::new();
-    let affected = query_result.affected_rows();
-    for row in query_result {
-        let row = row?;
-        let columns = row.columns_ref();
-        let mut json_row: Vec<serde_json::Value> = Vec::new();
-        for i in 0..(row.len()) {
-            let col = &columns[i];
-            let ctype = col.column_type();
-            let value = &row[i];
-            let converted = match value {
-                mysql::Value::Bytes(b) => match ctype {
-                    MYSQL_TYPE_VARCHAR | MYSQL_TYPE_STRING | MYSQL_TYPE_VAR_STRING => {
-                        serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
-                    }
-                    MYSQL_TYPE_BLOB
-                    | MYSQL_TYPE_LONG_BLOB
-                    | MYSQL_TYPE_MEDIUM_BLOB
-                    | MYSQL_TYPE_TINY_BLOB => {
-                        if col.flags().contains(ColumnFlags::BINARY_FLAG) {
-                            serde_json::Value::Array(
-                                b.into_iter()
-                                    .map(|x| serde_json::Value::Number(Number::from(*x)))
-                                    .collect(),
-                            )
-                        } else {
+        let query_result = conn.exec_iter(query, params_from_json(params))?;
+        let mut rows: Vec<serde_json::Value> = Vec::new();
+        let affected = query_result.affected_rows();
+        for row in query_result {
+            let row = row?;
+            let columns = row.columns_ref();
+            let mut json_row: Vec<serde_json::Value> = Vec::new();
+            for i in 0..(row.len()) {
+                let col = &columns[i];
+                let ctype = col.column_type();
+                let value = &row[i];
+                let converted = match value {
+                    mysql::Value::Bytes(b) => match ctype {
+                        MYSQL_TYPE_VARCHAR | MYSQL_TYPE_STRING | MYSQL_TYPE_VAR_STRING => {
                             serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
                         }
+                        MYSQL_TYPE_BLOB
+                        | MYSQL_TYPE_LONG_BLOB
+                        | MYSQL_TYPE_MEDIUM_BLOB
+                        | MYSQL_TYPE_TINY_BLOB => {
+                            if col.flags().contains(ColumnFlags::BINARY_FLAG) {
+                                serde_json::Value::Array(
+                                    b.into_iter()
+                                        .map(|x| serde_json::Value::Number(Number::from(*x)))
+                                        .collect(),
+                                )
+                            } else {
+                                serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
+                            }
+                        }
+                        _ => serde_json::Value::Null,
+                    },
+                    mysql::Value::Float(f) => {
+                        serde_json::Value::Number(Number::from_f64(*f).unwrap_or(Number::from(0)))
+                    }
+                    mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
+                    mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
+                    mysql::Value::Date(year, month, day, hour, minute, second, _ms) => {
+                        serde_json::Value::String(format!(
+                            "{}-{:02}-{:02} {:02}:{:02}:{:02}",
+                            year, month, day, hour, minute, second
+                        ))
                     }
                     _ => serde_json::Value::Null,
-                },
-                mysql::Value::Float(f) => {
-                    serde_json::Value::Number(Number::from_f64(*f).unwrap_or(Number::from(0)))
-                }
-                mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
-                mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
-                mysql::Value::Date(year, month, day, hour, minute, second, _ms) => {
-                    serde_json::Value::String(format!(
-                        "{}-{:02}-{:02} {:02}:{:02}:{:02}",
-                        year, month, day, hour, minute, second
-                    ))
-                }
-                _ => serde_json::Value::Null,
-            };
-            json_row.push(converted)
+                };
+                json_row.push(converted)
+            }
+            rows.push(serde_json::Value::Array(json_row));
         }
-        rows.push(serde_json::Value::Array(json_row));
-    }
 
-    Ok(json! {{
-        "status": "ok",
-        "affected": affected,
-        "rows": rows,
-    }}
-    .to_string())
+        json! {{
+            "status": "ok",
+            "affected": affected,
+            "rows": rows,
+        }}
+    };
+    std::mem::drop(conn);
+
+    Ok(result_json.to_string())
 }
 
 byond_fn! { sql_query_blocking(query, params) {
@@ -182,8 +182,7 @@ fn sql_connect(
     min_threads: usize,
     max_threads: usize,
 ) -> Result<String, Box<dyn Error>> {
-    let mut builder = OptsBuilder::new();
-    builder
+    let builder = OptsBuilder::new()
         .ip_or_hostname(Some(host))
         .tcp_port(port)
         .user(Some(user))
