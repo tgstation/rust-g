@@ -1,11 +1,12 @@
 # rust-g
 
-rust-g (pronounced rusty-g) is a library which offloads certain expensive or difficult
-tasks from BYOND.
+rust-g (pronounced rusty-g) is a library which offloads certain expensive or
+difficult tasks from BYOND.
 
-This library is currently used in the [tgstation] codebase, and is required for it to run.
-A pre-compiled DLL version can be found in the repo root, but you can build your own from
-this repo at your preference. Builds can also be found on the [releases page].
+This library is currently used in the [tgstation] codebase, and is required for
+it to run. A pre-compiled DLL version can be found in the repo root, but you
+can build your own from this repo at your preference. Builds can also be found
+on the [releases page].
 
 [releases page]: https://github.com/tgstation/rust-g/releases
 
@@ -46,17 +47,9 @@ System libraries:
 * Ubuntu and Debian users run:
 
     ```sh
-    sudo apt-get install zlib1g-dev:i386
-    ```
-
-* Other distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
-
-OpenSSL (**Optional**, not required by the default configuration):
-
-* Ubuntu and Debian users run:
-
-    ```sh
-    sudo apt-get install libssl-dev:i386 pkg-config:i386
+    sudo dpkg --add-architecture i386
+    sudo apt-get update
+    sudo apt-get install zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386
     ```
 
 * Other distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
@@ -72,8 +65,7 @@ speed):
 cargo build --release
 ```
 
-On Linux, the output will be `target/release/librust_g.so`, but **must be renamed**
-to `rust_g` to install correctly.
+On Linux, the output will be `target/release/librust_g.so`.
 
 On Windows, the output will be `target/release/rust_g.dll`.
 
@@ -83,11 +75,15 @@ For more advanced configuration, a list of modules may be passed:
 cargo build --release --features dmi,file,log,url,http
 ```
 
-* **dmi** (default): DMI manipulations which are impossible from within BYOND.
+The default features are:
+* log: Faster log output.
+* dmi: DMI manipulations which are impossible from within BYOND.
   Used by the asset cache subsystem to improve load times.
-* **log** (default): Faster log output.
-* **http**: HTTP client to allow `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and `HEAD`.
-* **git**: Functions for robustly checking the current git revision.
+* git: Functions for robustly checking the current git revision.
+* http: Asynchronous HTTP(s) client supporting most standard methods.
+* sql: Asynchronous MySQL/MariaDB client library.
+
+Additional features are:
 * noise: 2d Perlin noise.
 * url: Faster replacements for `url_encode` and `url_decode`.
 * file: Faster replacements for `file2text` and `text2file`.
@@ -95,60 +91,46 @@ cargo build --release --features dmi,file,log,url,http
 
 ## Installing
 
-The rust-g binary needs to be copied to either your BYOND bin folder, or to the
-root of the repository (next to your `.dmb`).
-
-On Linux, be sure the file is named `rust_g`.
+The rust-g binary (`rust_g.dll` or `librust_g.so`) should be placed in the root
+of your repository next to your `.dmb`. There are alternative installation
+locations, but this one is best supported.
 
 Compiling will also create the file `target/rust_g.dm` which contains the DM API
 of the enabled modules. To use rust-g, copy-paste this file into your project.
 
-It is also possible to automatically override the built-in versions of the
-functions being replaced. To enable this, create and include `rust_g.config.dm`
-in the same directory you placed `rust_g.dm`, with the contents:
-
-```dm
-#define RUSTG_OVERRIDE_BUILTINS
-```
+`rust_g.dm` can be configured by creating a `rust_g.config.dm`. See the comments
+at the top of `rust_g.dm` for details.
 
 ## Troubleshooting
 
-The most common mistake is building a 64-bit version of the library, which BYOND
-will be unable to load. If the output of the `file` command indicates a 64-bit
-build, make sure you are using the 32-bit Rust compiler. Correct output for a
-32-bit build will look similar to:
-
-```sh
-$ file rust_g  # Linux
-ELF 32-bit LSB shared object, Intel 80386, version 1 (SYSV), dynamically linked, BuildID[sha1]=..., with debug_info, not stripped
-
-$ file rust_g.dll  # Windows
-PE32 executable (DLL) (GUI) Intel 80386 (stripped to external PDB), for MS Windows
-```
+You must build a 32-bit version of the library for it to be compatible with
+BYOND. Attempting to build a 64-bit version will fail with an explanatory error.
+Use the `rustup override add` command described above or build with `--target`.
 
 ### Linux
 
-On Linux systems where the `hash` module is in use, `ldd` can be used to check
-that the OpenSSL runtime libraries are installed, without which BYOND will fail
-to load rust-g. Use the `ldd` command to check that the dependencies are being
-found, and no libraries are missing:
+On Linux systems `ldd` can be used to check that the relevant runtime libraries
+are installed, without which BYOND will fail to load rust-g. The following is
+sample output, but the most important thing is that nothing is listed as
+"missing".
 
 ```sh
-$ ldd rust_g  # Linux
-        linux-gate.so.1 =>  (0xf7775000)
-        libssl.so.1.0.0 => /lib/i386-linux-gnu/libssl.so.1.0.0 (0xf7677000)
-        libcrypto.so.1.0.0 => /lib/i386-linux-gnu/libcrypto.so.1.0.0 (0xf748a000)
-        libdl.so.2 => /lib/i386-linux-gnu/libdl.so.2 (0xf7485000)
-        librt.so.1 => /lib/i386-linux-gnu/librt.so.1 (0xf747c000)
-        libpthread.so.0 => /lib/i386-linux-gnu/libpthread.so.0 (0xf745e000)
-        libgcc_s.so.1 => /lib/i386-linux-gnu/libgcc_s.so.1 (0xf7441000)
-        libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf728b000)
-        /lib/ld-linux.so.2 (0x5657d000)
-        libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf7236000)
+$ ldd librust_g.so  # Linux
+    linux-gate.so.1 (0xf7f45000)
+    libssl.so.1.1 => /usr/lib/i386-linux-gnu/libssl.so.1.1 (0xf6c79000)
+    libcrypto.so.1.1 => /usr/lib/i386-linux-gnu/libcrypto.so.1.1 (0xf69cd000)
+    libdl.so.2 => /lib/i386-linux-gnu/libdl.so.2 (0xf69c8000)
+    librt.so.1 => /lib/i386-linux-gnu/librt.so.1 (0xf69be000)
+    libpthread.so.0 => /lib/i386-linux-gnu/libpthread.so.0 (0xf699f000)
+    libgcc_s.so.1 => /lib/i386-linux-gnu/libgcc_s.so.1 (0xf6981000)
+    libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf67a5000)
+    /lib/ld-linux.so.2 (0xf7f47000)
+    libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf66a3000)
 ```
 
 If BYOND cannot find the shared library, ensure that the directory containing
-it is included in the `LD_LIBRARY_PATH` environment variable:
+it is included in the `LD_LIBRARY_PATH` environment variable, or tweak the search
+logic in `rust_g.dm`:
 
 ```sh
 $ export LD_LIBRARY_PATH=/path/to/tgstation
@@ -176,13 +158,18 @@ open("rust_g", O_RDONLY|O_CLOEXEC)      = 4
 open("rust_g", O_RDONLY|O_NONBLOCK|O_LARGEFILE|O_DIRECTORY|O_CLOEXEC) = -1 ENOTDIR (Not a directory)
 ```
 
-If you're still having problems, ask in [tgstation]'s IRC, `#coderbus` on Rizon.
+If you're still having problems, ask in the [Coderbus Discord]'s
+`#tooling-questions` channel.
+
+You can also try [tgstation]'s IRC, `#coderbus` on Rizon, but it is usually
+quiet.
 
 [tgstation]: https://github.com/tgstation/tgstation
 [Rust]: https://rust-lang.org
 [cargo]: https://doc.rust-lang.org/cargo/
 [rustup]: https://rustup.rs/
 [msvc]: https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15
+[Coderbus Discord]: https://discord.gg/Vh8TJp9
 
 ## License
 
