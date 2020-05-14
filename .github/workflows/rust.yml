@@ -22,7 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - run: sudo apt-get update && sudo apt-get install g++-multilib
+      - run: sudo apt-get update && sudo apt-get install g++-multilib libssl-dev:i386
+      - run: export PKG_CONFIG_ALLOW_CROSS=1
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
