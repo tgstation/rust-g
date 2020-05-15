@@ -17,7 +17,7 @@ extern crate png;
 extern crate noise;
 #[cfg(feature="http")]
 extern crate reqwest;
-#[cfg(feature="http")]
+#[cfg(any(feature="http", feature="sql"))]
 #[macro_use]
 extern crate serde_derive;
 #[cfg(any(feature="http", feature="sql"))]

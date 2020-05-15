@@ -172,36 +172,48 @@ byond_fn! { sql_query_async(query, params) {
     }))
 } }
 
-fn sql_connect(
-    host: &str,
-    port: u16,
-    user: &str,
-    pass: &str,
-    db: &str,
-    timeout: Duration,
-    min_threads: usize,
-    max_threads: usize,
-) -> Result<String, Box<dyn Error>> {
+// Defaults from `mysql` crate documentation.
+const DEFAULT_PORT: u16 = 3306;
+const DEFAULT_MIN_THREADS: usize = 10;
+const DEFAULT_MAX_THREADS: usize = 100;
+
+fn sql_connect(options: ConnectOptions) -> Result<String, Box<dyn Error>> {
     let builder = OptsBuilder::new()
-        .ip_or_hostname(Some(host))
-        .tcp_port(port)
-        .user(Some(user))
-        .pass(Some(pass))
-        .db_name(Some(db))
-        .read_timeout(Some(timeout))
-        .write_timeout(Some(timeout));
-    let pool = Pool::new_manual(min_threads, max_threads, builder)?;
+        .ip_or_hostname(options.host)
+        .tcp_port(options.port.unwrap_or(DEFAULT_PORT))
+        .user(options.user)
+        .pass(options.pass)
+        .db_name(options.db_name)
+        .read_timeout(options.read_timeout)
+        .write_timeout(options.write_timeout);
+    let pool = Pool::new_manual(
+        options.min_threads.unwrap_or(DEFAULT_MIN_THREADS),
+        options.max_threads.unwrap_or(DEFAULT_MAX_THREADS),
+        builder)?;
     let mut poolguard = POOL.write()?;
     *poolguard = Some(pool);
     Ok(json!({"status": "ok"}).to_string())
 }
 
-byond_fn! { sql_connect_pool(host, port, user, pass, db, timeout, min_threads, max_threads) {
-    let port = port.parse::<u16>().unwrap_or(3306);
-    let timeout = Duration::from_secs(timeout.parse::<u64>().unwrap_or(10));
-    let min_threads = min_threads.parse::<usize>().unwrap_or(1);
-    let max_threads = max_threads.parse::<usize>().unwrap_or(50);
-    Some(match sql_connect(host, port, user, pass, db, timeout, min_threads, max_threads) {
+#[derive(Deserialize)]
+struct ConnectOptions {
+    host: Option<String>,
+    port: Option<u16>,
+    user: Option<String>,
+    pass: Option<String>,
+    db_name: Option<String>,
+    read_timeout: Option<Duration>,
+    write_timeout: Option<Duration>,
+    min_threads: Option<usize>,
+    max_threads: Option<usize>,
+}
+
+byond_fn! { sql_connect_pool(options) {
+    let options = match serde_json::from_str::<ConnectOptions>(options) {
+        Ok(options) => options,
+        Err(e) => return Some(err_to_json(e)),
+    };
+    Some(match sql_connect(options) {
         Ok(o) => o,
         Err(e) => err_to_json(e)
     })
