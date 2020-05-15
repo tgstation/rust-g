@@ -98,12 +98,10 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
         let affected = query_result.affected_rows();
         for row in query_result {
             let row = row?;
-            let columns = row.columns_ref();
             let mut json_row: Vec<serde_json::Value> = Vec::new();
-            for i in 0..(row.len()) {
-                let col = &columns[i];
+            for (i, col) in row.columns_ref().iter().enumerate() {
                 let ctype = col.column_type();
-                let value = &row[i];
+                let value = row.as_ref(i).ok_or("length of row was smaller than column count")?;
                 let converted = match value {
                     mysql::Value::Bytes(b) => match ctype {
                         MYSQL_TYPE_VARCHAR | MYSQL_TYPE_STRING | MYSQL_TYPE_VAR_STRING => {
