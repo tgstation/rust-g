@@ -81,21 +81,23 @@ fn params_from_json(params: &str) -> Params {
 }
 
 fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
-    let mut conn = {
-        let p = POOL.read()?;
-        let pool = match &*p {
-            Some(s) => s,
-            None => return Ok(json!({"status": "offline"}).to_string()),
-        };
-        pool.get_conn()?
-    };
+    let affected;
+    let mut rows: Vec<serde_json::Value> = Vec::new();
 
-    let result_json = {
+    {
         use mysql::prelude::Queryable;
 
+        let mut conn = {
+            let p = POOL.read()?;
+            let pool = match &*p {
+                Some(s) => s,
+                None => return Ok(json!({"status": "offline"}).to_string()),
+            };
+            pool.get_conn()?
+        };
+
         let query_result = conn.exec_iter(query, params_from_json(params))?;
-        let mut rows: Vec<serde_json::Value> = Vec::new();
-        let affected = query_result.affected_rows();
+        affected = query_result.affected_rows();
         for row in query_result {
             let row = row?;
             let mut json_row: Vec<serde_json::Value> = Vec::new();
@@ -140,14 +142,13 @@ fn do_query(query: &str, params: &str) -> Result<String, Box<dyn Error>> {
             }
             rows.push(serde_json::Value::Array(json_row));
         }
-
-        json! {{
-            "status": "ok",
-            "affected": affected,
-            "rows": rows,
-        }}
     };
-    std::mem::drop(conn);
+
+    let result_json = json! {{
+        "status": "ok",
+        "affected": affected,
+        "rows": rows,
+    }};
 
     Ok(result_json.to_string())
 }
