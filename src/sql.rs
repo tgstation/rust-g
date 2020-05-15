@@ -151,6 +151,14 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
     let query_result = conn.exec_iter(query, params_from_json(params))?;
     let affected = query_result.affected_rows();
     let last_insert_id = query_result.last_insert_id();
+    let mut columns = Vec::new();
+    for col in query_result.columns().as_ref().iter() {
+        columns.push(json! {{
+            "name": col.name_str(),
+            // Expansion room left for other column metadata.
+        }});
+    }
+
     let mut rows: Vec<serde_json::Value> = Vec::new();
     for row in query_result {
         let row = row?;
@@ -203,6 +211,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
         "status": "ok",
         "affected": affected,
         "last_insert_id": last_insert_id,
+        "columns": columns,
         "rows": rows,
     }})
 }
