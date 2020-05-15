@@ -15,10 +15,10 @@ use jobs;
 // ----------------------------------------------------------------------------
 // Interface
 
-// Defaults from `mysql` crate documentation.
 const DEFAULT_PORT: u16 = 3306;
-const DEFAULT_MIN_THREADS: usize = 10;
-const DEFAULT_MAX_THREADS: usize = 100;
+// The `mysql` crate defauls to 10 and 100 for these, but that is too large.
+const DEFAULT_MIN_THREADS: usize = 1;
+const DEFAULT_MAX_THREADS: usize = 10;
 
 #[derive(Deserialize)]
 struct ConnectOptions {
