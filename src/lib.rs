@@ -20,9 +20,9 @@ extern crate reqwest;
 #[cfg(feature="http")]
 #[macro_use]
 extern crate serde_derive;
-#[cfg(feature="http")]
+#[cfg(any(feature="http", feature="sql"))]
 extern crate serde_json;
-#[cfg(feature="http")]
+#[cfg(any(feature="http", feature="sql"))]
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature="sql")]
