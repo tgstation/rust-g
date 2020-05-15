@@ -13,7 +13,7 @@ lazy_static! {
 }
 
 // HELPER FUNCTIONS
-fn err_to_json(e: Box<dyn Error>) -> String {
+fn err_to_json<E: std::fmt::Display>(e: E) -> String {
     json!({
         "status": "err",
         "data": &e.to_string()
@@ -222,7 +222,7 @@ byond_fn! { sql_disconnect_pool() {
                 }).to_string()
             }
         },
-        Err(e) => err_to_json(Box::new(e))
+        Err(e) => err_to_json(e)
     })
 } }
 
@@ -238,7 +238,7 @@ byond_fn! { sql_connected() {
                 }).to_string()
             }
         },
-        Err(e) => err_to_json(Box::new(e))
+        Err(e) => err_to_json(e)
     })
 } }
 
