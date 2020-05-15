@@ -28,8 +28,8 @@ struct ConnectOptions {
     user: Option<String>,
     pass: Option<String>,
     db_name: Option<String>,
-    read_timeout: Option<Duration>,
-    write_timeout: Option<Duration>,
+    read_timeout: Option<f32>,
+    write_timeout: Option<f32>,
     min_threads: Option<usize>,
     max_threads: Option<usize>,
 }
@@ -121,8 +121,8 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
         .user(options.user)
         .pass(options.pass)
         .db_name(options.db_name)
-        .read_timeout(options.read_timeout)
-        .write_timeout(options.write_timeout);
+        .read_timeout(options.read_timeout.map(Duration::from_secs_f32))
+        .write_timeout(options.write_timeout.map(Duration::from_secs_f32));
 
     let pool = Pool::new_manual(
         options.min_threads.unwrap_or(DEFAULT_MIN_THREADS),
