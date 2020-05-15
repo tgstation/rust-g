@@ -1,12 +1,16 @@
-use jobs;
-use mysql::consts::ColumnFlags;
-use mysql::consts::ColumnType::*;
-use mysql::{OptsBuilder, Params, Pool};
-use serde_json::map::Map;
-use serde_json::{json, Number};
 use std::error::Error;
 use std::sync::RwLock;
 use std::time::Duration;
+
+use serde_json::map::Map;
+use serde_json::{json, Number};
+
+use mysql::prelude::Queryable;
+use mysql::consts::ColumnFlags;
+use mysql::consts::ColumnType::*;
+use mysql::{OptsBuilder, Params, Pool};
+
+use jobs;
 
 // ----------------------------------------------------------------------------
 // Interface
@@ -123,68 +127,64 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
 }
 
 fn do_query(query: &str, params: &str) -> Result<serde_json::Value, Box<dyn Error>> {
-    let affected;
-    let mut rows: Vec<serde_json::Value> = Vec::new();
-
-    {
-        use mysql::prelude::Queryable;
-
-        let mut conn = {
-            let p = POOL.read()?;
-            let pool = match &*p {
-                Some(s) => s,
-                None => return Ok(json!({"status": "offline"})),
-            };
-            pool.get_conn()?
+    let mut conn = {
+        let p = POOL.read()?;
+        let pool = match &*p {
+            Some(s) => s,
+            None => return Ok(json!({"status": "offline"})),
         };
+        pool.get_conn()?
+    };
 
-        let query_result = conn.exec_iter(query, params_from_json(params))?;
-        affected = query_result.affected_rows();
-        for row in query_result {
-            let row = row?;
-            let mut json_row: Vec<serde_json::Value> = Vec::new();
-            for (i, col) in row.columns_ref().iter().enumerate() {
-                let ctype = col.column_type();
-                let value = row.as_ref(i).ok_or("length of row was smaller than column count")?;
-                let converted = match value {
-                    mysql::Value::Bytes(b) => match ctype {
-                        MYSQL_TYPE_VARCHAR | MYSQL_TYPE_STRING | MYSQL_TYPE_VAR_STRING => {
+    let query_result = conn.exec_iter(query, params_from_json(params))?;
+    let affected = query_result.affected_rows();
+    let mut rows: Vec<serde_json::Value> = Vec::new();
+    for row in query_result {
+        let row = row?;
+        let mut json_row: Vec<serde_json::Value> = Vec::new();
+        for (i, col) in row.columns_ref().iter().enumerate() {
+            let ctype = col.column_type();
+            let value = row.as_ref(i).ok_or("length of row was smaller than column count")?;
+            let converted = match value {
+                mysql::Value::Bytes(b) => match ctype {
+                    MYSQL_TYPE_VARCHAR | MYSQL_TYPE_STRING | MYSQL_TYPE_VAR_STRING => {
+                        serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
+                    }
+                    MYSQL_TYPE_BLOB
+                    | MYSQL_TYPE_LONG_BLOB
+                    | MYSQL_TYPE_MEDIUM_BLOB
+                    | MYSQL_TYPE_TINY_BLOB => {
+                        if col.flags().contains(ColumnFlags::BINARY_FLAG) {
+                            serde_json::Value::Array(
+                                b.into_iter()
+                                    .map(|x| serde_json::Value::Number(Number::from(*x)))
+                                    .collect(),
+                            )
+                        } else {
                             serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
                         }
-                        MYSQL_TYPE_BLOB
-                        | MYSQL_TYPE_LONG_BLOB
-                        | MYSQL_TYPE_MEDIUM_BLOB
-                        | MYSQL_TYPE_TINY_BLOB => {
-                            if col.flags().contains(ColumnFlags::BINARY_FLAG) {
-                                serde_json::Value::Array(
-                                    b.into_iter()
-                                        .map(|x| serde_json::Value::Number(Number::from(*x)))
-                                        .collect(),
-                                )
-                            } else {
-                                serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
-                            }
-                        }
-                        _ => serde_json::Value::Null,
-                    },
-                    mysql::Value::Float(f) => {
-                        serde_json::Value::Number(Number::from_f64(*f).unwrap_or(Number::from(0)))
-                    }
-                    mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
-                    mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
-                    mysql::Value::Date(year, month, day, hour, minute, second, _ms) => {
-                        serde_json::Value::String(format!(
-                            "{}-{:02}-{:02} {:02}:{:02}:{:02}",
-                            year, month, day, hour, minute, second
-                        ))
                     }
                     _ => serde_json::Value::Null,
-                };
-                json_row.push(converted)
-            }
-            rows.push(serde_json::Value::Array(json_row));
+                },
+                mysql::Value::Float(f) => {
+                    serde_json::Value::Number(Number::from_f64(*f).unwrap_or(Number::from(0)))
+                }
+                mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
+                mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
+                mysql::Value::Date(year, month, day, hour, minute, second, _ms) => {
+                    serde_json::Value::String(format!(
+                        "{}-{:02}-{:02} {:02}:{:02}:{:02}",
+                        year, month, day, hour, minute, second
+                    ))
+                }
+                _ => serde_json::Value::Null,
+            };
+            json_row.push(converted)
         }
-    };
+        rows.push(serde_json::Value::Array(json_row));
+    }
+
+    drop(conn);
 
     Ok(json! {{
         "status": "ok",
