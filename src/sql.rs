@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::sync::RwLock;
 use std::time::Duration;
+use std::collections::HashMap;
 
 use serde_json::map::Map;
 use serde_json::{json, Number};
@@ -44,18 +45,19 @@ byond_fn! { sql_connect_pool(options) {
     })
 } }
 
-byond_fn! { sql_query_blocking(query, params) {
-    Some(match do_query(query, params) {
+byond_fn! { sql_query_blocking(handle, query, params) {
+    Some(match do_query(handle, query, params) {
         Ok(o) => o.to_string(),
         Err(e) => err_to_json(e)
     })
 } }
 
-byond_fn! { sql_query_async(query, params) {
+byond_fn! { sql_query_async(handle, query, params) {
+    let handle = handle.to_owned();
     let query = query.to_owned();
     let params = params.to_owned();
     Some(jobs::start(move || {
-        match do_query(&query, &params) {
+        match do_query(&handle, &query, &params) {
             Ok(o) => o.to_string(),
             Err(e) => err_to_json(e)
         }
@@ -63,10 +65,10 @@ byond_fn! { sql_query_async(query, params) {
 } }
 
 // hopefully won't panic if queries are running
-byond_fn! { sql_disconnect_pool() {
+byond_fn! { sql_disconnect_pool(handle) {
     Some(match POOL.write() {
         Ok(mut o) => {
-            match o.take() {
+            match o.remove(handle) {
                 Some(_) => {
                     json!({
                         "status": "success"
@@ -81,10 +83,10 @@ byond_fn! { sql_disconnect_pool() {
     })
 } }
 
-byond_fn! { sql_connected() {
+byond_fn! { sql_connected(handle) {
     Some(match POOL.read() {
         Ok(o) => {
-            match *o {
+            match o.get(handle) {
                 Some(_) => json!({
                     "status": "online"
                 }).to_string(),
@@ -105,7 +107,8 @@ byond_fn! { sql_check_query(id) {
 // Main connect and query implementation
 
 lazy_static! {
-    static ref POOL: RwLock<Option<Pool>> = RwLock::new(None);
+    static ref POOL: RwLock<HashMap<String, Pool>> = Default::default();
+    static ref NEXT_ID: std::sync::atomic::AtomicUsize = Default::default();
 }
 
 fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Error>> {
@@ -117,19 +120,25 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
         .db_name(options.db_name)
         .read_timeout(options.read_timeout)
         .write_timeout(options.write_timeout);
+
     let pool = Pool::new_manual(
         options.min_threads.unwrap_or(DEFAULT_MIN_THREADS),
         options.max_threads.unwrap_or(DEFAULT_MAX_THREADS),
         builder)?;
+
+    let handle = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed).to_string();
     let mut poolguard = POOL.write()?;
-    *poolguard = Some(pool);
-    Ok(json!({"status": "ok"}))
+    poolguard.insert(handle.clone(), pool);
+    Ok(json!({
+        "status": "ok",
+        "handle": handle,
+    }))
 }
 
-fn do_query(query: &str, params: &str) -> Result<serde_json::Value, Box<dyn Error>> {
+fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value, Box<dyn Error>> {
     let mut conn = {
-        let p = POOL.read()?;
-        let pool = match &*p {
+        let poolguard = POOL.read()?;
+        let pool = match poolguard.get(handle) {
             Some(s) => s,
             None => return Ok(json!({"status": "offline"})),
         };
