@@ -150,6 +150,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
 
     let query_result = conn.exec_iter(query, params_from_json(params))?;
     let affected = query_result.affected_rows();
+    let last_insert_id = query_result.last_insert_id();
     let mut rows: Vec<serde_json::Value> = Vec::new();
     for row in query_result {
         let row = row?;
@@ -201,6 +202,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
     Ok(json! {{
         "status": "ok",
         "affected": affected,
+        "last_insert_id": last_insert_id,
         "rows": rows,
     }})
 }
