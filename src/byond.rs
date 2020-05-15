@@ -61,11 +61,11 @@ macro_rules! byond_fn {
 
             let mut __argn = 0;
             $(
-                let $arg = &*__args[__argn];
+                let $arg: &str = __args.get(__argn).map_or("", |cow| &*cow);
                 __argn += 1;
             )*
             $(
-                let $rest = &__args[__argn..];
+                let $rest = &__args.get(__argn..).unwrap_or(&[]);
             )?
 
             $crate::byond::byond_return((|| $body)().map(From::from))
