@@ -65,7 +65,7 @@ macro_rules! byond_fn {
                 __argn += 1;
             )*
             $(
-                let $rest = &__args.get(__argn..).unwrap_or(&[]);
+                let $rest = __args.get(__argn..).unwrap_or(&[]);
             )?
 
             $crate::byond::byond_return((|| $body)().map(From::from))
