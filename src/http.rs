@@ -7,6 +7,12 @@ use jobs;
 // ----------------------------------------------------------------------------
 // Interface
 
+#[derive(Deserialize)]
+struct RequestOptions {
+    output_filename: Option<String>,
+    body_filename: Option<String>,
+}
+
 #[derive(Serialize)]
 struct Response<'a> {
     status_code: u16,
@@ -102,11 +108,9 @@ fn construct_request(method: &str, url: &str, body: &str, headers: &str, options
 
     let mut output_filename = None;
     if let Some(options) = options {
-        let options: BTreeMap<&str, &str> = serde_json::from_str(options)?;
-        if let Some(fname) = options.get("output_filename") {
-            output_filename = Some(fname.to_string());
-        }
-        if let Some(fname) = options.get("body_filename") {
+        let options: RequestOptions = serde_json::from_str(options)?;
+        output_filename = options.output_filename;
+        if let Some(fname) = options.body_filename {
             req = req.body(std::fs::File::open(fname)?);
         }
     }
