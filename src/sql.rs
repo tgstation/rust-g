@@ -188,7 +188,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
                     _ => serde_json::Value::Null,
                 },
                 mysql::Value::Float(f) => {
-                    serde_json::Value::Number(Number::from_f64(*f).unwrap_or(Number::from(0)))
+                    serde_json::Value::Number(Number::from_f64(f64::from(*f)).unwrap_or(Number::from(0)))
                 }
                 mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
                 mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
@@ -236,7 +236,7 @@ fn json_to_mysql(val: serde_json::Value) -> mysql::Value {
             } else if let Some(v) = i.as_i64() {
                 mysql::Value::Int(v)
             } else if let Some(v) = i.as_f64() {
-                mysql::Value::Float(v)
+                mysql::Value::Float(v as f32)  // Loses precision.
             } else {
                 mysql::Value::NULL
             }
