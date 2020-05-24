@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+export PKG_CONFIG_ALLOW_CROSS=1
+
 touch build.rs
 
 echo '==== Linux build ====' # ------------------------------------------------
