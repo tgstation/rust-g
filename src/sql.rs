@@ -177,7 +177,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
                     | MYSQL_TYPE_TINY_BLOB => {
                         if col.flags().contains(ColumnFlags::BINARY_FLAG) {
                             serde_json::Value::Array(
-                                b.into_iter()
+                                b.iter()
                                     .map(|x| serde_json::Value::Number(Number::from(*x)))
                                     .collect(),
                             )
@@ -188,7 +188,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
                     _ => serde_json::Value::Null,
                 },
                 mysql::Value::Float(f) => {
-                    serde_json::Value::Number(Number::from_f64(f64::from(*f)).unwrap_or(Number::from(0)))
+                    serde_json::Value::Number(Number::from_f64(f64::from(*f)).unwrap_or_else(|| Number::from(0)))
                 }
                 mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
                 mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
