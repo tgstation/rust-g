@@ -1,13 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-export PKG_CONFIG_ALLOW_CROSS=1
-
 touch build.rs
 
 echo '==== Linux build ====' # ------------------------------------------------
 rustup target add i686-unknown-linux-gnu
-cargo build --release --target i686-unknown-linux-gnu
+env PKG_CONFIG_ALLOW_CROSS=1 \
+    cargo build --release --target i686-unknown-linux-gnu
 
 mv target/rust_g.dm target/rust_g.linux.dm
 
