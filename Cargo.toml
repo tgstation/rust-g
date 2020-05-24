@@ -35,7 +35,7 @@ git = "https://github.com/blackbeam/rust-mysql-simple"
 rev = "b039fe7a11609aeab9071289bcff496b9366389a"
 
 [features]
-default = ["dmi", "log", "git", "http", "sql"]
+default = ["dmi", "log", "git", "http", "sql", "noise"]
 dmi = ["png"]
 file = []
 hash = ["crypto-hash", "hex"]
