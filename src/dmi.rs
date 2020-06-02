@@ -1,7 +1,9 @@
 use crate::error::{Error, Result};
 use png::{Decoder, Encoder, HasParameters, OutputInfo};
-use std::fs::{create_dir_all, File};
-use std::path::Path;
+use std::{
+    fs::{create_dir_all, File},
+    path::Path,
+};
 
 byond_fn! { dmi_strip_metadata(path) {
     strip_metadata(path).err()

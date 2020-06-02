@@ -1,8 +1,8 @@
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::{Read, Write};
-
-use error::Result;
+use crate::error::Result;
+use std::{
+    fs::{File, OpenOptions},
+    io::{Read, Write},
+};
 
 byond_fn! { file_read(path) {
     read(path).ok()

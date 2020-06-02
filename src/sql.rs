@@ -1,17 +1,11 @@
 use crate::jobs;
-
-use std::collections::HashMap;
-use std::error::Error;
-use std::sync::RwLock;
-use std::time::Duration;
-
-use serde_json::map::Map;
-use serde_json::{json, Number};
-
-use mysql::consts::ColumnFlags;
-use mysql::consts::ColumnType::*;
-use mysql::prelude::Queryable;
-use mysql::{OptsBuilder, Params, Pool};
+use mysql::{
+    consts::{ColumnFlags, ColumnType::*},
+    prelude::Queryable,
+    OptsBuilder, Params, Pool,
+};
+use serde_json::{json, map::Map, Number};
+use std::{collections::HashMap, error::Error, sync::RwLock, time::Duration};
 
 // ----------------------------------------------------------------------------
 // Interface

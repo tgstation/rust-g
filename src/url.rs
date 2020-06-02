@@ -1,6 +1,5 @@
+use crate::error::{Error, Result};
 use percent_encoding::{percent_decode, utf8_percent_encode, PATH_SEGMENT_ENCODE_SET};
-
-use error::{Error, Result};
 
 byond_fn! { url_encode(data) {
     Some(encode(data))

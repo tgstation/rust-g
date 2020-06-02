@@ -1,9 +1,10 @@
-use std::borrow::Cow;
-use std::cell::RefCell;
-use std::ffi::{CStr, CString};
-use std::slice;
-
-use std::os::raw::{c_char, c_int};
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    ffi::{CStr, CString},
+    os::raw::{c_char, c_int},
+    slice,
+};
 
 static EMPTY_STRING: c_char = 0;
 thread_local! {

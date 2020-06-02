@@ -1,7 +1,9 @@
-use std::io;
-use std::num::{ParseFloatError, ParseIntError};
-use std::result;
-use std::str::Utf8Error;
+use std::{
+    io,
+    num::{ParseFloatError, ParseIntError},
+    result,
+    str::Utf8Error,
+};
 
 #[cfg(feature = "png")]
 use png::{DecodingError, EncodingError};

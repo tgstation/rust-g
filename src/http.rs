@@ -1,7 +1,5 @@
-use crate::error::Result;
-use crate::jobs;
-use std::collections::hash_map::HashMap;
-use std::collections::BTreeMap;
+use crate::{error::Result, jobs};
+use std::collections::{BTreeMap, HashMap};
 
 // ----------------------------------------------------------------------------
 // Interface
