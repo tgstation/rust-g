@@ -1,7 +1,6 @@
 //! Buildscript which will save a `rust_g.dm` with the DLL's public API.
 
-use std::fs::File;
-use std::io::Write;
+use std::{fs::File, io::Write};
 
 macro_rules! enabled {
     ($name:expr) => {
