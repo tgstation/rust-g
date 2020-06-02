@@ -1,3 +1,5 @@
+use crate::jobs;
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::RwLock;
@@ -10,8 +12,6 @@ use mysql::consts::ColumnFlags;
 use mysql::consts::ColumnType::*;
 use mysql::prelude::Queryable;
 use mysql::{OptsBuilder, Params, Pool};
-
-use jobs;
 
 // ----------------------------------------------------------------------------
 // Interface

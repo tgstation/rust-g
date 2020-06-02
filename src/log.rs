@@ -1,3 +1,4 @@
+use crate::error::{Error, Result};
 use std::cell::RefCell;
 use std::collections::hash_map::{Entry, HashMap};
 use std::ffi::OsString;
@@ -7,8 +8,6 @@ use std::io::Write;
 use std::path::Path;
 
 use chrono::Utc;
-
-use error::{Error, Result};
 
 thread_local! {
     static FILE_MAP: RefCell<HashMap<OsString, File>> = RefCell::new(HashMap::new());
