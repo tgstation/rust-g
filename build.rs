@@ -2,12 +2,6 @@
 
 use std::{fs::File, io::Write};
 
-macro_rules! enabled {
-    ($name:expr) => {
-        std::env::var(concat!("CARGO_FEATURE_", $name)).is_ok()
-    };
-}
-
 fn main() {
     let mut f = File::create("target/rust_g.dm").unwrap();
 
@@ -62,7 +56,7 @@ fn main() {
     .unwrap();
 
     // module: dmi
-    if enabled!("DMI") {
+    if cfg!(feature = "DMI") {
         write!(f, r#"
 #define rustg_dmi_strip_metadata(fname) call(RUST_G, "dmi_strip_metadata")(fname)
 #define rustg_dmi_create_png(path, width, height, data) call(RUST_G, "dmi_create_png")(path, width, height, data)
@@ -70,14 +64,14 @@ fn main() {
     }
 
     // module: noise
-    if enabled!("NOISE") {
+    if cfg!(feature = "NOISE") {
         write!(f, r#"
 #define rustg_noise_get_at_coordinates(seed, x, y) call(RUST_G, "noise_get_at_coordinates")(seed, x, y)
 "#).unwrap()
     }
 
     // module: file
-    if enabled!("FILE") {
+    if cfg!(feature = "FILE") {
         write!(
             f,
             r#"
@@ -95,7 +89,7 @@ fn main() {
     }
 
     // module: git
-    if enabled!("GIT") {
+    if cfg!(feature = "GIT") {
         write!(
             f,
             r#"
@@ -107,7 +101,7 @@ fn main() {
     }
 
     // module: hash
-    if enabled!("HASH") {
+    if cfg!(feature = "HASH") {
         write!(f, r#"
 #define rustg_hash_string(algorithm, text) call(RUST_G, "hash_string")(algorithm, text)
 #define rustg_hash_file(algorithm, fname) call(RUST_G, "hash_file")(algorithm, fname)
@@ -124,7 +118,7 @@ fn main() {
     }
 
     // module: log
-    if enabled!("LOG") {
+    if cfg!(feature = "LOG") {
         write!(
             f,
             r#"
@@ -136,7 +130,7 @@ fn main() {
     }
 
     // module: url
-    if enabled!("URL") {
+    if cfg!(feature = "URL") {
         write!(
             f,
             r#"
@@ -153,7 +147,7 @@ fn main() {
     }
 
     // module: http
-    if enabled!("HTTP") {
+    if cfg!(feature = "HTTP") {
         write!(f, r#"
 #define RUSTG_HTTP_METHOD_GET "get"
 #define RUSTG_HTTP_METHOD_PUT "put"
@@ -168,7 +162,7 @@ fn main() {
     }
 
     // module: sql
-    if enabled!("SQL") {
+    if cfg!(feature = "SQL") {
         write!(f, r#"
 #define rustg_sql_connect_pool(options) call(RUST_G, "sql_connect_pool")(options)
 #define rustg_sql_query_async(handle, query, params) call(RUST_G, "sql_query_async")(handle, query, params)
