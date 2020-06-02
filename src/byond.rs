@@ -10,11 +10,11 @@ thread_local! {
     static RETURN_STRING: RefCell<CString> = RefCell::new(CString::default());
 }
 
-pub fn parse_args<'a>(argc: c_int, argv: &'a *const *const c_char) -> Vec<Cow<'a, str>> {
+pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
     unsafe {
         slice::from_raw_parts(*argv, argc as usize)
             .iter()
-            .map(|ptr| CStr::from_ptr(*ptr))
+            .map(|ptr| CStr::from_ptr(ptr))
             .map(|cstr| cstr.to_string_lossy())
             .collect()
     }
@@ -45,19 +45,22 @@ pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
 macro_rules! byond_fn {
     ($name:ident() $body:block) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
-            $crate::byond::byond_return((|| $body)().map(From::from))
+            let closure = || ($body);
+            $crate::byond::byond_return(closure().map(From::from))
         }
     };
 
     ($name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
-            let __args = $crate::byond::parse_args(_argc, &_argv);
+            let __args = $crate::byond::parse_args(_argc, _argv);
 
             let mut __argn = 0;
             $(
@@ -68,7 +71,8 @@ macro_rules! byond_fn {
                 let $rest = __args.get(__argn..).unwrap_or(&[]);
             )?
 
-            $crate::byond::byond_return((|| $body)().map(From::from))
+            let closure = || ($body);
+            $crate::byond::byond_return(closure().map(From::from))
         }
     };
 }

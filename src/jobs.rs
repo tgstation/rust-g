@@ -1,8 +1,8 @@
 //! Job system
+use std::cell::RefCell;
+use std::collections::hash_map::{Entry, HashMap};
 use std::sync::mpsc;
 use std::thread;
-use std::collections::hash_map::{HashMap, Entry};
-use std::cell::RefCell;
 
 struct Job {
     rx: mpsc::Receiver<Output>,

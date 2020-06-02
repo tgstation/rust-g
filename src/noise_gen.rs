@@ -1,7 +1,7 @@
 use noise::{NoiseFn, Perlin, Seedable};
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
 use crate::error::Result;
 

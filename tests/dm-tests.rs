@@ -1,6 +1,6 @@
 use std::process::{Command, Output};
 
-#[cfg(feature="git")]
+#[cfg(feature = "git")]
 #[test]
 fn git() {
     run_dm_tests("git");
@@ -17,9 +17,21 @@ fn run_dm_tests(name: &str) {
     let dme = format!("tests/dm/{}.dme", name);
     let dmb = format!("tests/dm/{}.dmb", name);
 
-    let target_dir = if cfg!(target_os="linux") { "i686-unknown-linux-gnu" } else { "i686-pc-windows-gnu" };
-    let profile = if cfg!(debug_assertions) { "debug" } else { "release" };
-    let fname = if cfg!(target_os="linux") { "librust_g.so" } else { "rust_g.dll "};
+    let target_dir = if cfg!(target_os = "linux") {
+        "i686-unknown-linux-gnu"
+    } else {
+        "i686-pc-windows-gnu"
+    };
+    let profile = if cfg!(debug_assertions) {
+        "debug"
+    } else {
+        "release"
+    };
+    let fname = if cfg!(target_os = "linux") {
+        "librust_g.so"
+    } else {
+        "rust_g.dll "
+    };
     let rust_g = format!("target/{}/{}/{}", target_dir, profile, fname);
 
     let output = Command::new("bash")
@@ -36,7 +48,8 @@ fn run_dm_tests(name: &str) {
         .arg(&dream_daemon)
         .arg(&dmb)
         .arg("-trusted")
-        .arg("-cd").arg(env!("CARGO_MANIFEST_DIR"))
+        .arg("-cd")
+        .arg(env!("CARGO_MANIFEST_DIR"))
         .env("RUST_G", &rust_g)
         .output()
         .unwrap();
