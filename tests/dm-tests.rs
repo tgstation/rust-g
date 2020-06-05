@@ -30,7 +30,7 @@ fn run_dm_tests(name: &str) {
     let fname = if cfg!(target_os = "linux") {
         "librust_g.so"
     } else {
-        "rust_g.dll "
+        "rust_g.dll"
     };
     let rust_g = format!("target/{}/{}/{}", target_dir, profile, fname);
 
