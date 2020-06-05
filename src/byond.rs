@@ -11,14 +11,12 @@ thread_local! {
     static RETURN_STRING: RefCell<CString> = RefCell::new(CString::default());
 }
 
-pub fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
-    unsafe {
-        slice::from_raw_parts(*argv, argc as usize)
-            .iter()
-            .map(|ptr| CStr::from_ptr(ptr))
-            .map(|cstr| cstr.to_string_lossy())
-            .collect()
-    }
+pub unsafe fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
+    slice::from_raw_parts(*argv, argc as usize)
+        .iter()
+        .map(|ptr| CStr::from_ptr(ptr))
+        .map(|cstr| cstr.to_string_lossy())
+        .collect()
 }
 
 pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
