@@ -1,19 +1,20 @@
 //! Buildscript which will save a `rust_g.dm` with the DLL's public API.
 
-use std::io::Write;
-use std::fs::File;
+use std::{fs::File, io::Write};
 
 macro_rules! enabled {
     ($name:expr) => {
         std::env::var(concat!("CARGO_FEATURE_", $name)).is_ok()
-    }
+    };
 }
 
 fn main() {
     let mut f = File::create("target/rust_g.dm").unwrap();
 
     // header
-    write!(f, r#"// rust_g.dm - DM API for rust_g extension library
+    write!(
+        f,
+        r#"// rust_g.dm - DM API for rust_g extension library
 //
 // To configure, create a `rust_g.config.dm` and set what you care about from
 // the following options:
@@ -56,7 +57,9 @@ fn main() {
 #define RUSTG_JOB_NO_RESULTS_YET "NO RESULTS YET"
 #define RUSTG_JOB_NO_SUCH_JOB "NO SUCH JOB"
 #define RUSTG_JOB_ERROR "JOB PANICKED"
-"#).unwrap();
+"#
+    )
+    .unwrap();
 
     // module: dmi
     if enabled!("DMI") {
@@ -75,7 +78,9 @@ fn main() {
 
     // module: file
     if enabled!("FILE") {
-        write!(f, r#"
+        write!(
+            f,
+            r#"
 #define rustg_file_read(fname) call(RUST_G, "file_read")(fname)
 #define rustg_file_write(text, fname) call(RUST_G, "file_write")(text, fname)
 #define rustg_file_append(text, fname) call(RUST_G, "file_append")(text, fname)
@@ -84,15 +89,21 @@ fn main() {
 #define file2text(fname) rustg_file_read(fname)
 #define text2file(text, fname) rustg_file_append(text, fname)
 #endif
-"#).unwrap();
+"#
+        )
+        .unwrap();
     }
 
     // module: git
     if enabled!("GIT") {
-        write!(f, r#"
+        write!(
+            f,
+            r#"
 #define rustg_git_revparse(rev) call(RUST_G, "rg_git_revparse")(rev)
 #define rustg_git_commit_date(rev) call(RUST_G, "rg_git_commit_date")(rev)
-"#).unwrap();
+"#
+        )
+        .unwrap();
     }
 
     // module: hash
@@ -114,15 +125,21 @@ fn main() {
 
     // module: log
     if enabled!("LOG") {
-        write!(f, r#"
+        write!(
+            f,
+            r#"
 #define rustg_log_write(fname, text, format) call(RUST_G, "log_write")(fname, text, format)
 /proc/rustg_log_close_all() return call(RUST_G, "log_close_all")()
-"#).unwrap();
+"#
+        )
+        .unwrap();
     }
 
     // module: url
     if enabled!("URL") {
-        write!(f, r#"
+        write!(
+            f,
+            r#"
 #define rustg_url_encode(text) call(RUST_G, "url_encode")(text)
 #define rustg_url_decode(text) call(RUST_G, "url_decode")(text)
 
@@ -130,7 +147,9 @@ fn main() {
 #define url_encode(text) rustg_url_encode(text)
 #define url_decode(text) rustg_url_decode(text)
 #endif
-"#).unwrap();
+"#
+        )
+        .unwrap();
     }
 
     // module: http

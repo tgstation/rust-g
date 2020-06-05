@@ -1,31 +1,31 @@
 #[macro_use]
 extern crate failure;
 
-#[cfg(feature="chrono")]
+#[cfg(feature = "chrono")]
 extern crate chrono;
-#[cfg(feature="crypto-hash")]
+#[cfg(feature = "crypto-hash")]
 extern crate crypto_hash;
-#[cfg(feature="git2")]
+#[cfg(feature = "git2")]
 extern crate git2;
-#[cfg(feature="hex")]
+#[cfg(feature = "hex")]
 extern crate hex;
-#[cfg(feature="percent-encoding")]
-extern crate percent_encoding;
-#[cfg(feature="png")]
-extern crate png;
-#[cfg(feature="noise")]
+#[cfg(feature = "noise")]
 extern crate noise;
-#[cfg(feature="http")]
+#[cfg(feature = "percent-encoding")]
+extern crate percent_encoding;
+#[cfg(feature = "png")]
+extern crate png;
+#[cfg(feature = "http")]
 extern crate reqwest;
-#[cfg(any(feature="http", feature="sql"))]
+#[cfg(any(feature = "http", feature = "sql"))]
 #[macro_use]
 extern crate serde_derive;
-#[cfg(any(feature="http", feature="sql"))]
+#[cfg(any(feature = "http", feature = "sql"))]
 extern crate serde_json;
-#[cfg(any(feature="http", feature="sql"))]
+#[cfg(any(feature = "http", feature = "sql"))]
 #[macro_use]
 extern crate lazy_static;
-#[cfg(feature="sql")]
+#[cfg(feature = "sql")]
 extern crate mysql;
 
 #[macro_use]
@@ -34,24 +34,24 @@ mod byond;
 mod error;
 mod jobs;
 
-#[cfg(feature="dmi")]
+#[cfg(feature = "dmi")]
 pub mod dmi;
-#[cfg(feature="file")]
+#[cfg(feature = "file")]
 pub mod file;
-#[cfg(feature="git")]
+#[cfg(feature = "git")]
 pub mod git;
-#[cfg(feature="hash")]
+#[cfg(feature = "hash")]
 pub mod hash;
-#[cfg(feature="log")]
-pub mod log;
-#[cfg(feature="url")]
-pub mod url;
-#[cfg(feature="noise")]
-pub mod noise_gen;
-#[cfg(feature="http")]
+#[cfg(feature = "http")]
 pub mod http;
-#[cfg(feature="sql")]
+#[cfg(feature = "log")]
+pub mod log;
+#[cfg(feature = "noise")]
+pub mod noise_gen;
+#[cfg(feature = "sql")]
 pub mod sql;
+#[cfg(feature = "url")]
+pub mod url;
 
-#[cfg(not(target_pointer_width="32"))]
-const _: () = "rust-g must be compiled for a 32-bit target";
+#[cfg(not(target_pointer_width = "32"))]
+compile_error!("rust-g must be compiled for a 32-bit target");

@@ -1,17 +1,11 @@
-use std::error::Error;
-use std::sync::RwLock;
-use std::time::Duration;
-use std::collections::HashMap;
-
-use serde_json::map::Map;
-use serde_json::{json, Number};
-
-use mysql::prelude::Queryable;
-use mysql::consts::ColumnFlags;
-use mysql::consts::ColumnType::*;
-use mysql::{OptsBuilder, Params, Pool};
-
-use jobs;
+use crate::jobs;
+use mysql::{
+    consts::{ColumnFlags, ColumnType::*},
+    prelude::Queryable,
+    OptsBuilder, Params, Pool,
+};
+use serde_json::{json, map::Map, Number};
+use std::{collections::HashMap, error::Error, sync::RwLock, time::Duration};
 
 // ----------------------------------------------------------------------------
 // Interface
@@ -127,9 +121,12 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
     let pool = Pool::new_manual(
         options.min_threads.unwrap_or(DEFAULT_MIN_THREADS),
         options.max_threads.unwrap_or(DEFAULT_MAX_THREADS),
-        builder)?;
+        builder,
+    )?;
 
-    let handle = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed).to_string();
+    let handle = NEXT_ID
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        .to_string();
     let mut poolguard = POOL.write()?;
     poolguard.insert(handle.clone(), pool);
     Ok(json!({
@@ -165,7 +162,9 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
         let mut json_row: Vec<serde_json::Value> = Vec::new();
         for (i, col) in row.columns_ref().iter().enumerate() {
             let ctype = col.column_type();
-            let value = row.as_ref(i).ok_or("length of row was smaller than column count")?;
+            let value = row
+                .as_ref(i)
+                .ok_or("length of row was smaller than column count")?;
             let converted = match value {
                 mysql::Value::Bytes(b) => match ctype {
                     MYSQL_TYPE_VARCHAR | MYSQL_TYPE_STRING | MYSQL_TYPE_VAR_STRING => {
@@ -187,9 +186,9 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
                     }
                     _ => serde_json::Value::Null,
                 },
-                mysql::Value::Float(f) => {
-                    serde_json::Value::Number(Number::from_f64(f64::from(*f)).unwrap_or_else(|| Number::from(0)))
-                }
+                mysql::Value::Float(f) => serde_json::Value::Number(
+                    Number::from_f64(f64::from(*f)).unwrap_or_else(|| Number::from(0)),
+                ),
                 mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
                 mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
                 mysql::Value::Date(year, month, day, hour, minute, second, _ms) => {
@@ -236,7 +235,7 @@ fn json_to_mysql(val: serde_json::Value) -> mysql::Value {
             } else if let Some(v) = i.as_i64() {
                 mysql::Value::Int(v)
             } else if let Some(v) = i.as_f64() {
-                mysql::Value::Float(v as f32)  // Loses precision.
+                mysql::Value::Float(v as f32) // Loses precision.
             } else {
                 mysql::Value::NULL
             }

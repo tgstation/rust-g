@@ -1,8 +1,5 @@
-use std::collections::hash_map::{ HashMap };
-use std::collections::BTreeMap;
-
-use error::Result;
-use jobs;
+use crate::{error::Result, jobs};
+use std::collections::{BTreeMap, HashMap};
 
 // ----------------------------------------------------------------------------
 // Interface
@@ -62,15 +59,18 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
 
 fn setup_http_client() -> reqwest::Client {
-    use reqwest::{ Client, header::{ HeaderMap, USER_AGENT } };
+    use reqwest::{
+        header::{HeaderMap, USER_AGENT},
+        Client,
+    };
 
     let mut headers = HeaderMap::new();
-    headers.insert(USER_AGENT, format!("{}/{}", PKG_NAME, VERSION).parse().unwrap());
+    headers.insert(
+        USER_AGENT,
+        format!("{}/{}", PKG_NAME, VERSION).parse().unwrap(),
+    );
 
-    Client::builder()
-        .default_headers(headers)
-        .build()
-        .unwrap()
+    Client::builder().default_headers(headers).build().unwrap()
 }
 
 lazy_static! {
@@ -85,7 +85,13 @@ struct RequestPrep {
     output_filename: Option<String>,
 }
 
-fn construct_request(method: &str, url: &str, body: &str, headers: &str, options: Option<&str>) -> Result<RequestPrep> {
+fn construct_request(
+    method: &str,
+    url: &str,
+    body: &str,
+    headers: &str,
+    options: Option<&str>,
+) -> Result<RequestPrep> {
     let mut req = match method {
         "post" => HTTP_CLIENT.post(url),
         "put" => HTTP_CLIENT.put(url),
@@ -115,7 +121,10 @@ fn construct_request(method: &str, url: &str, body: &str, headers: &str, options
         }
     }
 
-    Ok(RequestPrep { req, output_filename })
+    Ok(RequestPrep {
+        req,
+        output_filename,
+    })
 }
 
 fn submit_request(prep: RequestPrep) -> Result<String> {

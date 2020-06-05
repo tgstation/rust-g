@@ -1,14 +1,14 @@
-use std::cell::RefCell;
-use std::collections::hash_map::{Entry, HashMap};
-use std::ffi::OsString;
-use std::fs;
-use std::fs::{File, OpenOptions};
-use std::io::Write;
-use std::path::Path;
-
+use crate::error::{Error, Result};
 use chrono::Utc;
-
-use error::{Error, Result};
+use std::{
+    cell::RefCell,
+    collections::hash_map::{Entry, HashMap},
+    ffi::OsString,
+    fs,
+    fs::{File, OpenOptions},
+    io::Write,
+    path::Path,
+};
 
 thread_local! {
     static FILE_MAP: RefCell<HashMap<OsString, File>> = RefCell::new(HashMap::new());

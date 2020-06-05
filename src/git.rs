@@ -1,5 +1,5 @@
-use git2::{Repository, Error, ErrorCode};
-use chrono::{Utc, TimeZone};
+use chrono::{TimeZone, Utc};
+use git2::{Error, ErrorCode, Repository};
 
 thread_local! {
     static REPOSITORY: Result<Repository, Error> = Repository::open(".");

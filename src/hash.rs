@@ -1,11 +1,6 @@
-use std::fs::File;
-use std::io;
-
-use crypto_hash;
+use crate::error::{Error, Result};
 use crypto_hash::{Algorithm, Hasher};
-use hex;
-
-use error::{Error, Result};
+use std::{fs::File, io};
 
 byond_fn! { hash_string(algorithm, string) {
     string_hash(algorithm, string).ok()
