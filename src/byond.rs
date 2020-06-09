@@ -12,9 +12,9 @@ thread_local! {
 }
 
 pub unsafe fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
-    slice::from_raw_parts(*argv, argc as usize)
+    slice::from_raw_parts(argv, argc as usize)
         .iter()
-        .map(|ptr| CStr::from_ptr(ptr))
+        .map(|ptr| CStr::from_ptr(*ptr))
         .map(|cstr| cstr.to_string_lossy())
         .collect()
 }
