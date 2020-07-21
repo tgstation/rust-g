@@ -27,12 +27,22 @@ fn read(path: &str) -> Result<String> {
 }
 
 fn write(data: &str, path: &str) -> Result<usize> {
+    let path: &std::path::Path = path.as_ref();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
     let mut file = File::create(path)?;
 
     Ok(file.write(data.as_bytes())?)
 }
 
 fn append(data: &str, path: &str) -> Result<usize> {
+    let path: &std::path::Path = path.as_ref();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
     let mut file = OpenOptions::new().append(true).create(true).open(path)?;
 
     Ok(file.write(data.as_bytes())?)
