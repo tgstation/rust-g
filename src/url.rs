@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use percent_encoding::{percent_decode, utf8_percent_encode, PATH_SEGMENT_ENCODE_SET};
+use url_dep::form_urlencoded::{byte_serialize, parse};
 
 byond_fn! { url_encode(data) {
     Some(encode(data))
@@ -10,13 +10,13 @@ byond_fn! { url_decode(data) {
 } }
 
 fn encode(string: &str) -> String {
-    utf8_percent_encode(string, PATH_SEGMENT_ENCODE_SET).to_string()
+    byte_serialize(string.as_bytes()).collect()
 }
 
 fn decode(string: &str) -> Result<String> {
-    let decoded = percent_decode(string.as_bytes())
-        .decode_utf8()?
-        .into_owned();
+    let decoded: String = parse(string.as_bytes())
+        .map(|(key, val)| [key, val].concat())
+        .collect();
 
     if decoded.contains('\0') {
         return Err(Error::Null);
