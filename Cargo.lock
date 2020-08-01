@@ -1615,12 +1615,12 @@ dependencies = [
  "lazy_static",
  "mysql",
  "noise",
- "percent-encoding 1.0.1",
  "png",
  "reqwest",
  "serde",
  "serde_derive",
  "serde_json",
+ "url 2.1.1",
 ]
 
 [[package]]
