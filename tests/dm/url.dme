@@ -1,0 +1,28 @@
+#include "common.dm"
+
+/proc/check_encode(input)
+    var/byond = url_encode(input)
+    var/rust = rustg_url_encode(input)
+    // Not case sensitive because "%AB" and "%ab" are both valid.
+    if (!cmptext(byond, rust))
+        CRASH("[input]\n  byond: [byond]\n  rustg: [rust]")
+
+/test/proc/various_encode()
+    check_encode("The quick brown fox jumps over the lazy dog.")
+    check_encode("Résumé")
+    check_encode("https://example.com/?foo=bar+baz&bar\[]=baz#foo")
+
+/proc/check_decode(input)
+    var/byond = url_decode(input)
+    var/rust = rustg_url_decode(input)
+    // Decode test is case sensitive.
+    if (byond != rust)
+        CRASH("[input]\n  byond: [byond]\n  rustg: [rust]")
+
+/test/proc/various_decode()
+    check_decode("The+quick+brown+fox+jumps+over+the+lazy+dog.")
+    check_decode("R%c3%a9sum%c3%a9")
+    check_decode("https%3a%2f%2fexample.com%2f%3ffoo%3dbar%2bbaz%26bar%5b%5d%3dbaz%23foo")
+
+    check_decode("a+b=c%20d&e#f=g")
+    check_decode("%2b=")

@@ -6,6 +6,12 @@ fn git() {
     run_dm_tests("git");
 }
 
+#[cfg(feature = "url")]
+#[test]
+fn url() {
+    run_dm_tests("url");
+}
+
 fn run_dm_tests(name: &str) {
     std::env::remove_var("RUST_BACKTRACE");
 
