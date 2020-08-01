@@ -22,7 +22,7 @@ fn read(path: &str) -> Result<String> {
 
     let mut content = String::with_capacity(metadata.len() as usize);
     file.read_to_string(&mut content)?;
-    let content = content.replace("\r\n", "\n");
+    let content = content.replace("\r", "");
 
     Ok(content)
 }
