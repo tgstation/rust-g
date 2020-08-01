@@ -1615,6 +1615,7 @@ dependencies = [
  "lazy_static",
  "mysql",
  "noise",
+ "percent-encoding 1.0.1",
  "png",
  "reqwest",
  "serde",
