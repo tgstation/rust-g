@@ -189,6 +189,9 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
                 mysql::Value::Float(f) => serde_json::Value::Number(
                     Number::from_f64(f64::from(*f)).unwrap_or_else(|| Number::from(0)),
                 ),
+                mysql::Value::Double(f) => serde_json::Value::Number(
+                    Number::from_f64(f64::from(*f)).unwrap_or_else(|| Number::from(0)),
+                ),
                 mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
                 mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
                 mysql::Value::Date(year, month, day, hour, minute, second, _ms) => {
