@@ -63,8 +63,12 @@ byond_fn! { sql_query_async(handle, query, params) {
 
 // hopefully won't panic if queries are running
 byond_fn! { sql_disconnect_pool(handle) {
+    let handle = match handle.parse::<usize>() {
+        Ok(o) => o,
+        Err(e) => return Some(err_to_json(e)),
+    };
     Some(
-           match POOL.remove(handle) {
+         match POOL.remove(&handle) {
             Some(_) => {
                 json!({
                     "status": "success"
@@ -78,8 +82,12 @@ byond_fn! { sql_disconnect_pool(handle) {
 } }
 
 byond_fn! { sql_connected(handle) {
+let handle = match handle.parse::<usize>() {
+        Ok(o) => o,
+        Err(e) => return Some(err_to_json(e)),
+    };
     Some(
-        match POOL.get(handle) {
+        match POOL.get(&handle) {
             Some(_) => json!({
                 "status": "online"
             }).to_string(),
@@ -97,7 +105,7 @@ byond_fn! { sql_check_query(id) {
 // ----------------------------------------------------------------------------
 // Main connect and query implementation
 
-static POOL: Lazy<DashMap<String, Pool>> = Lazy::new(DashMap::new);
+static POOL: Lazy<DashMap<usize, Pool>> = Lazy::new(DashMap::new);
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Error>> {
@@ -119,19 +127,17 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
         builder,
     )?;
 
-    let handle = NEXT_ID
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        .to_string();
-    POOL.insert(handle.clone(), pool);
+    let handle = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    POOL.insert(handle, pool);
     Ok(json!({
         "status": "ok",
-        "handle": handle,
+        "handle": handle.to_string(),
     }))
 }
 
 fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value, Box<dyn Error>> {
     let mut conn = {
-        let pool = match POOL.get(handle) {
+        let pool = match POOL.get(&handle.parse()?) {
             Some(s) => s,
             None => return Ok(json!({"status": "offline"})),
         };
