@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use png::{Decoder, Encoder, HasParameters, OutputInfo};
+use png::{Decoder, Encoder, OutputInfo};
 use std::{
     fs::{create_dir_all, File},
     path::Path,
@@ -28,7 +28,8 @@ fn read_png(path: &str) -> Result<(OutputInfo, Vec<u8>)> {
 
 fn write_png(path: &str, info: OutputInfo, image: Vec<u8>) -> Result<()> {
     let mut encoder = Encoder::new(File::create(path)?, info.width, info.height);
-    encoder.set(info.color_type).set(info.bit_depth);
+    encoder.set_color(info.color_type);
+    encoder.set_depth(info.bit_depth);
 
     let mut writer = encoder.write_header()?;
     Ok(writer.write_image_data(&image)?)
@@ -57,8 +58,8 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     }
 
     let mut encoder = Encoder::new(File::create(path)?, width, height);
-    encoder.set(png::ColorType::RGB);
-    encoder.set(png::BitDepth::Eight);
+    encoder.set_color(png::ColorType::RGB);
+    encoder.set_depth(png::BitDepth::Eight);
     let mut writer = encoder.write_header()?;
     Ok(writer.write_image_data(&result)?)
 }

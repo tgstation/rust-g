@@ -1,17 +1,20 @@
 use crate::jobs;
+use dashmap::DashMap;
 use mysql::{
     consts::{ColumnFlags, ColumnType::*},
     prelude::Queryable,
     OptsBuilder, Params, Pool,
 };
+use once_cell::sync::Lazy;
 use serde_json::{json, map::Map, Number};
-use std::{collections::HashMap, error::Error, sync::RwLock, time::Duration};
+use std::sync::atomic::AtomicUsize;
+use std::{error::Error, time::Duration};
 
 // ----------------------------------------------------------------------------
 // Interface
 
 const DEFAULT_PORT: u16 = 3306;
-// The `mysql` crate defauls to 10 and 100 for these, but that is too large.
+// The `mysql` crate defaults to 10 and 100 for these, but that is too large.
 const DEFAULT_MIN_THREADS: usize = 1;
 const DEFAULT_MAX_THREADS: usize = 10;
 
@@ -60,37 +63,31 @@ byond_fn! { sql_query_async(handle, query, params) {
 
 // hopefully won't panic if queries are running
 byond_fn! { sql_disconnect_pool(handle) {
-    Some(match POOL.write() {
-        Ok(mut o) => {
-            match o.remove(handle) {
-                Some(_) => {
-                    json!({
-                        "status": "success"
-                    }).to_string()
-                },
-                None => json!({
-                    "status": "offline"
+    Some(
+           match POOL.remove(handle) {
+            Some(_) => {
+                json!({
+                    "status": "success"
                 }).to_string()
-            }
-        },
-        Err(e) => err_to_json(e)
-    })
+            },
+            None => json!({
+                "status": "offline"
+            }).to_string()
+        }
+    )
 } }
 
 byond_fn! { sql_connected(handle) {
-    Some(match POOL.read() {
-        Ok(o) => {
-            match o.get(handle) {
-                Some(_) => json!({
-                    "status": "online"
-                }).to_string(),
-                None => json!({
-                    "status": "offline"
-                }).to_string()
-            }
-        },
-        Err(e) => err_to_json(e)
-    })
+    Some(
+        match POOL.get(handle) {
+            Some(_) => json!({
+                "status": "online"
+            }).to_string(),
+            None => json!({
+                "status": "offline"
+            }).to_string()
+        }
+    )
 } }
 
 byond_fn! { sql_check_query(id) {
@@ -100,10 +97,8 @@ byond_fn! { sql_check_query(id) {
 // ----------------------------------------------------------------------------
 // Main connect and query implementation
 
-lazy_static! {
-    static ref POOL: RwLock<HashMap<String, Pool>> = Default::default();
-    static ref NEXT_ID: std::sync::atomic::AtomicUsize = Default::default();
-}
+static POOL: Lazy<DashMap<String, Pool>> = Lazy::new(DashMap::new);
+static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Error>> {
     let builder = OptsBuilder::new()
@@ -127,8 +122,7 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
     let handle = NEXT_ID
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         .to_string();
-    let mut poolguard = POOL.write()?;
-    poolguard.insert(handle.clone(), pool);
+    POOL.insert(handle.clone(), pool);
     Ok(json!({
         "status": "ok",
         "handle": handle,
@@ -137,8 +131,7 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
 
 fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value, Box<dyn Error>> {
     let mut conn = {
-        let poolguard = POOL.read()?;
-        let pool = match poolguard.get(handle) {
+        let pool = match POOL.get(handle) {
             Some(s) => s,
             None => return Ok(json!({"status": "offline"})),
         };
@@ -190,7 +183,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
                     Number::from_f64(f64::from(*f)).unwrap_or_else(|| Number::from(0)),
                 ),
                 mysql::Value::Double(f) => serde_json::Value::Number(
-                    Number::from_f64(f64::from(*f)).unwrap_or_else(|| Number::from(0)),
+                    Number::from_f64(*f).unwrap_or_else(|| Number::from(0)),
                 ),
                 mysql::Value::Int(i) => serde_json::Value::Number(Number::from(*i)),
                 mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),

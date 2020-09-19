@@ -17,7 +17,9 @@ fn encode(string: &str) -> String {
 fn decode(string: &str) -> Result<String> {
     let replaced = replace_plus(string.as_bytes());
     // into_owned() is not strictly necessary here, but saves some refactoring work.
-    Ok(percent_encoding::percent_decode(&replaced).decode_utf8_lossy().into_owned())
+    Ok(percent_encoding::percent_decode(&replaced)
+        .decode_utf8_lossy()
+        .into_owned())
 }
 
 // From `url` crate.
