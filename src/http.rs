@@ -1,5 +1,7 @@
 use crate::{error::Result, jobs};
+use once_cell::sync::Lazy;
 use std::collections::{BTreeMap, HashMap};
+use std::io::Write;
 
 // ----------------------------------------------------------------------------
 // Interface
@@ -58,10 +60,10 @@ byond_fn! { http_check_request(id) {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
 
-fn setup_http_client() -> reqwest::Client {
+fn setup_http_client() -> reqwest::blocking::Client {
     use reqwest::{
+        blocking::Client,
         header::{HeaderMap, USER_AGENT},
-        Client,
     };
 
     let mut headers = HeaderMap::new();
@@ -73,15 +75,13 @@ fn setup_http_client() -> reqwest::Client {
     Client::builder().default_headers(headers).build().unwrap()
 }
 
-lazy_static! {
-    static ref HTTP_CLIENT: reqwest::Client = setup_http_client();
-}
+static HTTP_CLIENT: Lazy<reqwest::blocking::Client> = Lazy::new(setup_http_client);
 
 // ----------------------------------------------------------------------------
 // Request construction and execution
 
 struct RequestPrep {
-    req: reqwest::RequestBuilder,
+    req: reqwest::blocking::RequestBuilder,
     output_filename: Option<String>,
 }
 
@@ -137,17 +137,20 @@ fn submit_request(prep: RequestPrep) -> Result<String> {
         body: None,
     };
 
-    if let Some(output_filename) = prep.output_filename {
-        std::io::copy(&mut response, &mut std::fs::File::create(&output_filename)?)?;
-    } else {
-        body = response.text()?;
-        resp.body = Some(&body);
-    }
-
-    for (key, value) in response.headers().iter() {
+    let headers = response.headers().clone();
+    for (key, value) in headers.iter() {
         if let Ok(value) = value.to_str() {
             resp.headers.insert(key.as_str(), value);
         }
+    }
+
+    if let Some(output_filename) = prep.output_filename {
+        let mut writer = std::io::BufWriter::new(std::fs::File::create(&output_filename)?);
+        std::io::copy(&mut response, &mut writer)?;
+        writer.flush()?;
+    } else {
+        body = response.text()?;
+        resp.body = Some(&body);
     }
 
     Ok(serde_json::to_string(&resp)?)

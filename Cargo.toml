@@ -12,29 +12,27 @@ crate-type = ["cdylib"]
 
 [profile.release]
 opt-level = 3
+codegen-units = 1
 lto = true
 
 [dependencies]
 failure = "0.1"
 chrono = { version = "0.4", optional = true }
 crypto-hash = { version = "0.3", optional = true }
-hex = { version = "0.3", optional = true }
-percent-encoding = { version = "1.0", optional = true }
-url-dep = { version = "2.1.1", package = "url", optional = true }
-png = { version = "0.11.0", optional = true }
-git2 = { version = "0.7.1", optional = true, default-features = false }
-noise = { version = "0.6.0", optional = true}
-reqwest = { version = "0.9", optional = true, default-features = false, features = ["rustls-tls"] }
+hex = { version = "0.4", optional = true }
+percent-encoding = { version = "2.1", optional = true }
+url-dep = { version = "2.1", package = "url", optional = true }
+png = { version = "0.16", optional = true }
+git2 = { version = "0.13", optional = true, default-features = false }
+noise = { version = "0.6", optional = true}
+reqwest = { version = "0.10", optional = true, default-features = false, features = ["blocking", "rustls-tls"] }
 serde = { version = "1.0", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
-lazy_static = { version = "1.3", optional = true }
-
-[dependencies.mysql]
-version = "18.2"
-optional = true
-git = "https://github.com/blackbeam/rust-mysql-simple"
-rev = "b039fe7a11609aeab9071289bcff496b9366389a"
+lazy_static = { version = "1.4", optional = true }
+once_cell = { version = "1.4", optional = true }
+mysql = { version = "19.0", optional = true }
+dashmap = { version = "3.11", optional = true }
 
 [features]
 default = ["dmi", "log", "git", "http", "sql", "noise"]
@@ -44,5 +42,5 @@ hash = ["crypto-hash", "hex"]
 log = ["chrono"]
 url = ["url-dep", "percent-encoding"]
 git = ["git2", "chrono"]
-http = ["reqwest", "serde", "serde_json", "serde_derive", "lazy_static"]
-sql = ["mysql", "serde", "serde_derive", "serde_json", "lazy_static"]
+http = ["reqwest", "serde", "serde_json", "serde_derive", "once_cell"]
+sql = ["mysql", "serde", "serde_derive", "serde_json", "once_cell", "dashmap"]

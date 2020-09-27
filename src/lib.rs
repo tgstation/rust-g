@@ -20,13 +20,10 @@ extern crate reqwest;
 #[cfg(any(feature = "http", feature = "sql"))]
 #[macro_use]
 extern crate serde_derive;
-#[cfg(any(feature = "http", feature = "sql"))]
-extern crate serde_json;
-#[cfg(any(feature = "http", feature = "sql"))]
-#[macro_use]
-extern crate lazy_static;
 #[cfg(feature = "sql")]
 extern crate mysql;
+#[cfg(any(feature = "http", feature = "sql"))]
+extern crate serde_json;
 
 #[macro_use]
 mod byond;
