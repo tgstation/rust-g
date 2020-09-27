@@ -82,7 +82,7 @@ byond_fn! { sql_disconnect_pool(handle) {
 } }
 
 byond_fn! { sql_connected(handle) {
-let handle = match handle.parse::<usize>() {
+    let handle = match handle.parse::<usize>() {
         Ok(o) => o,
         Err(e) => return Some(err_to_json(e)),
     };
