@@ -1,5 +1,5 @@
 use std::{
-    io,
+    fmt, io,
     num::{ParseFloatError, ParseIntError},
     result,
     str::Utf8Error,
@@ -7,6 +7,8 @@ use std::{
 
 #[cfg(feature = "png")]
 use png::{DecodingError, EncodingError};
+use std::fs::File;
+use std::io::{BufWriter, IntoInnerError};
 
 pub type Result<T> = result::Result<T, Error>;
 
@@ -20,8 +22,12 @@ pub enum Error {
     InvalidFilename,
     #[fail(display = "{}", _0)]
     Io(#[cause] io::Error),
+    #[fail(display = "{}", _0)]
+    Formatting(#[cause] fmt::Error),
     #[fail(display = "Invalid algorithm specified.")]
     InvalidAlgorithm,
+    #[fail(display = "{}", _0)]
+    InnerBufError(#[cause] IntoInnerError<BufWriter<File>>),
     #[cfg(feature = "png")]
     #[fail(display = "{}", _0)]
     ImageDecoding(#[cause] DecodingError),
@@ -52,6 +58,18 @@ impl From<io::Error> for Error {
 impl From<Utf8Error> for Error {
     fn from(error: Utf8Error) -> Error {
         Error::Utf8(error, error.valid_up_to())
+    }
+}
+
+impl From<IntoInnerError<BufWriter<File>>> for Error {
+    fn from(error: IntoInnerError<BufWriter<File>>) -> Error {
+        Error::InnerBufError(error)
+    }
+}
+
+impl From<fmt::Error> for Error {
+    fn from(error: fmt::Error) -> Error {
+        Error::Formatting(error)
     }
 }
 

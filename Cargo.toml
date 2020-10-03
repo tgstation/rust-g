@@ -33,13 +33,15 @@ lazy_static = { version = "1.4", optional = true }
 once_cell = { version = "1.4", optional = true }
 mysql = { version = "19.0", optional = true }
 dashmap = { version = "3.11", optional = true }
+tokio = { version = "0.2", optional = true, features = ["rt-core", "fs", "io-util", "sync"] }
+ctor = { version = "0.1", optional = true }
 
 [features]
 default = ["dmi", "log", "git", "http", "sql", "noise"]
 dmi = ["png"]
 file = []
 hash = ["crypto-hash", "hex"]
-log = ["chrono"]
+log = ["chrono", "tokio", "once_cell", "dashmap", "ctor"]
 url = ["url-dep", "percent-encoding"]
 git = ["git2", "chrono"]
 http = ["reqwest", "serde", "serde_json", "serde_derive", "once_cell"]

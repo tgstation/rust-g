@@ -147,7 +147,10 @@ fn submit_request(prep: RequestPrep) -> Result<String> {
     if let Some(output_filename) = prep.output_filename {
         let mut writer = std::io::BufWriter::new(std::fs::File::create(&output_filename)?);
         std::io::copy(&mut response, &mut writer)?;
+        // Ensure that all data is flushed to disk before dropping the writer.
         writer.flush()?;
+        // Also ensure that all filesystem metadata is written.
+        writer.into_inner()?.sync_all()?;
     } else {
         body = response.text()?;
         resp.body = Some(&body);

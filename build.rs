@@ -129,6 +129,8 @@ fn main() {
             f,
             r#"
 #define rustg_log_write(fname, text, format) call(RUST_G, "log_write")(fname, text, format)
+#define rustg_log_open(fname) call(RUST_G, "log_open")(fname)
+#define rustg_log_close(fname) call(RUST_G, "log_close")(fname)
 /proc/rustg_log_close_all() return call(RUST_G, "log_close_all")()
 "#
         )
