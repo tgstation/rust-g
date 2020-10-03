@@ -104,7 +104,9 @@ impl AsyncLoggingPool {
             match msg {
                 LoggingCommand::Open { path } => {
                     if !this.pool.contains_key(&path) {
-                        tokio::fs::create_dir_all(&path).await;
+                        if let Some(parent) = path.parent() {
+                            tokio::fs::create_dir_all(parent).await;
+                        }
                         if let Ok(fd) = OpenOptions::new()
                             .append(true)
                             .create(true)
@@ -123,7 +125,9 @@ impl AsyncLoggingPool {
                             s.write_all(data.as_bytes());
                         }
                         None => {
-                            tokio::fs::create_dir_all(&path).await;
+                            if let Some(parent) = path.parent() {
+                                tokio::fs::create_dir_all(parent).await;
+                            }
                             if let Ok(mut fd) = OpenOptions::new()
                                 .append(true)
                                 .create(true)
