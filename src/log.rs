@@ -4,7 +4,7 @@ use crate::error::Result;
 use chrono::Utc;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
-use std::{borrow::Cow, fmt::Write, path::PathBuf, sync::Arc};
+use std::{borrow::Cow, fmt::Write, path::PathBuf, sync::Arc, time::Instant};
 use tokio::{
     fs::{File, OpenOptions},
     io::{AsyncWriteExt, BufWriter},
@@ -74,6 +74,7 @@ pub enum LoggingCommand {
 pub struct AsyncLoggingPool {
     tx: UnboundedSender<LoggingCommand>,
     pool: DashMap<PathBuf, BufWriter<File>>,
+    last_wrote: DashMap<PathBuf, Instant>,
 }
 
 impl AsyncLoggingPool {
@@ -82,6 +83,7 @@ impl AsyncLoggingPool {
         let this = Arc::new(Self {
             tx,
             pool: DashMap::new(),
+            last_wrote: DashMap::new(),
         });
         let thread_ref = this.clone();
         std::thread::spawn(move || {
@@ -114,15 +116,28 @@ impl AsyncLoggingPool {
                             .await
                             .map(BufWriter::new)
                         {
-                            this.pool.insert(path, fd);
+                            this.pool.insert(path.clone(), fd);
                         }
                     }
                 }
                 LoggingCommand::Write { path, data } => {
                     match this.pool.get_mut(&path) {
-                        Some(mut s) => {
-                            let s = s.value_mut();
-                            s.write_all(data.as_bytes());
+                        Some(mut fd) => {
+                            let fd = fd.value_mut();
+                            fd.write_all(data.as_bytes());
+                            match this.last_wrote.get(&path) {
+                                Some(dash_ref) => {
+                                    let time = dash_ref.value();
+                                    if time.elapsed().as_secs() >= 5 {
+                                        fd.flush().await;
+                                        this.last_wrote.insert(path, Instant::now());
+                                    }
+                                }
+                                None => {
+                                    fd.flush().await;
+                                    this.last_wrote.insert(path, Instant::now());
+                                }
+                            }
                         }
                         None => {
                             if let Some(parent) = path.parent() {
@@ -136,7 +151,9 @@ impl AsyncLoggingPool {
                                 .map(BufWriter::new)
                             {
                                 fd.write_all(data.as_bytes()).await;
-                                this.pool.insert(path, fd);
+                                fd.flush().await;
+                                this.pool.insert(path.clone(), fd);
+                                this.last_wrote.insert(path, Instant::now());
                             }
                         }
                     };
