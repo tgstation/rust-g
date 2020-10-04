@@ -10,7 +10,19 @@ byond_fn! { dmi_strip_metadata(path) {
 } }
 
 byond_fn! { dmi_create_png(path, width, height, data) {
-    create_png(path, width, height , data).err()
+    create_png(path, width, height, data).err()
+} }
+
+byond_fn! { dmi_resize_png(path, width, height, resizetype) {
+    let resizetype = match resizetype {
+        "catmull" => image::imageops::CatmullRom,
+        "gaussian" => image::imageops::Gaussian,
+        "lanczos3" => image::imageops::Lanczos3,
+        "nearest" => image::imageops::Nearest,
+        "triangle" => image::imageops::Triangle,
+        _ => image::imageops::Nearest,
+    };
+    resize_png(path, width, height, resizetype).err()
 } }
 
 fn strip_metadata(path: &str) -> Result<()> {
@@ -62,4 +74,15 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     encoder.set_depth(png::BitDepth::Eight);
     let mut writer = encoder.write_header()?;
     Ok(writer.write_image_data(&result)?)
+}
+
+fn resize_png<P: AsRef<Path>>(path: P, width: &str, height: &str, resizetype: image::imageops::FilterType) -> std::result::Result<(), Error> {
+    let width = u32::from_str_radix(width, 10)?;
+    let height = u32::from_str_radix(height, 10)?;
+
+    let img = image::open(path.as_ref())?;
+
+    let newimg = img.resize(width, height, resizetype);
+
+    Ok(newimg.save_with_format(path.as_ref(), image::ImageFormat::Png)?)
 }

@@ -26,6 +26,7 @@ hex = { version = "0.4", optional = true }
 percent-encoding = { version = "2.1", optional = true }
 url-dep = { version = "2.1", package = "url", optional = true }
 png = { version = "0.16", optional = true }
+image = { version = "0.23.10", optional = true }
 git2 = { version = "0.13", optional = true, default-features = false }
 noise = { version = "0.6", optional = true}
 reqwest = { version = "0.10", optional = true, default-features = false, features = ["blocking", "rustls-tls"] }
@@ -40,7 +41,7 @@ zip = { version = "0.5.8", optional = true }
 
 [features]
 default = ["dmi", "log", "git", "http", "json", "sql", "noise"]
-dmi = ["png"]
+dmi = ["png", "image"]
 file = []
 hash = ["md-5", "sha-1", "sha2", "hex"]
 json = ["serde", "serde_json"]
