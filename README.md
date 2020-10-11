@@ -82,9 +82,9 @@ The default features are:
 * git: Functions for robustly checking the current git revision.
 * http: Asynchronous HTTP(s) client supporting most standard methods.
 * sql: Asynchronous MySQL/MariaDB client library.
+* noise: 2d Perlin noise.
 
 Additional features are:
-* noise: 2d Perlin noise.
 * url: Faster replacements for `url_encode` and `url_decode`.
 * file: Faster replacements for `file2text` and `text2file`.
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
