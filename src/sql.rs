@@ -6,6 +6,7 @@ use mysql::{
     OptsBuilder, Params, Pool,
 };
 use once_cell::sync::Lazy;
+use serde::Deserialize;
 use serde_json::{json, map::Map, Number};
 use std::sync::atomic::AtomicUsize;
 use std::{error::Error, time::Duration};
