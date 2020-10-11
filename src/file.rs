@@ -8,6 +8,10 @@ byond_fn! { file_read(path) {
     read(path).ok()
 } }
 
+byond_fn! { file_exists(path) {
+    Some(exists(path))
+} }
+
 byond_fn! { file_write(data, path) {
     write(data, path).err()
 } }
@@ -25,6 +29,11 @@ fn read(path: &str) -> Result<String> {
     let content = content.replace("\r", "");
 
     Ok(content)
+}
+
+fn exists(path: &str) -> String {
+    let path = std::path::Path::new(path);
+    path.exists().to_string()
 }
 
 fn write(data: &str, path: &str) -> Result<usize> {
