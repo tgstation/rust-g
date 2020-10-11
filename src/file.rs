@@ -21,8 +21,9 @@ byond_fn! { file_append(data, path) {
 } }
 
 fn read(path: &str) -> Result<String> {
-    let mut file = BufReader::new(File::open(path)?);
+    let file = File::open(path)?;
     let metadata = file.metadata()?;
+    let mut file = BufReader::new(file);
 
     let mut content = String::with_capacity(metadata.len() as usize);
     file.read_to_string(&mut content)?;
@@ -46,7 +47,9 @@ fn write(data: &str, path: &str) -> Result<usize> {
     let written = file.write(data.as_bytes())?;
 
     file.flush()?;
-    file.into_inner()?.sync_all()?;
+    file.into_inner()
+        .map_err(|e| std::io::Error::new(e.error().kind(), e.error().to_string()))? // This is god-awful, but the compiler REFUSES to let me get an owned copy of `e`
+        .sync_all()?;
 
     Ok(written)
 }
@@ -61,7 +64,9 @@ fn append(data: &str, path: &str) -> Result<usize> {
     let written = file.write(data.as_bytes())?;
 
     file.flush()?;
-    file.into_inner()?.sync_all()?;
+    file.into_inner()
+        .map_err(|e| std::io::Error::new(e.error().kind(), e.error().to_string()))?
+        .sync_all()?;
 
     Ok(written)
 }
