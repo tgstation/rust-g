@@ -123,6 +123,17 @@ fn main() {
 "#).unwrap();
     }
 
+    // module: json
+    if enabled!("JSON") {
+        write!(
+            f,
+            r#"
+#define rustg_json_is_valid(text) call(RUST_G, "json_is_valid")(text)
+"#
+        )
+        .unwrap();
+    }
+
     // module: log
     if enabled!("LOG") {
         write!(
