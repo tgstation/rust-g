@@ -86,7 +86,7 @@ The default features are:
 Additional features are:
 * noise: 2d Perlin noise.
 * url: Faster replacements for `url_encode` and `url_decode`.
-* file: Faster replacements for `file2text` and `text2file`.
+* file: Faster replacements for `file2text` and `text2file`, as well as reading or checking if files exist.
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 
 ## Installing
