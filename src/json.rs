@@ -1,7 +1,7 @@
 use serde_json::Value;
 use std::cmp;
 
-const VALID_JSON_MAX_RECURSION_DEPTH: usize = 5;
+const VALID_JSON_MAX_RECURSION_DEPTH: usize = 8;
 
 byond_fn! { json_is_valid(text) {
     Some(
