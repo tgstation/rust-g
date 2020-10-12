@@ -29,10 +29,12 @@ fn get_recursion_level(value: &Value) -> Result<usize, ()> {
         max_recursion_level = cmp::max(max_recursion_level, get_recursion_level(value)?);
     }
 
+    max_recursion_level += 1;
+
     if max_recursion_level >= VALID_JSON_MAX_RECURSION_DEPTH {
         Err(())
     } else {
-        Ok(max_recursion_level + 1)
+        Ok(max_recursion_level)
     }
 }
 
