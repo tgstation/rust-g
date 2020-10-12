@@ -37,9 +37,9 @@ The [Rust] compiler:
     # in the `rust-g` directory...
     cd rust-g
     # Linux
-    rustup override add stable-i686-unknown-linux-gnu
+    rustup target add stable-i686-unknown-linux-gnu
     # Windows
-    rustup override add stable-i686-pc-windows-msvc
+    rustup target add stable-i686-pc-windows-msvc
     ```
 
 System libraries:
@@ -62,7 +62,10 @@ use with the [tgstation] codebase. To compile in release mode (recommended for
 speed):
 
 ```sh
-cargo build --release
+# Linux
+cargo build --release --target=i686-unknown-linux-gnu
+# Windows
+cargo build --release --target=i686-pc-windows-msvc
 ```
 
 On Linux, the output will be `target/release/librust_g.so`.
@@ -72,7 +75,10 @@ On Windows, the output will be `target/release/rust_g.dll`.
 For more advanced configuration, a list of modules may be passed:
 
 ```sh
-cargo build --release --features dmi,file,log,url,http
+# Linux
+cargo build --release --target=i686-unknown-linux-gnu --features dmi,file,log,url,http
+# Windows
+cargo build --release --target=i686-pc-windows-msvc --features dmi,file,log,url,http
 ```
 
 The default features are:
