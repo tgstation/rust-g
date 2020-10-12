@@ -75,6 +75,7 @@ On Windows, the output will be `target/release/rust_g.dll`.
 For more advanced configuration, a list of modules may be passed:
 
 ```sh
+export PKG_CONFIG_ALLOW_CROSS=1
 # Linux
 cargo build --release --target=i686-unknown-linux-gnu --features dmi,file,log,url,http
 # Windows
