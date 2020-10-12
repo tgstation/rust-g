@@ -128,7 +128,7 @@ fn main() {
         write!(
             f,
             r#"
-#define rustg_json_is_valid(text) call(RUST_G, "json_is_valid")(text)
+#define rustg_json_is_valid(text) (call(RUST_G, "json_is_valid")(text) == "true")
 "#
         )
         .unwrap();
