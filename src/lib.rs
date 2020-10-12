@@ -41,6 +41,8 @@ pub mod git;
 pub mod hash;
 #[cfg(feature = "http")]
 pub mod http;
+#[cfg(feature = "json")]
+pub mod json;
 #[cfg(feature = "log")]
 pub mod log;
 #[cfg(feature = "noise")]
