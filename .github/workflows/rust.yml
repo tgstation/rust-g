@@ -40,6 +40,8 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install g++-multilib zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386
+          env BYOND_MAJOR=513 BYOND_MINOR=1521 ./scripts/install_byond.sh
+          export BYOND_BIN=/home/travis/BYOND/byond/bin
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
