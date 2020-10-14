@@ -20,7 +20,7 @@ jobs:
         with:
           toolchain: stable
           command: check
-          args: --all-features
+          args: --target i686-pc-windows-msvc --all-features
       - uses: actions-rs/cargo@v1
         with:
           toolchain: stable
@@ -48,13 +48,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
-          command: test
+          command: --target i686-unknown-linux-gnu test
       - name: Check (all features)
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
           command: check
-          args: --all-features
+          args: --target i686-unknown-linux-gnu --all-features
       - uses: actions-rs/cargo@v1
         with:
           toolchain: stable
