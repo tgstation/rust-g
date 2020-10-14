@@ -1,6 +1,11 @@
 use crate::error::{Error, Result};
-use crypto_hash::{Algorithm, Hasher};
-use std::{fs::File, io};
+use md5::Md5;
+use sha1::Sha1;
+use sha2::{Digest, Sha256, Sha512};
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+};
 
 byond_fn! { hash_string(algorithm, string) {
     string_hash(algorithm, string).ok()
@@ -10,31 +15,40 @@ byond_fn! { hash_file(algorithm, string) {
     file_hash(algorithm, string).ok()
 } }
 
-fn get_algorithm(string: &str) -> Result<Algorithm> {
-    let algorithm = match string {
-        "md5" => Algorithm::MD5,
-        "sha1" => Algorithm::SHA1,
-        "sha256" => Algorithm::SHA256,
-        "sha512" => Algorithm::SHA512,
-        _ => return Err(Error::InvalidAlgorithm),
-    };
-
-    Ok(algorithm)
+fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
+    match name {
+        "md5" => {
+            let mut hasher = Md5::new();
+            hasher.update(bytes.as_ref());
+            Ok(hex::encode(hasher.finalize()))
+        }
+        "sha1" => {
+            let mut hasher = Sha1::new();
+            hasher.update(bytes.as_ref());
+            Ok(hex::encode(hasher.finalize()))
+        }
+        "sha256" => {
+            let mut hasher = Sha256::new();
+            hasher.update(bytes.as_ref());
+            Ok(hex::encode(hasher.finalize()))
+        }
+        "sha512" => {
+            let mut hasher = Sha512::new();
+            hasher.update(bytes.as_ref());
+            Ok(hex::encode(hasher.finalize()))
+        }
+        _ => Err(Error::InvalidAlgorithm),
+    }
 }
 
 fn string_hash(algorithm: &str, string: &str) -> Result<String> {
-    let algorithm = get_algorithm(algorithm)?;
-    let digest = crypto_hash::digest(algorithm, string.as_bytes());
-
-    Ok(hex::encode(digest))
+    Ok(hash_algorithm(algorithm, string)?)
 }
 
 fn file_hash(algorithm: &str, path: &str) -> Result<String> {
-    let algorithm = get_algorithm(algorithm)?;
+    let mut bytes: Vec<u8> = Vec::new();
+    let mut file = BufReader::new(File::open(path)?);
+    file.read_to_end(&mut bytes)?;
 
-    let mut file = File::open(path)?;
-    let mut digest = Hasher::new(algorithm);
-
-    io::copy(&mut file, &mut digest)?;
-    Ok(hex::encode(digest.finish()))
+    Ok(hash_algorithm(algorithm, &bytes)?)
 }

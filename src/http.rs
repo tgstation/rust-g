@@ -1,5 +1,6 @@
 use crate::{error::Result, jobs};
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
 

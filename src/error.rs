@@ -4,93 +4,52 @@ use std::{
     result,
     str::Utf8Error,
 };
+use thiserror::Error;
 
 #[cfg(feature = "png")]
 use png::{DecodingError, EncodingError};
 
 pub type Result<T> = result::Result<T, Error>;
 
-#[derive(Fail, Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
-    #[fail(display = "Illegal null character in string.")]
+    #[error("Illegal null character in string.")]
     Null,
-    #[fail(display = "Invalid UTF-8 character at position {}.", _1)]
-    Utf8(#[cause] Utf8Error, usize),
-    #[fail(display = "Invalid or empty filename specified.")]
+    #[error("Invalid UTF-8 character at position {position}.")]
+    Utf8 { source: Utf8Error, position: usize },
+    #[error("Invalid or empty filename specified.")]
     InvalidFilename,
-    #[fail(display = "{}", _0)]
-    Io(#[cause] io::Error),
-    #[fail(display = "Invalid algorithm specified.")]
+    #[error(transparent)]
+    Io(#[from] io::Error),
+    #[error("Invalid algorithm specified.")]
     InvalidAlgorithm,
     #[cfg(feature = "png")]
-    #[fail(display = "{}", _0)]
-    ImageDecoding(#[cause] DecodingError),
+    #[error(transparent)]
+    ImageDecoding(#[from] DecodingError),
     #[cfg(feature = "png")]
-    #[fail(display = "{}", _0)]
-    ImageEncoding(#[cause] EncodingError),
-    #[fail(display = "{}", _0)]
-    ParseIntError(#[cause] ParseIntError),
-    #[fail(display = "{}", _0)]
-    ParseFloatError(#[cause] ParseFloatError),
+    #[error(transparent)]
+    ImageEncoding(#[from] EncodingError),
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
+    #[error(transparent)]
+    ParseFloatError(#[from] ParseFloatError),
     #[cfg(feature = "png")]
-    #[fail(display = "Invalid png data.")]
+    #[error("Invalid png data.")]
     InvalidPngDataError,
     #[cfg(feature = "http")]
-    #[fail(display = "{}", _0)]
-    RequestError(#[cause] reqwest::Error),
+    #[error(transparent)]
+    RequestError(#[from] reqwest::Error),
     #[cfg(feature = "http")]
-    #[fail(display = "{}", _0)]
-    SerializationError(#[cause] serde_json::Error),
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Error {
-        Error::Io(error)
-    }
+    #[error(transparent)]
+    SerializationError(#[from] serde_json::Error),
 }
 
 impl From<Utf8Error> for Error {
-    fn from(error: Utf8Error) -> Error {
-        Error::Utf8(error, error.valid_up_to())
-    }
-}
-
-#[cfg(feature = "png")]
-impl From<DecodingError> for Error {
-    fn from(error: DecodingError) -> Error {
-        Error::ImageDecoding(error)
-    }
-}
-
-#[cfg(feature = "png")]
-impl From<EncodingError> for Error {
-    fn from(error: EncodingError) -> Error {
-        Error::ImageEncoding(error)
-    }
-}
-
-impl From<ParseIntError> for Error {
-    fn from(error: ParseIntError) -> Error {
-        Error::ParseIntError(error)
-    }
-}
-
-impl From<ParseFloatError> for Error {
-    fn from(error: ParseFloatError) -> Error {
-        Error::ParseFloatError(error)
-    }
-}
-#[cfg(feature = "http")]
-impl From<reqwest::Error> for Error {
-    fn from(error: reqwest::Error) -> Error {
-        Error::RequestError(error)
-    }
-}
-
-#[cfg(feature = "http")]
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
-        Error::SerializationError(error)
+    fn from(source: Utf8Error) -> Error {
+        Error::Utf8 {
+            source,
+            position: source.valid_up_to(),
+        }
     }
 }
 
