@@ -21,11 +21,29 @@ matrix:
     env: CARGO_FLAGS=--all-features
 
 install:
-  - env BYOND_MAJOR=513 BYOND_MINOR=1521 ./scripts/install_byond.sh
-  - export BYOND_BIN=/home/travis/BYOND/byond/bin
-  - rustup target add i686-unknown-linux-gnu
-  - export PKG_CONFIG_ALLOW_CROSS=1
+- |-
+  case $TRAVIS_OS_NAME in
+      windows)
+        - rustup target add i686-pc-windows-msvc
+        ;;
+      linux)
+        - env BYOND_MAJOR=513 BYOND_MINOR=1521 ./scripts/install_byond.sh
+        - export BYOND_BIN=/home/travis/BYOND/byond/bin
+        - rustup target add i686-unknown-linux-gnu
+        - export PKG_CONFIG_ALLOW_CROSS=1
+        ;;
+    esac
+
 
 script:
-  - cargo build --target i686-unknown-linux-gnu --verbose --all --release $CARGO_FLAGS || travis_terminate 1
-  - cargo test --target i686-unknown-linux-gnu --verbose --all --release $CARGO_FLAGS
+- |-
+  case $TRAVIS_OS_NAME in
+      windows)
+        - cargo build --target i686-pc-windows-msvc --verbose --all --release $CARGO_FLAGS || travis_terminate 1
+        ;;
+      linux)
+        - cargo build --target i686-unknown-linux-gnu --verbose --all --release $CARGO_FLAGS || travis_terminate 1
+        - cargo test --target i686-unknown-linux-gnu --verbose --all --release $CARGO_FLAGS
+        ;;
+    esac
+
