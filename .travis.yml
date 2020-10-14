@@ -26,4 +26,4 @@ install:
   - rustup target add $BUILD_TARGET
 
 script:
-  - cargo build --target $BUILD_TARGET --verbose --all --release --all-features || travis_terminate 1; fi
+  - cargo build --target $BUILD_TARGET --verbose --all --release --all-features || travis_terminate 1
