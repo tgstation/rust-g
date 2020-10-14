@@ -1,33 +1,29 @@
-os:
-  - linux
-  - windows
-
 language: rust
+
 cache:
   cargo: true
   directories:
     - /home/travis/BYOND/
+
+jobs:
+  include:
+    - os: windows
+      env: BUILD_TARGET=i686-pc-windows-msvc
+    - os: linux
+      env: BUILD_TARGET=i686-unknown-linux-gnu
+      before_script:
+        - env BYOND_MAJOR=513 BYOND_MINOR=1521 ./scripts/install_byond.sh
+        - export BYOND_BIN=/home/travis/BYOND/byond/bin
+        - export PKG_CONFIG_ALLOW_CROSS=1
+      after_script: cargo test --target $BUILD_TARGET --verbose --all --release --all-features
 
 addons:
   apt:
     - g++-multilib
     - libssl-dev:i386
 
-matrix:
-  include:
-  - name: "Default Features"
-    env: CARGO_FLAGS=
-  - name: "All Features"
-    env: CARGO_FLAGS=--all-features
-
 install:
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then rustup target add i686-pc-windows-msvc; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then env BYOND_MAJOR=513 BYOND_MINOR=1521 ./scripts/install_byond.sh; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export BYOND_BIN=/home/travis/BYOND/byond/bin; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then rustup target add i686-unknown-linux-gnu; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export PKG_CONFIG_ALLOW_CROSS=1; fi
+  - rustup target add $BUILD_TARGET
 
 script:
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cargo build --target i686-pc-windows-msvc --verbose --all --release $CARGO_FLAGS || travis_terminate 1; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; cargo build --target i686-unknown-linux-gnu --verbose --all --release $CARGO_FLAGS || travis_terminate 1; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; cargo test --target i686-unknown-linux-gnu --verbose --all --release $CARGO_FLAGS; fi
+  - cargo build --target $BUILD_TARGET --verbose --all --release --all-features || travis_terminate 1; fi
