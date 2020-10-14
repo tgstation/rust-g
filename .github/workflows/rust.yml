@@ -1,5 +1,11 @@
 name: rust-g
-on: [push]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -9,6 +15,12 @@ jobs:
         with:
           toolchain: stable
           target: i686-pc-windows-msvc
+      - name: Check (all features)
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: check
+          args: --all-features
       - uses: actions-rs/cargo@v1
         with:
           toolchain: stable
@@ -32,6 +44,17 @@ jobs:
         with:
           toolchain: stable
           target: i686-unknown-linux-gnu
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: test
+      - name: Check (all features)
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: check
+          args: --all-features
       - uses: actions-rs/cargo@v1
         with:
           toolchain: stable
