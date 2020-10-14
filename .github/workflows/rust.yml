@@ -52,7 +52,7 @@ jobs:
           command: test
           args: --target i686-unknown-linux-gnu
         env:
-          BYOND_BIN: /home/travis/BYOND/byond/bin
+          BYOND_BIN: ~/BYOND/byond/bin
       - name: Check (all features)
         uses: actions-rs/cargo@v1
         with:
