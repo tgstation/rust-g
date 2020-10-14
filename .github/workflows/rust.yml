@@ -45,6 +45,12 @@ jobs:
         with:
           toolchain: stable
           target: i686-unknown-linux-gnu
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: build
+          args: --target i686-unknown-linux-gnu --release
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
@@ -59,11 +65,6 @@ jobs:
           toolchain: stable
           command: check
           args: --target i686-unknown-linux-gnu --all-features
-      - uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: build
-          args: --target i686-unknown-linux-gnu --release
       - uses: actions/upload-artifact@v1
         with:
           name: rust_g
