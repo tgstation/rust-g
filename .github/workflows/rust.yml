@@ -48,7 +48,8 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
-          command: --target i686-unknown-linux-gnu test
+          command: test
+          args: --target i686-unknown-linux-gnu
       - name: Check (all features)
         uses: actions-rs/cargo@v1
         with:
