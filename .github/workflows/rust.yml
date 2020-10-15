@@ -45,12 +45,18 @@ jobs:
         with:
           toolchain: stable
           target: i686-unknown-linux-gnu
-      - name: Build
+      - name: Check (all features)
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: check
+          args: --target i686-unknown-linux-gnu --all-features
+      - name: Build (Debug)
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
           command: build
-          args: --target i686-unknown-linux-gnu --release
+          args: --target i686-unknown-linux-gnu
       - name: TEST - ldd
         run: ldd target/i686-unknown-linux-gnu/debug/librust_g.so
       - name: Run tests
@@ -61,12 +67,12 @@ jobs:
           args: --target i686-unknown-linux-gnu
         env:
           BYOND_BIN: /home/runner/BYOND/byond/bin
-      - name: Check (all features)
+      - name: Build (release)
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
-          command: check
-          args: --target i686-unknown-linux-gnu --all-features
+          command: build
+          args: --target i686-unknown-linux-gnu --release
       - uses: actions/upload-artifact@v1
         with:
           name: rust_g
