@@ -57,8 +57,6 @@ jobs:
           toolchain: stable
           command: build
           args: --target i686-unknown-linux-gnu
-      - name: TEST - ldd
-        run: ldd target/i686-unknown-linux-gnu/debug/librust_g.so
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
