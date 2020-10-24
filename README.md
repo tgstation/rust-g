@@ -37,9 +37,9 @@ The [Rust] compiler:
     # in the `rust-g` directory...
     cd rust-g
     # Linux
-    rustup target add stable-i686-unknown-linux-gnu
+    rustup target add i686-unknown-linux-gnu
     # Windows
-    rustup target add stable-i686-pc-windows-msvc
+    rustup target add i686-pc-windows-msvc
     ```
 
 System libraries:
