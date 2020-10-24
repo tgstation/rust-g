@@ -27,10 +27,7 @@ fn construct_unzip(
 byond_fn! { unzip_download_async(url, unzip_directory) {
     let unzip = construct_unzip(&url, &unzip_directory);
     Some(jobs::start(move ||
-        match do_unzip_download(unzip) {
-            Ok(r) => r,
-            Err(e) => e.to_string()
-        }
+        do_unzip_download(unzip).unwrap_or_else(|e| e.to_string())
     ))
 } }
 
