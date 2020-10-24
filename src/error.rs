@@ -9,6 +9,9 @@ use thiserror::Error;
 #[cfg(feature = "png")]
 use png::{DecodingError, EncodingError};
 
+#[cfg(feature = "unzip")]
+use zip::result::ZipError;
+
 pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Error, Debug)]
@@ -42,6 +45,9 @@ pub enum Error {
     #[cfg(feature = "http")]
     #[error(transparent)]
     SerializationError(#[from] serde_json::Error),
+    #[cfg(feature = "unzip")]
+    #[error(transparent)]
+    UnzipError(#[from] ZipError)
 }
 
 impl From<Utf8Error> for Error {

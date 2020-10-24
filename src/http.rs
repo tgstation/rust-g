@@ -76,7 +76,7 @@ fn setup_http_client() -> reqwest::blocking::Client {
     Client::builder().default_headers(headers).build().unwrap()
 }
 
-static HTTP_CLIENT: Lazy<reqwest::blocking::Client> = Lazy::new(setup_http_client);
+pub static HTTP_CLIENT: Lazy<reqwest::blocking::Client> = Lazy::new(setup_http_client);
 
 // ----------------------------------------------------------------------------
 // Request construction and execution

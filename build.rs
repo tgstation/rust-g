@@ -190,4 +190,12 @@ fn main() {
 #define rustg_sql_check_query(job_id) call(RUST_G, "sql_check_query")("[job_id]")
 "#).unwrap();
     }
+
+    // module: zip
+    if enabled!("UNZIP") {
+        write!(f, r#"
+#define rustg_unzip_download_async(url, unzip_directory) call(RUST_G, "unzip_download_async")(url, unzip_directory)
+#define rustg_unzip_check(job_id) call(RUST_G, "unzip_check")("[job_id]")
+"#).unwrap();
+    }
 }
