@@ -2,6 +2,8 @@
 mod byond;
 #[allow(dead_code)]
 mod error;
+
+#[cfg(feature = "jobs")]
 mod jobs;
 
 #[cfg(feature = "dmi")]
