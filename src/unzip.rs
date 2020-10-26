@@ -42,7 +42,7 @@ fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
 
     for i in 0..archive.len()
     {
-        let mut entry = archive.by_index(i).unwrap();
+        let mut entry = archive.by_index(i)?;
 
         let file_path = unzip_path.join(entry.name());
         
