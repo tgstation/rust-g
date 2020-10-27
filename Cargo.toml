@@ -17,7 +17,7 @@ lto = true
 
 [dependencies]
 thiserror = "1.0"
-flume = "0.9"
+flume = { version = "0.9", optional = true }
 chrono = { version = "0.4", optional = true }
 md-5 = { version = "0.9", optional = true }
 sha-1 = { version = "0.9", optional = true }
@@ -47,6 +47,7 @@ json = ["serde", "serde_json"]
 log = ["chrono"]
 url = ["url-dep", "percent-encoding"]
 git = ["git2", "chrono"]
-http = ["reqwest", "serde", "serde_json", "once_cell"]
-sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap"]
-unzip = ["zip"]
+http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
+sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
+jobs = ["flume"]
+unzip = ["zip", "jobs"]
