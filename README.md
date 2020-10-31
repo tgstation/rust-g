@@ -77,9 +77,9 @@ For more advanced configuration, a list of modules may be passed:
 ```sh
 export PKG_CONFIG_ALLOW_CROSS=1
 # Linux
-cargo build --release --target=i686-unknown-linux-gnu --features dmi,file,log,url,http
+cargo build --release --target=i686-unknown-linux-gnu --features dmi,file,log,url,http,noise,json
 # Windows
-cargo build --release --target=i686-pc-windows-msvc --features dmi,file,log,url,http
+cargo build --release --target=i686-pc-windows-msvc --features dmi,file,log,url,http,noise,json
 ```
 
 The default features are:
@@ -90,6 +90,7 @@ The default features are:
 * http: Asynchronous HTTP(s) client supporting most standard methods.
 * sql: Asynchronous MySQL/MariaDB client library.
 * noise: 2d Perlin noise.
+* json: Function to check JSON validity.
 
 Additional features are:
 * url: Faster replacements for `url_encode` and `url_decode`.
