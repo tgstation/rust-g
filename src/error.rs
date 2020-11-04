@@ -8,6 +8,8 @@ use thiserror::Error;
 
 #[cfg(feature = "png")]
 use png::{DecodingError, EncodingError};
+#[cfg(feature = "png")]
+use image::error::{ImageError};
 
 #[cfg(feature = "unzip")]
 use zip::result::ZipError;
@@ -36,6 +38,8 @@ pub enum Error {
     ParseIntError(#[from] ParseIntError),
     #[error(transparent)]
     ParseFloatError(#[from] ParseFloatError),
+    #[error(transparent)]
+    GenericImageError(#[from] ImageError),
     #[cfg(feature = "png")]
     #[error("Invalid png data.")]
     InvalidPngDataError,
