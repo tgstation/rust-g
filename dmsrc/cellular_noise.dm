@@ -1,0 +1,2 @@
+#define rustg_cnoise_generate(precentage, smoothing_iterations, name) call(RUST_G, "cnoise_generate")(precentage, smoothing_iterations, name)
+#define rustg_cnoise_get_at_coordinates(name,xcord,ycord) call(RUST_G, "cnoise_get_at_coordinates")(name,xcord,ycord)
