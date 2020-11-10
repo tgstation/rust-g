@@ -10,7 +10,7 @@ byond_fn! { cnoise_get_at_coordinates(name,xcord,ycord) {
     get_tile_value_from_file(name,xcord,ycord)
 } }
 
-fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str) ->  -> Result<String> {
+fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str)-> Result<String> {
     let prec = prec_as_str.parse::<i32>().expect("parse failed");
     let smoothing_level = smoothing_level_as_str.parse::<i32>().expect("parse failed");
     //Noise generation
