@@ -1,13 +1,13 @@
-use noise::rand::*;
+use rand::prelude::*;
 use std::fs::File;
 use std::io::*;
 
 byond_fn! { cnoise_generate(precentage,smoothing_iterations,name) {
-    noise_gen(precentage, smoothing_iterations, name)
+    noise_gen(precentage, smoothing_iterations, name).ok()
 } }
 
 byond_fn! { cnoise_get_at_coordinates(name,xcord,ycord) {
-    get_tile_value_from_file(name,xcord,ycord)
+    get_tile_value_from_file(name,xcord,ycord).ok()
 } }
 
 fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str)-> Result<String> {
@@ -18,7 +18,7 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str)-> R
     let mut zplane = vec![vec![0; 255]; 255];
     for i in 0..zplane.len() {
         for j in 0..zplane.len(){
-            if rand::thread_rng().gen_range(0, 100) > prec {
+            if noise::rand::thread_rng().gen_range(0, 100) > prec {
                 zplane[j][i] = 1;
             }
         }
@@ -78,7 +78,7 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str)-> R
     }
 
 
-    let mut file = _make_file(name).expect("create failed");
+    let mut file = _make_file(String::from(name)).expect("create failed");
 
 
     for i in 0..zplane.len() {
@@ -106,7 +106,7 @@ fn _make_file(name : String) -> Result<File> {
 fn get_tile_value_from_file(name : &str, xcord_as_str : &str, ycord_as_str : &str) -> Result<String>{
     let xcord = xcord_as_str.parse::<i32>().expect("parse failed");
     let ycord =ycord_as_str.parse::<i32>().expect("parse failed");
-    let f:File = _open_file(name).expect("create failed");
+    let f:File = _open_file(String::from(name)).expect("create failed");
     // uses a reader buffer
     let  reader = BufReader::new(f);
     let mut x_local_cord = 0;
