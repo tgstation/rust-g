@@ -1,4 +1,4 @@
-use rand::*;
+use noise::rand::*;
 use std::fs::File;
 use std::io::*;
 
@@ -10,7 +10,7 @@ byond_fn! { cnoise_get_at_coordinates(name,xcord,ycord) {
     get_tile_value_from_file(name,xcord,ycord)
 } }
 
-fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str) {
+fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str) ->  -> Result<String> {
     let prec = prec_as_str.parse::<i32>()?;
     let smoothing_level = smoothing_level_as_str.parse::<i32>()?;
     //Noise generation
@@ -95,15 +95,15 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str) {
         file.write_all(string.as_bytes()).expect("write failed");
     }   
 
-    return true
+    Ok(String::from("TRUE"))
 }
 
-fn _make_file(name : String) -> std::io::Result<File> {
+fn _make_file(name : String) -> Result<File> {
     let f:File = File::create(name)?;
     Ok(f)
 }
 
-fn get_tile_value_from_file(name : &str, xcord_as_str : &str, ycord_as_str : &str) -> String{
+fn get_tile_value_from_file(name : &str, xcord_as_str : &str, ycord_as_str : &str) -> Result<String>{
     let xcord = xcord_as_str.parse::<i32>()?;
     let ycord =ycord_as_str.parse::<i32>()?;
     let f:File = _open_file(name).expect("create failed");
@@ -114,14 +114,14 @@ fn get_tile_value_from_file(name : &str, xcord_as_str : &str, ycord_as_str : &st
     for line in reader.lines(){
         for character in line.expect("lines failed").chars(){
             if x_local_cord == xcord && y_local_cord == ycord {
-                return character.to_string();
+                return Ok(character.to_string());
             }
             x_local_cord += 1;
         }
         y_local_cord += 1;
     }
 
-    return "-1".to_string()
+    Ok("-1".to_string())
 
 }
 
