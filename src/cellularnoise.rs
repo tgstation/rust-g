@@ -1,6 +1,6 @@
 use rand::*;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::*;
 
 byond_fn! { cnoise_generate(precentage,smoothing_iterations,name) {
     noise_gen(precentage, smoothing_iterations, name)
