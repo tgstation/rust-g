@@ -11,8 +11,8 @@ byond_fn! { cnoise_get_at_coordinates(name,xcord,ycord) {
 } }
 
 fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str) ->  -> Result<String> {
-    let prec = prec_as_str.parse::<i32>()?;
-    let smoothing_level = smoothing_level_as_str.parse::<i32>()?;
+    let prec = prec_as_str.parse::<i32>().expect("parse failed");
+    let smoothing_level = smoothing_level_as_str.parse::<i32>().expect("parse failed");
     //Noise generation
 
     let mut zplane = vec![vec![0; 255]; 255];
@@ -104,8 +104,8 @@ fn _make_file(name : String) -> Result<File> {
 }
 
 fn get_tile_value_from_file(name : &str, xcord_as_str : &str, ycord_as_str : &str) -> Result<String>{
-    let xcord = xcord_as_str.parse::<i32>()?;
-    let ycord =ycord_as_str.parse::<i32>()?;
+    let xcord = xcord_as_str.parse::<i32>().expect("parse failed");
+    let ycord =ycord_as_str.parse::<i32>().expect("parse failed");
     let f:File = _open_file(name).expect("create failed");
     // uses a reader buffer
     let  reader = BufReader::new(f);
