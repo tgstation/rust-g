@@ -41,7 +41,7 @@ rand = {version = "0.7", optional = true}
 
 
 [features]
-default = ["dmi", "log", "git", "http", "json", "sql", "noise"]
+default = ["dmi", "log", "git", "http", "json", "sql", "noise", "cellularnoise"]
 dmi = ["png", "image"]
 file = []
 hash = ["md-5", "sha-1", "sha2", "hex"]
