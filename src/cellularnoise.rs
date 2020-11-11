@@ -1,16 +1,15 @@
 use rand::*;
-use std::fs::File;
 use std::io::*;
 
-byond_fn! { cnoise_generate(precentage,smoothing_iterations,name) {
-    noise_gen(precentage, smoothing_iterations, name).ok()
+byond_fn! { cnoise_generate(precentage,smoothing_iterations) {
+    noise_gen(precentage, smoothing_iterations).ok()
 } }
 
-byond_fn! { cnoise_get_at_coordinates(name,xcord,ycord) {
-    get_tile_value_from_file(name,xcord,ycord).ok()
+byond_fn! { cnoise_get_at_coordinates(grid,xcord,ycord) {
+    get_tile_value(grid,xcord,ycord).ok()
 } }
 
-fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str)-> Result<String> {
+fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str)-> Result<String> {
     let prec = prec_as_str.parse::<i32>().expect("parse failed");
     let smoothing_level = smoothing_level_as_str.parse::<i32>().expect("parse failed");
     //Noise generation
@@ -78,11 +77,9 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str)-> R
     }
 
 
-    let mut file = _make_file(String::from(name)).expect("create failed");
-
-
+    let mut string:String = String::from("");
     for i in 0..zplane.len() {
-        let mut string:String = String::from("");
+        
         for j in 0..zplane.len(){
            if zplane[j][i] == 1 {
                 string = [string, String::from("1")].join("");
@@ -91,41 +88,31 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str)-> R
            }
            
         }
-        string = [string, String::from("\n")].join("");
-        file.write_all(string.as_bytes()).expect("write failed");
+        string = [string, String::from("/")].join("");
     }   
 
-    Ok(String::from("TRUE"))
+    Ok(string)
 }
 
-fn _make_file(name : String) -> Result<File> {
-    let f:File = File::create(name)?;
-    Ok(f)
-}
-
-fn get_tile_value_from_file(name : &str, xcord_as_str : &str, ycord_as_str : &str) -> Result<String>{
+fn get_tile_value(grid_as_str : &str, xcord_as_str : &str, ycord_as_str : &str) -> Result<String>{
     let xcord = xcord_as_str.parse::<i32>().expect("parse failed");
-    let ycord =ycord_as_str.parse::<i32>().expect("parse failed");
-    let f:File = _open_file(String::from(name)).expect("create failed");
-    // uses a reader buffer
-    let  reader = BufReader::new(f);
-    let mut x_local_cord = 0;
-    let mut y_local_cord = 0;
-    for line in reader.lines(){
-        for character in line.expect("lines failed").chars(){
-            if x_local_cord == xcord && y_local_cord == ycord {
-                return Ok(character.to_string());
-            }
-            x_local_cord += 1;
+    let ycord = ycord_as_str.parse::<i32>().expect("parse failed");
+    let grid = String::from(grid_as_str);
+    let mut x_val = 0;
+    let mut y_val = 0;
+    for i in grid.chars(){
+        if x_val == xcord && y_val == ycord {
+            return Ok(i.to_string());
         }
-        y_local_cord += 1;
+        
+        if i.to_string() == "/".to_string(){
+            y_val += 1;
+            x_val = 0;
+        } else {
+            x_val += 1;
+        }
     }
 
     Ok("-1".to_string())
-
 }
 
-fn _open_file(name : String) -> std::io::Result<File> {
-    let f:File = File::open(name)?;
-    Ok(f)
-}
