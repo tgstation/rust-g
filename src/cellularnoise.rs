@@ -67,10 +67,10 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, birth_limit_as_s
                 }
 
                 if zplane_old[j][i] == 1{
-                    if sum > death_limit{
-                        zplane[j][i] = 1;
-                    } else{
+                    if sum < death_limit{
                         zplane[j][i] = 0;
+                    } else{
+                        zplane[j][i] = 1;
                     }
                 }
                 else{
