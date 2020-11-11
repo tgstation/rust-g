@@ -18,7 +18,7 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, name : &str)-> R
     let mut zplane = vec![vec![0; 255]; 255];
     for i in 0..zplane.len() {
         for j in 0..zplane.len(){
-            if rand::thread_rng().gen_range(0, 100) > prec {
+            if crate::rand::thread_rng().gen_range(0, 100) > prec {
                 zplane[j][i] = 1;
             }
         }
