@@ -1,17 +1,19 @@
 use rand::*;
 use std::io::*;
 
-byond_fn! { cnoise_generate(precentage,smoothing_iterations) {
-    noise_gen(precentage, smoothing_iterations).ok()
+byond_fn! { cnoise_generate(precentage,smoothing_iterations, birth_limit, death_limit) {
+    noise_gen(precentage, smoothing_iterations, birth_limit, death_limit).ok()
 } }
 
 byond_fn! { cnoise_get_at_coordinates(grid,xcord,ycord) {
     get_tile_value(grid,xcord,ycord).ok()
 } }
 
-fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str)-> Result<String> {
+fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, birth_limit_as_str : &str, death_limit_as_str : &str)-> Result<String> {
     let prec = prec_as_str.parse::<i32>().expect("parse failed");
     let smoothing_level = smoothing_level_as_str.parse::<i32>().expect("parse failed");
+    let birth_limit = birth_limit_as_str.parse::<i32>().expect("parse failed");
+    let death_limit = death_limit_as_str.parse::<i32>().expect("parse failed");
     //Noise generation
 
     let mut zplane = vec![vec![0; 255]; 255];
@@ -64,11 +66,19 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str)-> Result<String>
                     sum += zplane_old[j-1][i+1];
                 }
 
-
-                if sum > 4{
-                    zplane[j][i] = 1;
-                } else{
-                    zplane[j][i] = 0;
+                if zplane_old[j][i] == 1{
+                    if sum < death_limit{
+                        zplane[j][i] = 0;
+                    } else{
+                        zplane[j][i] = 1;
+                    }
+                }
+                else{
+                    if sum > birth_limit{
+                        zplane[j][i] = 1;
+                    } else{
+                        zplane[j][i] = 0;
+                    }
                 }
 
 
