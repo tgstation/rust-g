@@ -1,4 +1,4 @@
-use crate:rand::*;
+use crate::rand::*;
 use std::fs::File;
 use std::io::*;
 
