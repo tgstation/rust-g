@@ -1,8 +1,8 @@
 use rand::*;
 use std::io::*;
 
-byond_fn! { cnoise_generate(precentage,smoothing_iterations) {
-    noise_gen(precentage, smoothing_iterations).ok()
+byond_fn! { cnoise_generate(precentage,smoothing_iterations, birth_limit, death_limit) {
+    noise_gen(precentage, smoothing_iterations, birth_limit, death_limit).ok()
 } }
 
 byond_fn! { cnoise_get_at_coordinates(grid,xcord,ycord) {
