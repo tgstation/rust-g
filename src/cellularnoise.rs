@@ -1,4 +1,4 @@
-use rand::*;
+use rand::
 use std::fs::File;
 use std::io::*;
 
