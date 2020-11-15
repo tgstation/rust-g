@@ -12,7 +12,7 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, birth_limit_as_s
     let death_limit = death_limit_as_str.parse::<i32>().expect("parse failed");
     //Noise generation
 
-    let mut zplane = vec![vec![0; 255]; 255];
+    let mut zplane = vec![vec![0; 254]; 254]; // 254 but we start at 0, and since byond starts at one it is 255 byond wise.
     for i in 0..zplane.len() {
         for j in 0..zplane.len(){
             if rand::thread_rng().gen_range(0, 100) > prec {
