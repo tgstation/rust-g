@@ -1,22 +1,23 @@
 use rand::*;
-use std::io::*;
+use crate::error::Result;
+use std::fmt::Write;
 
 byond_fn! { cnoise_generate(precentage,smoothing_iterations, birth_limit, death_limit) {
     noise_gen(precentage, smoothing_iterations, birth_limit, death_limit).ok()
 } }
 
 fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, birth_limit_as_str : &str, death_limit_as_str : &str)-> Result<String> {
-    let prec = prec_as_str.parse::<i32>().expect("parse failed");
-    let smoothing_level = smoothing_level_as_str.parse::<i32>().expect("parse failed");
-    let birth_limit = birth_limit_as_str.parse::<i32>().expect("parse failed");
-    let death_limit = death_limit_as_str.parse::<i32>().expect("parse failed");
+    let prec = prec_as_str.parse::<i32>()?;
+    let smoothing_level = smoothing_level_as_str.parse::<i32>()?;
+    let birth_limit = birth_limit_as_str.parse::<i32>()?;
+    let death_limit = death_limit_as_str.parse::<i32>()?;
     //Noise generation
 
-    let mut zplane = vec![vec![0; 254]; 254]; // 254 but we start at 0, and since byond starts at one it is 255 byond wise.
+    let mut zplane = vec![vec![false; 254]; 254]; // 254 but we start at 0, and since byond starts at one it is 255 byond wise.
     for i in 0..zplane.len() {
-        for j in 0..zplane.len(){
+        for j in 0..zplane[i].len(){
             if rand::thread_rng().gen_range(0, 100) > prec {
-                zplane[j][i] = 1;
+                zplane[i][j] = true;
             }
         }
 
@@ -31,49 +32,49 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, birth_limit_as_s
                 let mut sum = 0;
 
                 if j > 0{
-                    sum += zplane_old[j-1][i];
+                    sum += if zplane_old[j-1][i] {1} else {0};
                 }
 
                 if i > 0 {
-                    sum += zplane_old[j][i-1];
+                    sum += if zplane_old[j][i-1]  {1} else {0};
                 }
 
                 if i > 0 && j > 0 {
-                    sum += zplane_old[j-1][i-1];
+                    sum += if zplane_old[j-1][i-1] {1} else {0};
                 }
 
                 if j < zplane_old.len()-1 {
-                    sum += zplane_old[j+1][i];
+                    sum += if zplane_old[j+1][i] {1} else {0};
                 }
 
                 if i < zplane_old.len()-1 {
-                    sum += zplane_old[j][i+1];
+                    sum += if zplane_old[j][i+1] {1} else {0};
                 }
 
                 if i < zplane_old.len()-1 && j < zplane_old.len()-1{
-                    sum += zplane_old[j+1][i+1];
+                    sum += if zplane_old[j+1][i+1] {1} else {0};
                 }
 
                 if i > 0 && j < zplane_old.len()-1 {
-                    sum += zplane_old[j+1][i-1];
+                    sum += if zplane_old[j+1][i-1] {1} else {0};
                 }
 
                 if j > 0 && i < zplane_old.len()-1 {
-                    sum += zplane_old[j-1][i+1];
+                    sum += if zplane_old[j-1][i+1] {1} else {0};
                 }
 
-                if zplane_old[j][i] == 1{
+                if zplane_old[i][i] == true{
                     if sum < death_limit{
-                        zplane[j][i] = 0;
+                        zplane[j][i] = false;
                     } else{
-                        zplane[j][i] = 1;
+                        zplane[j][i] = true;
                     }
                 }
                 else{
                     if sum > birth_limit{
-                        zplane[j][i] = 1;
+                        zplane[j][i] = false;
                     } else{
-                        zplane[j][i] = 0;
+                        zplane[j][i] = true;
                     }
                 }
 
@@ -87,10 +88,10 @@ fn noise_gen(prec_as_str : &str, smoothing_level_as_str : &str, birth_limit_as_s
     for i in 0..zplane.len() {
         
         for j in 0..zplane.len(){
-           if zplane[j][i] == 1 {
-                string = [string, String::from("1")].join("");
+           if zplane[j][i] == true {
+                write!(string,"1");
            } else {
-                string = [string, String::from("0")].join("");
+                write!(string,"0");
            }
            
         }
