@@ -28,6 +28,8 @@ pub mod sql;
 pub mod url;
 #[cfg(feature = "unzip")]
 pub mod unzip;
+#[cfg(feature = "cellularnoise")]
+pub mod cellularnoise;
 
 #[cfg(not(target_pointer_width = "32"))]
 compile_error!("rust-g must be compiled for a 32-bit target");

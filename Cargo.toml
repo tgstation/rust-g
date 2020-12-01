@@ -37,10 +37,11 @@ once_cell = { version = "1.4", optional = true }
 mysql = { version = "20.0", optional = true }
 dashmap = { version = "3.11", optional = true }
 zip = { version = "0.5.8", optional = true }
+rand = {version = "0.7", optional = true}
 
 
 [features]
-default = ["dmi", "log", "git", "http", "json", "sql", "noise"]
+default = ["dmi", "log", "git", "http", "json", "sql", "noise", "cellularnoise"]
 dmi = ["png", "image"]
 file = []
 hash = ["md-5", "sha-1", "sha2", "hex"]
@@ -52,3 +53,4 @@ http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
 jobs = ["flume"]
 unzip = ["zip", "jobs"]
+cellularnoise = ["rand"]
