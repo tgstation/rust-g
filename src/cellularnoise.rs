@@ -2,19 +2,19 @@ use crate::error::Result;
 use rand::*;
 use std::fmt::Write;
 
-byond_fn! { cnoise_generate(precentage,smoothing_iterations, birth_limit, death_limit, width, height) {
-    noise_gen(precentage, smoothing_iterations, birth_limit, death_limit, width, height).ok()
+byond_fn! { cnoise_generate(percentage, smoothing_iterations, birth_limit, death_limit, width, height) {
+    noise_gen(percentage, smoothing_iterations, birth_limit, death_limit, width, height).ok()
 } }
 
 fn noise_gen(
-    prec_as_str: &str,
+    percentage_as_str: &str,
     smoothing_level_as_str: &str,
     birth_limit_as_str: &str,
     death_limit_as_str: &str,
     width_as_str: &str,
     height_as_str: &str,
 ) -> Result<String> {
-    let prec = prec_as_str.parse::<i32>()?;
+    let percentage = percentage_as_str.parse::<i32>()?;
     let smoothing_level = smoothing_level_as_str.parse::<i32>()?;
     let birth_limit = birth_limit_as_str.parse::<i32>()?;
     let death_limit = death_limit_as_str.parse::<i32>()?;
@@ -25,7 +25,7 @@ fn noise_gen(
     let mut zplane = vec![vec![false; width]; height];
     for row in zplane.iter_mut() {
         for cell in row.iter_mut() {
-            *cell = rand::thread_rng().gen_range(0, 100) > prec;
+            *cell = rand::thread_rng().gen_range(0, 100) < percentage;
         }
     }
 
