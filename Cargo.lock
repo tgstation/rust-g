@@ -1582,7 +1582,7 @@ dependencies = [
 
 [[package]]
 name = "rust-g"
-version = "0.4.6"
+version = "0.4.7"
 dependencies = [
  "chrono",
  "dashmap",
