@@ -7,5 +7,5 @@
 #define RUSTG_HASH_SHA512 "sha512"
 
 #ifdef RUSTG_OVERRIDE_BUILTINS
-#define md5(thing) (isfile(thing) ? rustg_hash_file(RUSTG_HASH_MD5, "[thing]") : rustg_hash_string(RUSTG_HASH_MD5, thing))
+	#define md5(thing) (isfile(thing) ? rustg_hash_file(RUSTG_HASH_MD5, "[thing]") : rustg_hash_string(RUSTG_HASH_MD5, thing))
 #endif
