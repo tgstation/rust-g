@@ -41,16 +41,22 @@ rand = {version = "0.7", optional = true}
 
 
 [features]
-default = ["dmi", "log", "git", "http", "json", "sql", "noise", "cellularnoise"]
+default = ["cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql"]
+
+# default features
+cellularnoise = ["rand"]
 dmi = ["png", "image"]
 file = []
-hash = ["md-5", "sha-1", "sha2", "hex"]
-json = ["serde", "serde_json"]
-log = ["chrono"]
-url = ["url-dep", "percent-encoding"]
 git = ["git2", "chrono"]
 http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
+json = ["serde", "serde_json"]
+log = ["chrono"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
-jobs = ["flume"]
+
+# non-default features
+hash = ["md-5", "sha-1", "sha2", "hex"]
+url = ["url-dep", "percent-encoding"]
 unzip = ["zip", "jobs"]
-cellularnoise = ["rand"]
+
+# internal feature-like things
+jobs = ["flume"]

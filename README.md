@@ -52,51 +52,47 @@ System libraries:
     sudo apt-get install zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386
     ```
 
-* Other distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
+* Other Linux distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
 
 ## Compiling
 
-The [cargo] tool handles compilation, as well as automatically downloading and
+The [Cargo] tool handles compilation, as well as automatically downloading and
 compiling all Rust dependencies. The default configuration is suitable for
-use with the [tgstation] codebase. To compile in release mode (recommended for
+use with the [/tg/station] codebase. To compile in release mode (recommended for
 speed):
 
+Linux:
 ```sh
 export PKG_CONFIG_ALLOW_CROSS=1
-# Linux
-cargo build --release --target=i686-unknown-linux-gnu
-# Windows
-cargo build --release --target=i686-pc-windows-msvc
+cargo build --release --target i686-unknown-linux-gnu
+# output: target/i686-unknown-linux-gnu/release/librust_g.so
 ```
 
-On Linux, the output will be `target/release/librust_g.so`.
-
-On Windows, the output will be `target/release/rust_g.dll`.
-
-For more advanced configuration, a list of modules may be passed:
+Windows:
 
 ```sh
-export PKG_CONFIG_ALLOW_CROSS=1
-# Linux
-cargo build --release --target=i686-unknown-linux-gnu --features dmi,file,log,url,http,noise,json
-# Windows
-cargo build --release --target=i686-pc-windows-msvc --features dmi,file,log,url,http,noise,json
+cargo build --release --target i686-pc-windows-msvc
+# output: target/i686-pc-windows-msvc/release/rust_g.dll
 ```
+
+To get additional features, pass a list to `--features`, for example `--features hash,url`. To get all features, pass `--all-features`. To disable the default features, pass `--no-default-features`.
 
 The default features are:
-* log: Faster log output.
+* cellularnoise: Function to generate cellular automata-based noise.
 * dmi: DMI manipulations which are impossible from within BYOND.
   Used by the asset cache subsystem to improve load times.
+* file: Faster replacements for `file2text` and `text2file`, as well as reading or checking if files exist.
 * git: Functions for robustly checking the current git revision.
 * http: Asynchronous HTTP(s) client supporting most standard methods.
+* json: Function to check JSON validity.
+* log: Faster log output.
 * sql: Asynchronous MySQL/MariaDB client library.
 * noise: 2d Perlin noise.
-* json: Function to check JSON validity.
 
 Additional features are:
-* url: Faster replacements for `url_encode` and `url_decode`.
-* file: Faster replacements for `file2text` and `text2file`, as well as reading or checking if files exist.
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
+* url: Faster replacements for `url_encode` and `url_decode`.
+* unzip: Function to download a .zip from a URL and unzip it to a directory.
 
 ## Installing
 
@@ -114,7 +110,6 @@ at the top of `rust_g.dm` for details.
 
 You must build a 32-bit version of the library for it to be compatible with
 BYOND. Attempting to build a 64-bit version will fail with an explanatory error.
-Use the `rustup override add` command described above or build with `--target`.
 
 ### Linux
 
@@ -173,9 +168,9 @@ If you're still having problems, ask in the [Coderbus Discord]'s
 You can also try [tgstation]'s IRC, `#coderbus` on Rizon, but it is usually
 quiet.
 
-[tgstation]: https://github.com/tgstation/tgstation
+[/tg/station]: https://github.com/tgstation/tgstation
 [Rust]: https://rust-lang.org
-[cargo]: https://doc.rust-lang.org/cargo/
+[Cargo]: https://doc.rust-lang.org/cargo/
 [rustup]: https://rustup.rs/
 [msvc]: https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15
 [Coderbus Discord]: https://discord.gg/Vh8TJp9
