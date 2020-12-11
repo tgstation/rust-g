@@ -62,6 +62,7 @@ use with the [tgstation] codebase. To compile in release mode (recommended for
 speed):
 
 ```sh
+export PKG_CONFIG_ALLOW_CROSS=1
 # Linux
 cargo build --release --target=i686-unknown-linux-gnu
 # Windows
