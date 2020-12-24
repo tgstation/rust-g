@@ -99,7 +99,7 @@ fn construct_request(
         "patch" => HTTP_CLIENT.patch(url),
         "delete" => HTTP_CLIENT.delete(url),
         "head" => HTTP_CLIENT.head(url),
-        _ => HTTP_CLIENT.get(url),
+        "get" => HTTP_CLIENT.get(url),
     };
 
     if !body.is_empty() {
