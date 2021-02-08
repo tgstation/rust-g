@@ -30,6 +30,7 @@ pub mod url;
 pub mod unzip;
 #[cfg(feature = "cellularnoise")]
 pub mod cellularnoise;
-
+#[cfg(feature="udp_shipper")]
+pub mod udp_shipper;
 #[cfg(not(target_pointer_width = "32"))]
 compile_error!("rust-g must be compiled for a 32-bit target");

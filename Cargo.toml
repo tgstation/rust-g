@@ -1,7 +1,7 @@
 [package]
 name = "rust-g"
 edition = "2018"
-version = "0.4.7"
+version = "0.4.8"
 authors = ["Bjorn Neergaard <bjorn@neersighted.com>"]
 repository = "https://github.com/tgstation/rust-g"
 license-file = "LICENSE"
@@ -41,7 +41,7 @@ rand = {version = "0.7", optional = true}
 
 
 [features]
-default = ["cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql"]
+default = ["cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "udp_shipper"]
 
 # default features
 cellularnoise = ["rand"]
@@ -52,6 +52,7 @@ http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
 json = ["serde", "serde_json"]
 log = ["chrono"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
+udp_shipper = []
 
 # non-default features
 hash = ["md-5", "sha-1", "sha2", "hex"]
