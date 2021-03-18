@@ -1,0 +1,23 @@
+#include "common.dm"
+
+var/list/reference = list()
+
+/proc/check_hash_base64(input)
+    var/reference = reference[input]
+    var/rust = rustg_hash_string(input, "base64")
+    // Case sensitive
+    if (!cmptextEx(reference, rust))
+        CRASH("[input]\n  reference: [reference]\n  rustg: [rust]")
+
+/test/proc/various_hash_base64()
+    reference["The quick brown fox jumps over the lazy dog."] = \
+    "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4="
+
+    reference["Résumé"] = \
+    "UsOpc3Vtw6k="
+
+    reference["https://example.com/?foo=bar+baz&bar\[]=baz#foo"] = \
+    "aHR0cHM6Ly9leGFtcGxlLmNvbS8/Zm9vPWJhcitiYXomYmFyXFtdPWJheiNmb28="
+
+    for (var/entry in reference)
+        check_hash_base64(entry)

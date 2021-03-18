@@ -12,6 +12,12 @@ fn url() {
     run_dm_tests("url");
 }
 
+#[cfg(feature = "hash")]
+#[test]
+fn hash() {
+    run_dm_tests("hash");
+}
+
 fn run_dm_tests(name: &str) {
     std::env::remove_var("RUST_BACKTRACE");
 
