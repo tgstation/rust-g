@@ -48,8 +48,8 @@ fn write_png(path: &str, info: OutputInfo, image: Vec<u8>) -> Result<()> {
 }
 
 fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
-    let width = u32::from_str_radix(width, 10)?;
-    let height = u32::from_str_radix(height, 10)?;
+    let width = width.parse::<u32>()?;
+    let height = height.parse::<u32>()?;
 
     let bytes = data.as_bytes();
     if bytes.len() % 7 != 0 {
@@ -77,8 +77,8 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
 }
 
 fn resize_png<P: AsRef<Path>>(path: P, width: &str, height: &str, resizetype: image::imageops::FilterType) -> std::result::Result<(), Error> {
-    let width = u32::from_str_radix(width, 10)?;
-    let height = u32::from_str_radix(height, 10)?;
+    let width = width.parse::<u32>()?;
+    let height = height.parse::<u32>()?;
 
     let img = image::open(path.as_ref())?;
 
