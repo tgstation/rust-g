@@ -68,7 +68,7 @@ fn noise_gen(
                     }
                 }
 
-                if zplane_old[i][j] == true {
+                if zplane_old[i][j] {
                     if sum < death_limit {
                         zplane[i][j] = false;
                     } else {
