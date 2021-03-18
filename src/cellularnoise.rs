@@ -74,13 +74,12 @@ fn noise_gen(
                     } else {
                         zplane[i][j] = true;
                     }
+                } else if sum > birth_limit {
+                    zplane[i][j] = true;
                 } else {
-                    if sum > birth_limit {
-                        zplane[i][j] = true;
-                    } else {
-                        zplane[i][j] = false;
-                    }
+                    zplane[i][j] = false;
                 }
+
             }
         }
     }
