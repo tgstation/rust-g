@@ -25,7 +25,7 @@ fn noise_gen(
     let mut zplane = vec![vec![false; width]; height];
     for row in zplane.iter_mut() {
         for cell in row.iter_mut() {
-            *cell = rand::thread_rng().gen_range(0, 100) < percentage;
+            *cell = rand::thread_rng().gen_range(0..=100) < percentage;
         }
     }
 
