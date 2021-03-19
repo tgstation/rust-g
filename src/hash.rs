@@ -1,17 +1,15 @@
 use crate::error::{Error, Result};
-use const_random::const_random  ;
+use const_random::const_random;
 const XXHASH_SEED: u64 = const_random!(u64);
-use twox_hash::XxHash64;
 use md5::Md5;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
 use std::{
     fs::File,
-    io::{BufReader, Read},
     hash::Hasher,
+    io::{BufReader, Read},
 };
-
-
+use twox_hash::XxHash64;
 
 byond_fn! { hash_string(algorithm, string) {
     string_hash(algorithm, string).ok()
@@ -46,7 +44,7 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
         "xxh64" => {
             let mut hasher = XxHash64::with_seed(XXHASH_SEED);
             hasher.write(bytes.as_ref());
-            Ok(format!("{:x}",hasher.finish()))
+            Ok(format!("{:x}", hasher.finish()))
         }
         "base64" => {
             Ok(base64::encode(bytes.as_ref()))

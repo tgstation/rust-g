@@ -7,9 +7,9 @@ use std::{
 use thiserror::Error;
 
 #[cfg(feature = "png")]
-use png::{DecodingError, EncodingError};
+use image::error::ImageError;
 #[cfg(feature = "png")]
-use image::error::{ImageError};
+use png::{DecodingError, EncodingError};
 
 #[cfg(feature = "unzip")]
 use zip::result::ZipError;
@@ -51,7 +51,7 @@ pub enum Error {
     SerializationError(#[from] serde_json::Error),
     #[cfg(feature = "unzip")]
     #[error(transparent)]
-    UnzipError(#[from] ZipError)
+    UnzipError(#[from] ZipError),
 }
 
 impl From<Utf8Error> for Error {
