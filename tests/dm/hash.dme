@@ -4,7 +4,7 @@ var/list/reference = list()
 
 /proc/check_hash_base64(input)
     var/expected = reference[input]
-    var/rust = rustg_hash_string(input, "base64")
+    var/rust = rustg_hash_string("base64", input)
     // Case sensitive
     if (!cmptextEx(expected, rust))
         CRASH("[input]\n  expected: [expected]\n  rustg: [rust]")
@@ -17,7 +17,7 @@ var/list/reference = list()
     "UsOpc3Vtw6k="
 
     reference["https://example.com/?foo=bar+baz&bar\[]=baz#foo"] = \
-    "aHR0cHM6Ly9leGFtcGxlLmNvbS8/Zm9vPWJhcitiYXomYmFyXFtdPWJheiNmb28="
+    "aHR0cHM6Ly9leGFtcGxlLmNvbS8/Zm9vPWJhcitiYXomYmFyW109YmF6I2Zvbw=="
 
     for (var/entry in reference)
         check_hash_base64(entry)
