@@ -3,11 +3,11 @@
 var/list/reference = list()
 
 /proc/check_hash_base64(input)
-    var/reference = reference[input]
+    var/expected = reference[input]
     var/rust = rustg_hash_string(input, "base64")
     // Case sensitive
-    if (!cmptextEx(reference, rust))
-        CRASH("[input]\n  reference: [reference]\n  rustg: [rust]")
+    if (!cmptextEx(expected, rust))
+        CRASH("[input]\n  expected: [expected]\n  rustg: [rust]")
 
 /test/proc/various_hash_base64()
     reference["The quick brown fox jumps over the lazy dog."] = \
