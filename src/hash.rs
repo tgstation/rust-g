@@ -46,6 +46,9 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
             hasher.write(bytes.as_ref());
             Ok(format!("{:x}", hasher.finish()))
         }
+        "base64" => {
+            Ok(base64::encode(bytes.as_ref()))
+        }
         _ => Err(Error::InvalidAlgorithm),
     }
 }
