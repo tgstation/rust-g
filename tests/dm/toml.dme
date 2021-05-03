@@ -1,0 +1,39 @@
+#include "common.dm"
+
+var/test_toml = {"
+[database]
+enabled = true
+ports = [ 8000, 8001, 8002 ]
+data = [ ["delta", "phi"], [3.14] ]
+temp_targets = { cpu = 79.5, case = 72.0 }
+"}
+
+var/test_json = {"
+{
+  "database": {
+    "enabled": true,
+    "ports": [
+      8000,
+      8001,
+      8002
+    ],
+    "data": [
+      [
+        "delta",
+        "phi"
+      ],
+      [
+        3.14
+      ]
+    ],
+    "temp_targets": 79.5,
+    "case": 72
+  }
+}
+"}
+
+/test/proc/check_toml2json()
+    var/rust = rustg_toml2json(test_toml)
+    // Case sensitive
+    if (!cmptextEx(test_json, rust))
+        CRASH("[input]\n  expected: [expected]\n  rustg: [rust]")

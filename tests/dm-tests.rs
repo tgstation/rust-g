@@ -18,6 +18,12 @@ fn hash() {
     run_dm_tests("hash");
 }
 
+#[cfg(feature = "toml2json")]
+#[test]
+fn toml() {
+    run_dm_tests("toml");
+}
+
 fn run_dm_tests(name: &str) {
     std::env::remove_var("RUST_BACKTRACE");
 
@@ -32,7 +38,7 @@ fn run_dm_tests(name: &str) {
     let target_dir = if cfg!(target_os = "linux") {
         "i686-unknown-linux-gnu"
     } else {
-        "i686-pc-windows-gnu"
+        "i686-pc-windows-msvc"
     };
     let profile = if cfg!(debug_assertions) {
         "debug"
