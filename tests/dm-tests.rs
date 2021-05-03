@@ -38,7 +38,7 @@ fn run_dm_tests(name: &str) {
     let target_dir = if cfg!(target_os = "linux") {
         "i686-unknown-linux-gnu"
     } else {
-        "i686-pc-windows-msvc"
+        "i686-pc-windows-gnu"
     };
     let profile = if cfg!(debug_assertions) {
         "debug"
