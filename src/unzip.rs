@@ -1,4 +1,4 @@
-use crate::{error::Result, jobs, http::HTTP_CLIENT};
+use crate::{error::Result, http::HTTP_CLIENT, jobs};
 use reqwest::blocking::RequestBuilder;
 use std::fs;
 use std::io::Write;
@@ -10,14 +10,10 @@ struct UnzipPrep {
     unzip_directory: String,
 }
 
-fn construct_unzip(
-    url: &str,
-    unzip_directory: &str
-) -> UnzipPrep {
-    
+fn construct_unzip(url: &str, unzip_directory: &str) -> UnzipPrep {
     let req = HTTP_CLIENT.get(url);
     let dir_copy = unzip_directory.to_string();
-    
+
     UnzipPrep {
         req,
         unzip_directory: dir_copy,
@@ -40,12 +36,11 @@ fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
     let reader = std::io::Cursor::new(content);
     let mut archive = ZipArchive::new(reader)?;
 
-    for i in 0..archive.len()
-    {
+    for i in 0..archive.len() {
         let mut entry = archive.by_index(i)?;
 
         let file_path = unzip_path.join(entry.name());
-        
+
         if let Some(parent) = file_path.parent() {
             fs::create_dir_all(parent)?
         }

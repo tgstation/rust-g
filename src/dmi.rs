@@ -76,7 +76,12 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     Ok(writer.write_image_data(&result)?)
 }
 
-fn resize_png<P: AsRef<Path>>(path: P, width: &str, height: &str, resizetype: image::imageops::FilterType) -> std::result::Result<(), Error> {
+fn resize_png<P: AsRef<Path>>(
+    path: P,
+    width: &str,
+    height: &str,
+    resizetype: image::imageops::FilterType,
+) -> std::result::Result<(), Error> {
     let width = u32::from_str_radix(width, 10)?;
     let height = u32::from_str_radix(height, 10)?;
 

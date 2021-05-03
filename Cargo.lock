@@ -1495,6 +1495,7 @@ dependencies = [
 name = "rust-g"
 version = "0.4.7"
 dependencies = [
+ "base64 0.13.0",
  "chrono",
  "const-random",
  "dashmap",
