@@ -12,9 +12,9 @@ var/test_json = @{"
 {"database":{"data":[["delta","phi"],[3.14]],"enabled":true,"ports":[8000,25565],"temp_targets":{"case":72.0,"cpu":79.5}}}
 "}
 
-/test/proc/check_toml2json()
+/test/proc/check_toml_file2json()
     text2file(test_toml, "test.toml")
-    var/rust = rustg_toml2json("test.toml")
+    var/rust = rustg_toml_file2json("test.toml")
     // Case sensitive
     if (!cmptextEx(test_json, rust))
         CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[rust]")

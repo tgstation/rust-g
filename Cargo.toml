@@ -61,7 +61,7 @@ sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
 hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2",  "twox-hash"]
 url = ["url-dep", "percent-encoding"]
 unzip = ["zip", "jobs"]
-toml2json = ["toml"]
+toml_file2json = ["toml"]
 
 # internal feature-like things
 jobs = ["flume"]

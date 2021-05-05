@@ -30,7 +30,7 @@ pub mod sql;
 pub mod unzip;
 #[cfg(feature = "url")]
 pub mod url;
-#[cfg(feature = "toml2json")]
+#[cfg(feature = "toml_file2json")]
 pub mod toml;
 
 #[cfg(not(target_pointer_width = "32"))]

@@ -1,1 +1,1 @@
-#define rustg_toml2json(tomlfile) call(RUST_G, "toml2json")(tomlfile)
+#define rustg_toml_file2json(tomlfile) call(RUST_G, "toml_file2json")(tomlfile)

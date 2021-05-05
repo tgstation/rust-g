@@ -93,7 +93,7 @@ Additional features are:
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 * url: Faster replacements for `url_encode` and `url_decode`.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
-* toml2json: Adds `toml2json` for ease of config reading.
+* toml_file2json: Adds `toml_file2json` to read toml files as JSON.
 
 ## Installing
 
