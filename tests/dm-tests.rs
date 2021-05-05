@@ -18,7 +18,7 @@ fn hash() {
     run_dm_tests("hash");
 }
 
-#[cfg(feature = "toml2json")]
+#[cfg(feature = "toml_file2json")]
 #[test]
 fn toml() {
     run_dm_tests("toml");
