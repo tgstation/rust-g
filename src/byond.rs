@@ -75,3 +75,8 @@ macro_rules! byond_fn {
         }
     };
 }
+
+// Easy version checker. It's in this file so it is always included
+byond_fn! { get_version() {
+    Some(env!("CARGO_PKG_VERSION"))
+} }

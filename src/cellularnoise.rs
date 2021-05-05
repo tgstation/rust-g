@@ -25,7 +25,7 @@ fn noise_gen(
     let mut zplane = vec![vec![false; width]; height];
     for row in zplane.iter_mut() {
         for cell in row.iter_mut() {
-            *cell = rand::thread_rng().gen_range(0, 100) < percentage;
+            *cell = rand::thread_rng().gen_range(0..100) < percentage;
         }
     }
 
@@ -68,19 +68,18 @@ fn noise_gen(
                     }
                 }
 
-                if zplane_old[i][j] == true {
+                if zplane_old[i][j] {
                     if sum < death_limit {
                         zplane[i][j] = false;
                     } else {
                         zplane[i][j] = true;
                     }
+                } else if sum > birth_limit {
+                    zplane[i][j] = true;
                 } else {
-                    if sum > birth_limit {
-                        zplane[i][j] = true;
-                    } else {
-                        zplane[i][j] = false;
-                    }
+                    zplane[i][j] = false;
                 }
+
             }
         }
     }
