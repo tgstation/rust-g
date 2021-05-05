@@ -17,7 +17,7 @@ lto = true
 
 [dependencies]
 thiserror = "1.0"
-flume = { version = "0.9", optional = true }
+flume = { version = "0.10", optional = true }
 chrono = { version = "0.4", optional = true }
 base64 = { version = "0.13", optional = true}
 md-5 = { version = "0.9", optional = true }
@@ -31,16 +31,16 @@ url-dep = { version = "2.1", package = "url", optional = true }
 png = { version = "0.16", optional = true }
 image = { version = "0.23.10", optional = true }
 git2 = { version = "0.13", optional = true, default-features = false }
-noise = { version = "0.6", optional = true}
-reqwest = { version = "0.10", optional = true, default-features = false, features = ["blocking", "rustls-tls"] }
+noise = { version = "0.7", optional = true}
+reqwest = { version = "0.11", optional = true, default-features = false, features = ["blocking", "rustls-tls"] }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 lazy_static = { version = "1.4", optional = true }
 once_cell = { version = "1.4", optional = true }
 mysql = { version = "20.0", optional = true }
-dashmap = { version = "3.11", optional = true }
+dashmap = { version = "4.0", optional = true }
 zip = { version = "0.5.8", optional = true }
-rand = {version = "0.7", optional = true}
+rand = {version = "0.8", optional = true}
 
 
 [features]
