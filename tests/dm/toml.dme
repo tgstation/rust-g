@@ -3,37 +3,18 @@
 var/test_toml = @{"
 [database]
 enabled = true
-ports = [ 8000, 8001, 8002 ]
+ports = [ 8000, 25565 ]
 data = [ ["delta", "phi"], [3.14] ]
 temp_targets = { cpu = 79.5, case = 72.0 }
 "}
 
 var/test_json = @{"
-{
-  "database": {
-    "enabled": true,
-    "ports": [
-      8000,
-      8001,
-      8002
-    ],
-    "data": [
-      [
-        "delta",
-        "phi"
-      ],
-      [
-        3.14
-      ]
-    ],
-    "temp_targets": 79.5,
-    "case": 72
-  }
-}
+{"database":{"data":[["delta","phi"],[3.14]],"enabled":true,"ports":[8000,25565],"temp_targets":{"case":72.0,"cpu":79.5}}}
 "}
 
 /test/proc/check_toml2json()
-    var/rust = rustg_toml2json(test_toml)
+    text2file(test_toml, "test.toml")
+    var/rust = rustg_toml2json("test.toml")
     // Case sensitive
     if (!cmptextEx(test_json, rust))
-        CRASH("[test_toml]\n  expected: [test_json]\n  rustg: [rust]")
+        CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[rust]")
