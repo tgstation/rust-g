@@ -6,12 +6,10 @@ touch build.rs
 echo '==== Make sure cross is installed ===='
 cargo install cross
 
-echo '==== Setting up Docker environment for cross ===='
-docker build -t rustg/i686-unknown-linux-gnu:latest -f docker/Dockerfile.i686-unknown-linux-gnu docker/
-
 echo '==== Linux build ====' # ------------------------------------------------
+rustup target add i686-unknown-linux-gnu
 env PKG_CONFIG_ALLOW_CROSS=1 \
-	cross build --release --target i686-unknown-linux-gnu
+	cargo build --release --target i686-unknown-linux-gnu
 
 mv target/rust_g.dm target/rust_g.linux.dm
 
