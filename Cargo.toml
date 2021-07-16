@@ -44,7 +44,7 @@ rand = {version = "0.8", optional = true}
 
 
 [features]
-default = ["cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql"]
+default = ["cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "url"]
 
 # default features
 cellularnoise = ["rand"]
@@ -55,10 +55,10 @@ http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
 json = ["serde", "serde_json"]
 log = ["chrono"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
+url = ["url-dep", "percent-encoding"]
 
 # non-default features
 hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2",  "twox-hash"]
-url = ["url-dep", "percent-encoding"]
 unzip = ["zip", "jobs"]
 
 # internal feature-like things
