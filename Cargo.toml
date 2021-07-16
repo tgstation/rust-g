@@ -41,6 +41,7 @@ mysql = { version = "20.0", optional = true }
 dashmap = { version = "4.0", optional = true }
 zip = { version = "0.5.8", optional = true }
 rand = {version = "0.8", optional = true}
+toml = { version = "0.5", optional = true }
 
 
 [features]
@@ -60,6 +61,7 @@ url = ["url-dep", "percent-encoding"]
 # non-default features
 hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2",  "twox-hash"]
 unzip = ["zip", "jobs"]
+toml_file2json = ["toml"]
 
 # internal feature-like things
 jobs = ["flume"]

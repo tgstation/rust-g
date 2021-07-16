@@ -18,6 +18,12 @@ fn hash() {
     run_dm_tests("hash");
 }
 
+#[cfg(feature = "toml_file2json")]
+#[test]
+fn toml() {
+    run_dm_tests("toml");
+}
+
 fn run_dm_tests(name: &str) {
     std::env::remove_var("RUST_BACKTRACE");
 
