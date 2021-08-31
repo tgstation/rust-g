@@ -12,10 +12,10 @@ fn worley_noise(    density_as_str: &str,
     width_as_str: &str,
     height_as_str: &str,
 ) -> Result<String> {
-    let density = density_as_str.parse::<f64>().unwrap(); // density of noise, 0 means no nodes and 100 means that every tile has a node.
-    let positive_threshold = positive_threshold_as_str.parse::<f64>().unwrap(); // threshold, if value in cell is above this it gets set to true, otherwise false.
-    let width = width_as_str.parse::<usize>().unwrap();
-    let height = height_as_str.parse::<usize>().unwrap();
+    let density = density_as_str.parse::<f64>()?; // density of noise, 0 means no nodes and 100 means that every tile has a node.
+    let positive_threshold = positive_threshold_as_str.parse::<f64>()?; // threshold, if value in cell is above this it gets set to true, otherwise false.
+    let width = width_as_str.parse::<usize>()?;
+    let height = height_as_str.parse::<usize>()?;
 
     let mut rng = rand::thread_rng();
 
