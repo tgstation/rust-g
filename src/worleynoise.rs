@@ -26,9 +26,8 @@ fn worley_noise(    density_as_str: &str,
     while node_vec.len() < 2 {
         for row in 0..width as i32 {
             for cell in 0..height as i32 {
-                if rng.gen_range(0..100) <= density {
+                if rng.gen_range(0..100) as f64 <= density {
                     let node = WorleyNode::new(row, cell);
-                    println!("{}", node);
                     node_vec.push(node);
 
                 }
@@ -60,7 +59,7 @@ fn worley_noise(    density_as_str: &str,
         }
     }
 
-   Ok(string);
+   Ok(string)
 }
 
 
