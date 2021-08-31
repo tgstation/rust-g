@@ -38,7 +38,7 @@ fn worley_noise(    density_as_str: &str,
     //we generate the actual noise by comparing the distance to the nearest node to the distance of the second nearest node and checking if it passes the threshold
     for row in 0..width as i32{
         for cell in 0..height as i32 {
-            dmsort::sort_by(&mut node_vec, |a,b| a.distance_to_sqrt(&cell,&row).partial_cmp( &b.distance_to_sqrt(&cell,&row)).unwrap());
+            dmsort::sort_by(&mut node_vec, |a,b| a.distance_to_sqrt(&cell,&row).partial_cmp( &b.distance_to_sqrt(&cell,&row))?);
             let comparative_distance = (node_vec[0].distance_to_sqrt(&cell,&row) - node_vec[1].distance_to_sqrt(&cell,&row)).abs();
             if comparative_distance > positive_threshold {
                 zplane[cell as usize][row as usize] = true;
