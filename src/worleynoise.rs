@@ -17,7 +17,8 @@ fn worley_noise(str_reg_size : &str, str_positive_threshold: &str, str_width: &s
     let width = str_width.parse::<i32>()?;
     let height = str_height.parse::<i32>()?;
 
-    let mut map = Map::new(region_size,width,height);
+    //i fucking mixed up width and height again. it really doesnt matter but here is a comment just warning you.
+    let mut map = Map::new(region_size,height,width);
 
     map.generate_noise(positive_threshold as f32);
 
