@@ -1,81 +1,204 @@
 use crate::error::Result;
 use rand::*;
 use std::fmt::Write;
+use std::thread;
 
-byond_fn! { worley_generate(density, threshold, width, height) {
-    worley_noise(density, threshold, width, height).ok()
+byond_fn! { worley_generate(region_size, threshold, width, height) {
+    worley_noise(region_size, threshold, width, height).ok()
 } }
 
-//In the worst possible situation this is O(n^3) in the best possible O(n^2.5), so just keep it in mind.
-fn worley_noise(    density_as_str: &str,
-    positive_threshold_as_str: &str,
-    width_as_str: &str,
-    height_as_str: &str,
-) -> Result<String> {
-    let density = density_as_str.parse::<f64>()?; // density of noise, 0 means no nodes and 100 means that every tile has a node.
-    let positive_threshold = positive_threshold_as_str.parse::<f64>()?; // threshold, if value in cell is above this it gets set to true, otherwise false.
-    let width = width_as_str.parse::<usize>()?;
-    let height = height_as_str.parse::<usize>()?;
+// This is a quite complex algorithm basically what it does is it creates 2 maps, one filled with cells and the other with 'regions' that map onto these cells.
+// Each region can spawn 1 node, the cell then determines wether it is true or false depending on the distance from it to the nearest node in the region minus the second closest node.
+// If this distance is greater than the threshold then the cell is true, otherwise it is false.
+fn worley_noise(str_reg_size : &str, str_positive_threshold: &str, str_width: &str, str_height: &str) -> Result<String>{
 
-    let mut rng = rand::thread_rng();
+    let region_size = str_reg_size.parse::<i32>()?;
+    let positive_threshold = str_positive_threshold.parse::<f32>()?;
+    let width = str_width.parse::<i32>()?;
+    let height = str_height.parse::<i32>()?;
 
-    let mut zplane = vec![vec![false; width]; height];
-    let mut node_vec = Vec::new();
+    let mut map = Map::new(region_size,width,height);
 
-    //we generate a node density map
-    while node_vec.len() < 2 {
-        for row in 0..width as i32 {
-            for cell in 0..height as i32 {
-                if rng.gen_range(0..100) as f64 <= density {
-                    let node = WorleyNode::new(row, cell);
+    map.generate_noise(positive_threshold as f32);
+
+    let mut output = String::new();
+
+    for row in map.cell_map{
+        for cell in row{
+            if cell.value {
+                output.append_str("1");
+            } else {
+                output.append_str("0");
+            }
+        }
+    }
+    Ok(output)
+}
+
+
+struct Map{
+    region_size : i32,
+    region_map : Vec<Vec<Rc<Region>>>,
+    cell_map : Vec<Vec<Cell>>,
+    cell_map_width : i32,
+    cell_map_height : i32,
+}
+
+impl Map{
+    fn new(region_size : i32,  cell_map_width : i32, cell_map_height : i32) -> Map{
+        let mut map = Map{
+            region_size : region_size,
+            region_map : Vec::new(),
+            cell_map : Vec::new(),
+            cell_map_width : cell_map_width,
+            cell_map_height : cell_map_height,
+        };
+
+        map.init_regions();
+
+        for x in 0..cell_map_width{
+            map.cell_map.push(Vec::new());
+            for y in 0..cell_map_height{
+                let cell = Cell::new(x,y,map.region_map[(x / region_size) as usize][(y / region_size) as usize].clone());
+                        map.cell_map[(x) as usize].push(cell);
+            }
+        }
+        map
+    }
+    fn init_regions(&mut self){
+        let mut rng = rand::thread_rng();
+
+        let regions_x = self.cell_map_width / self.region_size;
+        let regions_y = self.cell_map_height / self.region_size;
+
+        for i in 0..regions_x {
+            self.region_map.push(Vec::new());
+            for j in 0..regions_y {
+                let mut region =Region::new(i,j);
+                let xcord = rng.gen_range(0..self.region_size);
+                let ycord = rng.gen_range(0..self.region_size);
+                let node = Node::new(xcord + i*self.region_size ,ycord + j*self.region_size );
+                region.node = Some(node);
+
+                let  rcregion = Rc::new(region);
+
+                self.region_map[i as usize].push(rcregion);
+            }
+        }
+    }
+
+    fn get_regions_in_bound(&self, x : i32, y : i32, radius : i32) -> Vec<&Region>{
+        let mut regions = Vec::new();
+        let x_min = x - radius;
+        let x_max = x + radius;
+        let y_min = y - radius;
+        let y_max = y + radius;
+        for i in x_min..x_max {
+            for j in y_min..y_max {
+
+                let region_x = i;
+                let region_y = j;
+                if region_x != x && region_y != y {
+
+
+                    if region_x >= 0 && region_x < self.region_map.len() as i32 && region_y >= 0 && region_y < self.region_map[region_x as usize].len() as i32 {
+                        let region = &self.region_map[region_x as usize][region_y as usize];
+                        regions.push(region.as_ref());
+                    }
+                }else{
+                    continue;
+                }
+            }
+        }
+        regions
+    }
+
+    fn generate_noise(&mut self,threshold : f32){
+        for i in 0..self.cell_map.len() {
+            for j in 0..self.cell_map[i as usize].len() {
+                let cell =  &self.cell_map[i as usize][j as usize];
+                let region = &self.region_map[cell.region.as_ref().reg_x as usize][cell.region.as_ref().reg_y as usize];
+                let neighbours = self.get_regions_in_bound(region.reg_x,region.reg_y,3);
+
+
+                let mut node_vec = Vec::new();
+                node_vec.push(region.as_ref().node.as_ref().unwrap());
+                for neighbour in neighbours {
+                    let node = neighbour.node.as_ref().unwrap();
                     node_vec.push(node);
 
+                }
+
+                dmsort::sort_by(&mut node_vec, |a,b| quick_distance_from_to(cell.x, cell.y, a.x , a.y).partial_cmp(&quick_distance_from_to(cell.x, cell.y, b.x , b.y)).unwrap());
+                let dist = distance_from_to(cell.x, cell.y, node_vec[0].x , node_vec[0].y) - distance_from_to(cell.x, cell.y, node_vec[1].x , node_vec[1].y);
+                let mutable_cell = &mut self.cell_map[i as usize][j as usize];
+                if dist.abs() > threshold {
+                    mutable_cell.value = true;
                 }
             }
         }
     }
-
-    //we generate the actual noise by comparing the distance to the nearest node to the distance of the second nearest node and checking if it passes the threshold
-    for row in 0..width as i32{
-        for cell in 0..height as i32 {
-            dmsort::sort_by(&mut node_vec, |a,b| a.distance_to_sqrt(&cell,&row).partial_cmp( &b.distance_to_sqrt(&cell,&row)).unwrap()); //if this fails it means that the distance_to_sqrt function is not working correctly, scream FUCK
-            let comparative_distance = (node_vec[0].distance_to_sqrt(&cell,&row) - node_vec[1].distance_to_sqrt(&cell,&row)).abs();
-            if comparative_distance > positive_threshold {
-                zplane[cell as usize][row as usize] = true;
-            }
-        }
-    }
-
-    //we write it to a string and spit it back out
-    let mut string = String::new();
-    for row in zplane.iter() {
-        for cell in row.iter() {
-            if *cell {
-                let _ = write!(string, "1");
-            } else {
-                let _ = write!(string, "0");
-            }
-
-        }
-    }
-
-   Ok(string)
 }
 
+fn distance_from_to(x1 : i32, y1 : i32, x2 : i32, y2 : i32) -> f32{
+    let x_diff = x1 - x2;
+    let y_diff = y1 - y2;
+    let distance = (((x_diff * x_diff) + (y_diff * y_diff)) as f32).sqrt();
+    distance
+}
 
-struct WorleyNode{
+fn quick_distance_from_to(x1 : i32, y1 : i32, x2 : i32, y2 : i32) -> f32{
+    let x_diff = x1 - x2;
+    let y_diff = y1 - y2;
+    let distance = (x_diff.abs() + y_diff.abs()) as f32;
+    distance
+}
+
+struct Cell {
+    x: i32,
+    y: i32,
+    value: bool,
+    region : Rc<Region>
+}
+
+impl Cell {
+    fn new(x: i32, y: i32, region: Rc<Region>) -> Cell {
+        Cell {
+            x: x,
+            y: y,
+            value: false,
+            region: region,
+        }
+    }
+}
+
+struct Region{
+    reg_x: i32,
+    reg_y: i32,
+    node: Option<Node>,
+}
+
+impl Region{
+    fn new(reg_x: i32, reg_y: i32) -> Region{
+        Region{
+            reg_x: reg_x,
+            reg_y: reg_y,
+            node: None
+        }
+    }
+}
+
+struct Node {
     x: i32,
     y: i32,
 }
 
-impl WorleyNode {
-    fn new(x: i32, y: i32) -> Self {
-        Self { x, y}
-    }
-
-    fn distance_to_sqrt(&self, other_x: &i32, other_y: &i32) -> f64 {
-        let x_diff = self.x - other_x;
-        let y_diff = self.y - other_y;
-        f64::from(x_diff * x_diff + y_diff * y_diff).sqrt()
+impl Node {
+    fn new(x: i32, y: i32) -> Node {
+        Node {
+            x: x,
+            y: y,
+        }
     }
 }
+
