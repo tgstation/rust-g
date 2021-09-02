@@ -1,7 +1,7 @@
 use crate::error::Result;
 use rand::*;
 use std::fmt::Write;
-use std::thread;
+use std::rc::Rc;
 
 byond_fn! { worley_generate(region_size, threshold, width, height) {
     worley_noise(region_size, threshold, width, height).ok()
@@ -27,9 +27,9 @@ fn worley_noise(str_reg_size : &str, str_positive_threshold: &str, str_width: &s
     for row in map.cell_map{
         for cell in row{
             if cell.value {
-                output.append_str("1");
+                let _ = write!(output, "1");
             } else {
-                output.append_str("0");
+                let _ = write!(output, "0");
             }
         }
     }
