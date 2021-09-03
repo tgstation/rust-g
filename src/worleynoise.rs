@@ -3,22 +3,23 @@ use rand::*;
 use std::fmt::Write;
 use std::rc::Rc;
 
-byond_fn! { worley_generate(region_size, threshold, width, height) {
-    worley_noise(region_size, threshold, width, height).ok()
+byond_fn! { worley_generate(region_size, threshold, node_per_region_chance, width, height) {
+    worley_noise(region_size, threshold, node_per_region_chance, width, height).ok()
 } }
 
 // This is a quite complex algorithm basically what it does is it creates 2 maps, one filled with cells and the other with 'regions' that map onto these cells.
 // Each region can spawn 1 node, the cell then determines wether it is true or false depending on the distance from it to the nearest node in the region minus the second closest node.
 // If this distance is greater than the threshold then the cell is true, otherwise it is false.
-fn worley_noise(str_reg_size : &str, str_positive_threshold: &str, str_width: &str, str_height: &str) -> Result<String>{
+fn worley_noise(str_reg_size : &str, str_positive_threshold: &str,str_node_per_region_chance : &str, str_width: &str, str_height: &str) -> Result<String>{
 
     let region_size = str_reg_size.parse::<i32>()?;
     let positive_threshold = str_positive_threshold.parse::<f32>()?;
     let width = str_width.parse::<i32>()?;
     let height = str_height.parse::<i32>()?;
+    let node_per_region_chance = str_node_per_region_chance.parse::<f32>()?;
 
     //i fucking mixed up width and height again. it really doesnt matter but here is a comment just warning you.
-    let mut map = Map::new(region_size,height,width);
+    let mut map = Map::new(region_size,height,width,node_per_region_chance);
 
     map.generate_noise(positive_threshold as f32);
 
@@ -43,16 +44,18 @@ struct Map{
     cell_map : Vec<Vec<Cell>>,
     cell_map_width : i32,
     cell_map_height : i32,
+    node_chance : f32
 }
 
 impl Map{
-    fn new(region_size : i32,  cell_map_width : i32, cell_map_height : i32) -> Map{
+    fn new(region_size : i32,  cell_map_width : i32, cell_map_height : i32, node_chance : f32) -> Map{
         let mut map = Map{
             region_size : region_size,
             region_map : Vec::new(),
             cell_map : Vec::new(),
             cell_map_width : cell_map_width,
             cell_map_height : cell_map_height,
+            node_chance : node_chance
         };
 
         map.init_regions();
@@ -71,15 +74,28 @@ impl Map{
 
         let regions_x = self.cell_map_width / self.region_size;
         let regions_y = self.cell_map_height / self.region_size;
+        //those two variables ensure that we dont EVER panic due to not having enough nodes spawned for the distance algorithm to function.
+        let mut node_count = 0;
+        let mut distance_in_regions_since_last_node = 0;
 
         for i in 0..regions_x {
+            distance_in_regions_since_last_node += 1;
             self.region_map.push(Vec::new());
             for j in 0..regions_y {
+                distance_in_regions_since_last_node += 1;
                 let mut region =Region::new(i,j);
-                let xcord = rng.gen_range(0..self.region_size);
-                let ycord = rng.gen_range(0..self.region_size);
-                let node = Node::new(xcord + i*self.region_size ,ycord + j*self.region_size );
-                region.node = Some(node);
+                if rng.gen_range(0..100) as f32 <= self.node_chance || node_count < 2{
+                    let xcord = rng.gen_range(0..self.region_size);
+                    let ycord = rng.gen_range(0..self.region_size);
+                    let node = Node::new(xcord + i*self.region_size ,ycord + j*self.region_size );
+                    region.node = Some(node);
+                    node_count+=1;
+                    distance_in_regions_since_last_node = 0;
+                }
+
+                if distance_in_regions_since_last_node > 3{
+                    node_count = 0;
+                }
 
                 let  rcregion = Rc::new(region);
 
@@ -99,15 +115,9 @@ impl Map{
 
                 let region_x = i;
                 let region_y = j;
-                if region_x != x && region_y != y {
-
-
-                    if region_x >= 0 && region_x < self.region_map.len() as i32 && region_y >= 0 && region_y < self.region_map[region_x as usize].len() as i32 {
-                        let region = &self.region_map[region_x as usize][region_y as usize];
-                        regions.push(region.as_ref());
-                    }
-                }else{
-                    continue;
+                if region_x >= 0 && region_x < self.region_map.len() as i32 && region_y >= 0 && region_y < self.region_map[region_x as usize].len() as i32 {
+                    let region = &self.region_map[region_x as usize][region_y as usize];
+                    regions.push(region.as_ref());
                 }
             }
         }
@@ -123,15 +133,16 @@ impl Map{
 
 
                 let mut node_vec = Vec::new();
-                node_vec.push(region.as_ref().node.as_ref().unwrap());
                 for neighbour in neighbours {
-                    let node = neighbour.node.as_ref().unwrap();
-                    node_vec.push(node);
-
+                    if neighbour.node.is_some(){
+                        let node = neighbour.node.as_ref().unwrap();
+                        node_vec.push(node);
+                    }
                 }
 
                 dmsort::sort_by(&mut node_vec, |a,b| quick_distance_from_to(cell.x, cell.y, a.x , a.y).partial_cmp(&quick_distance_from_to(cell.x, cell.y, b.x , b.y)).unwrap());
                 let dist = distance_from_to(cell.x, cell.y, node_vec[0].x , node_vec[0].y) - distance_from_to(cell.x, cell.y, node_vec[1].x , node_vec[1].y);
+                //
                 let mutable_cell = &mut self.cell_map[i as usize][j as usize];
                 if dist.abs() > threshold {
                     mutable_cell.value = true;
