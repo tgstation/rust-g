@@ -4,12 +4,12 @@ var/test_toml = @{"
 [database]
 enabled = true
 ports = [ 8000, 25565 ]
-data = [ ["delta", "phi"], [3.14] ]
-temp_targets = { cpu = 79.5, case = 72.0 }
+data = [ ["delta", "phi"] ]
+temp_targets = { cpu = 79, case = 72 }
 "}
 
 var/test_json = @{"
-{"database":{"data":[["delta","phi"],[3.14]],"enabled":true,"ports":[8000,25565],"temp_targets":{"case":72.0,"cpu":79.5}}}
+{"database":{"data":[["delta","phi"]],"enabled":true,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}
 "}
 
 /test/proc/check_toml_file2json()
@@ -18,4 +18,5 @@ var/test_json = @{"
 
     // ~= checks for structural equality
     if (json_decode(test_json) ~= toml_output)
-        CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
+        // Go through double encode/decode so "true" becomes 1
+        CRASH("test:\n[test_toml]\n \nexpected:\n[json_encode(json_decode(test_json))]\n \nrustg:\n[json_encode(toml_output)]")
