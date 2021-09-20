@@ -14,9 +14,10 @@ var/test_json = @{"
 
 /test/proc/check_toml_file2json()
     rustg_file_write(test_toml, "test.toml")
-    var/toml_output = rustg_read_toml_file("test.toml")
+
+    var/toml_output = json_encode(rustg_read_toml_file("test.toml"))
+    var/test_output = json_encode(json_decode(test_json)) // Double-encode so true becomes 1
 
     // ~= checks for structural equality
-    if (json_decode(test_json) ~= toml_output)
-        // Go through double encode/decode so "true" becomes 1
-        CRASH("test:\n[test_toml]\n \nexpected:\n[json_encode(json_decode(test_json))]\n \nrustg:\n[json_encode(toml_output)]")
+    if (toml_output != test_output)
+        CRASH("test:\n[test_toml]\n \nexpected:\n[test_output]\n \nrustg:\n[toml_output]")
