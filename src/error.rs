@@ -46,6 +46,9 @@ pub enum Error {
     #[cfg(feature = "http")]
     #[error(transparent)]
     RequestError(#[from] reqwest::Error),
+    #[cfg(feature = "toml")]
+    #[error(transparent)]
+    TomlDeserializationError(#[from] toml_dep::de::Error),
     #[cfg(feature = "http")]
     #[error(transparent)]
     SerializationError(#[from] serde_json::Error),

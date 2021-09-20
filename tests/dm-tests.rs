@@ -6,6 +6,12 @@ fn git() {
     run_dm_tests("git");
 }
 
+#[cfg(feature = "toml")]
+#[test]
+fn toml() {
+    run_dm_tests("toml");
+}
+
 #[cfg(feature = "url")]
 #[test]
 fn url() {
