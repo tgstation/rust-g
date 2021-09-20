@@ -1,0 +1,23 @@
+#include "common.dm"
+
+var/test_toml = @{"
+[database]
+enabled = true
+ports = [ 8000, 25565 ]
+data = [ ["delta", "phi"] ]
+temp_targets = { cpu = 79, case = 72 }
+"}
+
+var/test_json = @{"
+{"database":{"data":[["delta","phi"]],"enabled":true,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}
+"}
+
+/test/proc/check_toml_file2json()
+    rustg_file_write(test_toml, "test.toml")
+
+    var/toml_output = json_encode(rustg_read_toml_file("test.toml"))
+    var/test_output = json_encode(json_decode(test_json)) // Double-encode so true becomes 1
+
+    // ~= checks for structural equality
+    if (toml_output != test_output)
+        CRASH("test:\n[test_toml]\n \nexpected:\n[test_output]\n \nrustg:\n[toml_output]")
