@@ -22,7 +22,11 @@ byond_fn! { hash_file(algorithm, string) {
 } }
 
 byond_fn! { generate_totp(hex_seed) {
-    totp_generate(hex_seed).ok()
+    totp_generate(hex_seed, 0).ok()
+} }
+
+byond_fn! { generate_totp_tolerance(hex_seed, tolerance) {
+    totp_generate_tolerance(hex_seed, tolerance.parse().unwrap()).ok()
 } }
 
 fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
@@ -71,56 +75,42 @@ fn file_hash(algorithm: &str, path: &str) -> Result<String> {
     Ok(hash_algorithm(algorithm, &bytes)?)
 }
 
-fn totp_generate(hex_seed: &str) -> Result<String> {
+fn totp_generate_tolerance(hex_seed: &str, tolerance: i32) -> Result<String> {
+    let mut result: String = "".to_string();
+    for i in -tolerance..(tolerance + 1) {
+        if i != -tolerance {
+            result.push(',');
+        }
+        result += &totp_generate(hex_seed, i.try_into().unwrap()).unwrap();
+        println!("Result is now {}", result)
+    }
+    Ok(result.to_string())
+}
+
+fn totp_generate(hex_seed: &str, offset: i64) -> Result<String> {
     let mut seed: [u8; 64] = [0; 64];
+    let mut seed_bytes = [0u8; 10];
 
-    let hex_seed_bytes = (0..hex_seed.len())
-                        .step_by(2)
-                        .map(|i| u8::from_str_radix(&hex_seed[i..i + 2], 16));
+    hex::decode_to_slice(hex_seed, &mut seed_bytes as &mut [u8]).unwrap();
 
-    let mut i = 0;
-    for b in hex_seed_bytes {
-        seed[i] = b.unwrap();
-        i += 1;
-    }
+    seed[..seed_bytes.len()].clone_from_slice(&seed_bytes);
 
-    let mut ipad: [u8; 64] = [0; 64];
-    let mut opad: [u8; 64] = [0; 64];
+    let ipad: [u8; 64] = seed.map(|x| x ^ 0x36);
+    let opad: [u8; 64] = seed.map(|x| x ^ 0x5C);
 
-    for j in 0..64 {
-        ipad[j] = seed[j] ^ 0x36;
-        opad[j] = seed[j] ^ 0x5C;
-    }
-    let time: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime before UNIX EPOC").as_secs() / 30;
+    let curr_time: i64 = (SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime before UNIX EPOC").as_secs() / 30).try_into().unwrap();
+    let time: u64 = (curr_time + offset) as u64;
 
     let time_bytes: [u8; 8] = time.to_be_bytes();
 
-    let mut ipad_time: [u8; 72] = [0; 72];
-
-    for j in 0..72 {
-        if j < 64 {
-            ipad_time[j] = ipad[j];
-        } else {
-            ipad_time[j] = time_bytes[j - 64];
-        }
-    }
-
     let mut hasher = Sha1::new();
-    hasher.update(ipad_time);
+    hasher.update(ipad);
+    hasher.update(time_bytes);
     let ipad_time_hash = hasher.finalize();
 
-    let mut ipad_time_hash_opad: [u8; 84] = [0; 84];
-
-    for j in 0..84 {
-        if j < 64 {
-            ipad_time_hash_opad[j] = opad[j]
-        } else {
-            ipad_time_hash_opad[j] = ipad_time_hash[j - 64]
-        }
-    }
-
     hasher = Sha1::new();
-    hasher.update(ipad_time_hash_opad);
+    hasher.update(opad);
+    hasher.update(ipad_time_hash);
     let hmac = hasher.finalize();
 
     let offset: usize = (hmac[19] & 0x0F).into();
