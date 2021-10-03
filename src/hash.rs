@@ -91,9 +91,6 @@ fn totp_generate_tolerance(hex_seed: &str, tolerance: i32, time_override: Option
     let mut results: Vec<String> = Vec::new();
     for i in -tolerance..(tolerance + 1) {
         let result = totp_generate(hex_seed, i.try_into().unwrap(), time_override)?;
-        if result.starts_with("ERROR:") {
-            return Ok(result)
-        }
         results.push(result)
     }
     Ok(serde_json::to_string(&results)?)
@@ -107,10 +104,10 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
 
     let mut seed: [u8; 64] = [0; 64];
 
-    let decode_result = hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]);
-    if decode_result.is_err() {
-        return Ok(format!("ERROR: Decoding hex_seed: {:?}", decode_result.err().unwrap()))
-    }
+    match hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]) {
+        Ok(value) => value,
+        Err(_) => return Err(Error::HexDecodeError)
+    };
 
     let ipad: [u8; 64] = seed.map(|x| x ^ 0x36); // HMAC Step 4
     let opad: [u8; 64] = seed.map(|x| x ^ 0x5C); // HMAC Step 7
@@ -159,5 +156,5 @@ fn totp_generate_test() {
     let json_result = totp_generate_tolerance("B93F9893199AEF85739C", 1, Some(54424722i64 * 30 + 29));
     assert_eq!(json_result.unwrap(), "[\"358747\",\"417714\",\"539257\"]");
     let err_result = totp_generate_tolerance("66", 0, None);
-    assert!(err_result.unwrap().starts_with("ERROR"))
+    assert!(err_result.is_err());
 }
