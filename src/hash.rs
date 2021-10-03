@@ -22,11 +22,21 @@ byond_fn! { hash_file(algorithm, string) {
 } }
 
 byond_fn! { generate_totp(hex_seed) {
-    totp_generate(hex_seed, 0, None).ok()
+    match totp_generate(hex_seed, 0, None) {
+        Ok(value) => Some(value),
+        Err(error) => return Some(format!("ERROR: {:?}", error))
+    }
 } }
 
 byond_fn! { generate_totp_tolerance(hex_seed, tolerance) {
-    totp_generate_tolerance(hex_seed, tolerance.parse().unwrap(), None).ok()
+    let tolerance_value: i32 = match tolerance.parse() {
+        Ok(value) => value,
+        Err(_) => return Some(String::from("ERROR: Tolerance not a valid integer"))
+    };
+    match totp_generate_tolerance(hex_seed, tolerance_value, None) {
+        Ok(value) => Some(value),
+        Err(error) => return Some(format!("ERROR: {:?}", error))
+    }
 } }
 
 fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
@@ -80,9 +90,13 @@ fn file_hash(algorithm: &str, path: &str) -> Result<String> {
 fn totp_generate_tolerance(hex_seed: &str, tolerance: i32, time_override: Option<i64>) -> Result<String> {
     let mut results: Vec<String> = Vec::new();
     for i in -tolerance..(tolerance + 1) {
-        results.push(totp_generate(hex_seed, i.try_into().unwrap(), time_override).unwrap())
+        let result = totp_generate(hex_seed, i.try_into().unwrap(), time_override)?;
+        if result.starts_with("ERROR:") {
+            return Ok(result)
+        }
+        results.push(result)
     }
-    Ok(serde_json::to_string(&results).unwrap())
+    Ok(serde_json::to_string(&results)?)
 }
 
 /// Generates a single TOTP code from 20 character hex_seed, offset by offset time steps
@@ -93,12 +107,16 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
 
     let mut seed: [u8; 64] = [0; 64];
 
-    hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]).unwrap(); // HMAC Step 3
+    let decode_result = hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]);
+    if decode_result.is_err() {
+        return Ok(format!("ERROR: Decoding hex_seed: {:?}", decode_result.err().unwrap()))
+    }
 
     let ipad: [u8; 64] = seed.map(|x| x ^ 0x36); // HMAC Step 4
     let opad: [u8; 64] = seed.map(|x| x ^ 0x5C); // HMAC Step 7
 
-    let curr_time: i64 = time_override.unwrap_or(SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime before UNIX EPOC").as_secs().try_into().unwrap()) / 30;
+    // Will panic if the date is not between Jan 1 1970 and the year ~200 billion
+    let curr_time: i64 = time_override.unwrap_or(SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime is before Unix Epoc").as_secs().try_into().unwrap()) / 30;
     let time: u64 = (curr_time + offset) as u64;
 
     let time_bytes: [u8; 8] = time.to_be_bytes();
@@ -117,7 +135,7 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
 
     let offset: usize = (hmac[19] & 0x0F).into();
 
-    let result_bytes: [u8; 4] = hmac[offset..(offset+4)].try_into().expect("wrong length");
+    let result_bytes: [u8; 4] = hmac[offset..(offset+4)].try_into().unwrap();
 
     let full_result: u32 = u32::from_be_bytes(result_bytes);
     let result: u32 = (full_result & 0x7FFFFFFF) % 1000000;
@@ -140,4 +158,6 @@ fn totp_generate_test() {
     assert_eq!(result4.unwrap(), "679828");
     let json_result = totp_generate_tolerance("B93F9893199AEF85739C", 1, Some(54424722i64 * 30 + 29));
     assert_eq!(json_result.unwrap(), "[\"358747\",\"417714\",\"539257\"]");
+    let err_result = totp_generate_tolerance("66", 0, None);
+    assert!(err_result.unwrap().starts_with("ERROR"))
 }
