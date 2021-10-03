@@ -75,6 +75,8 @@ fn file_hash(algorithm: &str, path: &str) -> Result<String> {
     Ok(hash_algorithm(algorithm, &bytes)?)
 }
 
+/// Generates multiple TOTP codes from 20 character hex_seed, with time step +-tolerance
+/// time_override is used as the current unix time instead of the current system time for testing
 fn totp_generate_tolerance(hex_seed: &str, tolerance: i32, time_override: Option<i64>) -> Result<String> {
     let mut results: Vec<String> = Vec::new();
     for i in -tolerance..(tolerance + 1) {
@@ -83,25 +85,31 @@ fn totp_generate_tolerance(hex_seed: &str, tolerance: i32, time_override: Option
     Ok(serde_json::to_string(&results).unwrap())
 }
 
+/// Generates a single TOTP code from 20 character hex_seed, offset by offset time steps
+/// time_override is used as the current unix time instead of the current system time for testing
+/// TOTP algorithm described https://blogs.unimelb.edu.au/sciencecommunication/2021/09/30/totp/
+/// HMAC algorithm described https://csrc.nist.gov/csrc/media/publications/fips/198/1/final/documents/fips-198-1_final.pdf
 fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Result<String> {
 
     let mut seed: [u8; 64] = [0; 64];
 
-    hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]).unwrap();
+    hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]).unwrap(); // HMAC Step 3
 
-    let ipad: [u8; 64] = seed.map(|x| x ^ 0x36);
-    let opad: [u8; 64] = seed.map(|x| x ^ 0x5C);
+    let ipad: [u8; 64] = seed.map(|x| x ^ 0x36); // HMAC Step 4
+    let opad: [u8; 64] = seed.map(|x| x ^ 0x5C); // HMAC Step 7
 
     let curr_time: i64 = time_override.unwrap_or(SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime before UNIX EPOC").as_secs().try_into().unwrap()) / 30;
     let time: u64 = (curr_time + offset) as u64;
 
     let time_bytes: [u8; 8] = time.to_be_bytes();
 
+    // HMAC Step 5 and 6
     let mut hasher = Sha1::new();
     hasher.update(ipad);
     hasher.update(time_bytes);
     let ipad_time_hash = hasher.finalize();
 
+    // HMAC Step 8 and 9
     hasher = Sha1::new();
     hasher.update(opad);
     hasher.update(ipad_time_hash);
@@ -121,7 +129,7 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
 #[test]
 fn totp_generate_test() {
     // The big offset is so that it always uses the same time, allowing for verification that the algorithm is correct
-    // Token, time, and result for zero offset taken from https://blogs.unimelb.edu.au/sciencecommunication/2021/09/30/totp/
+    // Seed, time, and result for zero offset taken from https://blogs.unimelb.edu.au/sciencecommunication/2021/09/30/totp/
     let result = totp_generate("B93F9893199AEF85739C", 0, Some(54424722i64 * 30 + 29));
     assert_eq!(result.unwrap(), "417714");
     let result2 = totp_generate("B93F9893199AEF85739C", -1, Some(54424722i64 * 30 + 29));
