@@ -22,11 +22,11 @@ byond_fn! { hash_file(algorithm, string) {
 } }
 
 byond_fn! { generate_totp(hex_seed) {
-    totp_generate(hex_seed, 0).ok()
+    totp_generate(hex_seed, 0, None).ok()
 } }
 
 byond_fn! { generate_totp_tolerance(hex_seed, tolerance) {
-    totp_generate_tolerance(hex_seed, tolerance.parse().unwrap()).ok()
+    totp_generate_tolerance(hex_seed, tolerance.parse().unwrap(), None).ok()
 } }
 
 fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
@@ -75,30 +75,24 @@ fn file_hash(algorithm: &str, path: &str) -> Result<String> {
     Ok(hash_algorithm(algorithm, &bytes)?)
 }
 
-fn totp_generate_tolerance(hex_seed: &str, tolerance: i32) -> Result<String> {
-    let mut result: String = "".to_string();
+fn totp_generate_tolerance(hex_seed: &str, tolerance: i32, time_override: Option<i64>) -> Result<String> {
+    let mut results: Vec<String> = Vec::new();
     for i in -tolerance..(tolerance + 1) {
-        if i != -tolerance {
-            result.push(',');
-        }
-        result += &totp_generate(hex_seed, i.try_into().unwrap()).unwrap();
-        println!("Result is now {}", result)
+        results.push(totp_generate(hex_seed, i.try_into().unwrap(), time_override).unwrap())
     }
-    Ok(result.to_string())
+    Ok(serde_json::to_string(&results).unwrap())
 }
 
-fn totp_generate(hex_seed: &str, offset: i64) -> Result<String> {
+fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Result<String> {
+
     let mut seed: [u8; 64] = [0; 64];
-    let mut seed_bytes = [0u8; 10];
 
-    hex::decode_to_slice(hex_seed, &mut seed_bytes as &mut [u8]).unwrap();
-
-    seed[..seed_bytes.len()].clone_from_slice(&seed_bytes);
+    hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]).unwrap();
 
     let ipad: [u8; 64] = seed.map(|x| x ^ 0x36);
     let opad: [u8; 64] = seed.map(|x| x ^ 0x5C);
 
-    let curr_time: i64 = (SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime before UNIX EPOC").as_secs() / 30).try_into().unwrap();
+    let curr_time: i64 = time_override.unwrap_or(SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime before UNIX EPOC").as_secs().try_into().unwrap()) / 30;
     let time: u64 = (curr_time + offset) as u64;
 
     let time_bytes: [u8; 8] = time.to_be_bytes();
@@ -121,4 +115,21 @@ fn totp_generate(hex_seed: &str, offset: i64) -> Result<String> {
     let result: u32 = (full_result & 0x7FFFFFFF) % 1000000;
 
     Ok(result.to_string())
+}
+
+#[cfg(feature = "hash")]
+#[test]
+fn totp_generate_test() {
+    // The big offset is so that it always uses the same time, allowing for verification that the algorithm is correct
+    // Token, time, and result for zero offset taken from https://blogs.unimelb.edu.au/sciencecommunication/2021/09/30/totp/
+    let result = totp_generate("B93F9893199AEF85739C", 0, Some(54424722i64 * 30 + 29));
+    assert_eq!(result.unwrap(), "417714");
+    let result2 = totp_generate("B93F9893199AEF85739C", -1, Some(54424722i64 * 30 + 29));
+    assert_eq!(result2.unwrap(), "358747");
+    let result3 = totp_generate("B93F9893199AEF85739C", 1, Some(54424722i64 * 30 + 29));
+    assert_eq!(result3.unwrap(), "539257");
+    let result4 = totp_generate("B93F9893199AEF85739C", 2, Some(54424722i64 * 30 + 29));
+    assert_eq!(result4.unwrap(), "679828");
+    let json_result = totp_generate_tolerance("B93F9893199AEF85739C", 1, Some(54424722i64 * 30 + 29));
+    assert_eq!(json_result.unwrap(), "[\"358747\",\"417714\",\"539257\"]");
 }
