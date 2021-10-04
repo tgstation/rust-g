@@ -55,6 +55,9 @@ pub enum Error {
     #[cfg(feature = "unzip")]
     #[error(transparent)]
     UnzipError(#[from] ZipError),
+    #[cfg(feature = "hash")]
+    #[error("Unable to decode hex value.")]
+    HexDecodeError,
 }
 
 impl From<Utf8Error> for Error {
