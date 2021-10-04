@@ -148,22 +148,26 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
     Ok(result.to_string())
 }
 
-#[cfg(feature = "hash")]
-#[test]
-fn totp_generate_test() {
-    // The big offset is so that it always uses the same time, allowing for verification that the algorithm is correct
-    // Seed, time, and result for zero offset taken from https://blogs.unimelb.edu.au/sciencecommunication/2021/09/30/totp/
-    let result = totp_generate("B93F9893199AEF85739C", 0, Some(54424722i64 * 30 + 29));
-    assert_eq!(result.unwrap(), "417714");
-    let result2 = totp_generate("B93F9893199AEF85739C", -1, Some(54424722i64 * 30 + 29));
-    assert_eq!(result2.unwrap(), "358747");
-    let result3 = totp_generate("B93F9893199AEF85739C", 1, Some(54424722i64 * 30 + 29));
-    assert_eq!(result3.unwrap(), "539257");
-    let result4 = totp_generate("B93F9893199AEF85739C", 2, Some(54424722i64 * 30 + 29));
-    assert_eq!(result4.unwrap(), "679828");
-    let json_result =
-        totp_generate_tolerance("B93F9893199AEF85739C", 1, Some(54424722i64 * 30 + 29));
-    assert_eq!(json_result.unwrap(), "[\"358747\",\"417714\",\"539257\"]");
-    let err_result = totp_generate_tolerance("66", 0, None);
-    assert!(err_result.is_err());
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn totp_generate_test() {
+        // The big offset is so that it always uses the same time, allowing for verification that the algorithm is correct
+        // Seed, time, and result for zero offset taken from https://blogs.unimelb.edu.au/sciencecommunication/2021/09/30/totp/
+        let result = totp_generate("B93F9893199AEF85739C", 0, Some(54424722i64 * 30 + 29));
+        assert_eq!(result.unwrap(), "417714");
+        let result2 = totp_generate("B93F9893199AEF85739C", -1, Some(54424722i64 * 30 + 29));
+        assert_eq!(result2.unwrap(), "358747");
+        let result3 = totp_generate("B93F9893199AEF85739C", 1, Some(54424722i64 * 30 + 29));
+        assert_eq!(result3.unwrap(), "539257");
+        let result4 = totp_generate("B93F9893199AEF85739C", 2, Some(54424722i64 * 30 + 29));
+        assert_eq!(result4.unwrap(), "679828");
+        let json_result =
+            totp_generate_tolerance("B93F9893199AEF85739C", 1, Some(54424722i64 * 30 + 29));
+        assert_eq!(json_result.unwrap(), "[\"358747\",\"417714\",\"539257\"]");
+        let err_result = totp_generate_tolerance("66", 0, None);
+        assert!(err_result.is_err());
+    }
 }
