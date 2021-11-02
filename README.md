@@ -89,6 +89,7 @@ The default features are:
 * sql: Asynchronous MySQL/MariaDB client library.
 * noise: 2d Perlin noise.
 * toml: TOML parser.
+* time: High-accuracy time measuring.
 
 Additional features are:
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
