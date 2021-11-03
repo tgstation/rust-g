@@ -1,11 +1,10 @@
 use std::{
     cell::RefCell,
     collections::hash_map::{Entry, HashMap},
-    ffi::OsString,
     time::Instant,
 };
 
-thread_local!( static INSTANTS: RefCell<HashMap<OsString, Instant>> = RefCell::new(HashMap::new()) );
+thread_local!( static INSTANTS: RefCell<HashMap<String, Instant>> = RefCell::new(HashMap::new()) );
 
 byond_fn! { time_microseconds(instant_id) {
     INSTANTS.with(|instants| {
