@@ -26,6 +26,8 @@ pub mod log;
 pub mod noise_gen;
 #[cfg(feature = "sql")]
 pub mod sql;
+#[cfg(feature = "time")]
+pub mod time;
 #[cfg(feature = "toml")]
 pub mod toml;
 #[cfg(feature = "unzip")]
