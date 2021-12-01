@@ -1,4 +1,4 @@
-# rust-g
+# moth-g
 
 rust-g (pronounced rusty-g) is a library which offloads certain expensive or
 difficult tasks from BYOND.
