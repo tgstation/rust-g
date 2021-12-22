@@ -24,6 +24,8 @@ pub mod json;
 pub mod log;
 #[cfg(feature = "noise")]
 pub mod noise_gen;
+#[cfg(feature = "redis_pubsub")]
+pub mod redis_pubsub;
 #[cfg(feature = "sql")]
 pub mod sql;
 #[cfg(feature = "time")]
