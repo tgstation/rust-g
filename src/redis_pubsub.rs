@@ -59,7 +59,7 @@ fn handle_redis_inner(
         } {
             let chan = msg.get_channel_name().to_owned();
             let data: String = msg.get_payload().unwrap_or_default();
-            let _ = out.send(PubSubResponse::Message(chan, data));
+            let _ = out.try_send(PubSubResponse::Message(chan, data));
         }
     }
 
