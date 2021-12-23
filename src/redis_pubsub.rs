@@ -12,7 +12,6 @@ thread_local! {
 }
 
 enum PubSubRequest {
-    Quit,
     Subscribe(String),
     Publish(String, String),
 }
@@ -25,25 +24,27 @@ enum PubSubResponse {
 
 fn handle_redis_inner(
     client: Client,
-    control: flume::Receiver<PubSubRequest>,
-    out: flume::Sender<PubSubResponse>,
+    control: &flume::Receiver<PubSubRequest>,
+    out: &flume::Sender<PubSubResponse>,
 ) -> Result<(), RedisError> {
     let mut conn = client.get_connection()?;
     let mut pub_conn = client.get_connection()?;
     let mut pubsub = conn.as_pubsub();
     let _ = pubsub.set_read_timeout(Some(Duration::from_secs(1)));
 
-    'outer: loop {
-        for req in control.try_iter() {
-            match req {
-                PubSubRequest::Quit => break 'outer,
-                PubSubRequest::Subscribe(chan) => {
-                    pubsub.subscribe(&chan)?;
-                }
-                PubSubRequest::Publish(chan, msg) => {
-                    // kinda lame how PubSub doesn't have the Pub
-                    pub_conn.publish(&chan, &msg)?
-                }
+    loop {
+        loop {
+            match control.try_recv() {
+                Ok(req) => match req {
+                    PubSubRequest::Subscribe(channel) => {
+                        pubsub.subscribe(&[channel.as_str()])?;
+                    }
+                    PubSubRequest::Publish(channel, message) => {
+                        pub_conn.publish(&channel, &message)?;
+                    }
+                },
+                Err(flume::TryRecvError::Empty) => break,
+                Err(flume::TryRecvError::Disconnected) => return Ok(()),
             }
         }
 
@@ -59,11 +60,13 @@ fn handle_redis_inner(
         } {
             let chan = msg.get_channel_name().to_owned();
             let data: String = msg.get_payload().unwrap_or_default();
-            let _ = out.try_send(PubSubResponse::Message(chan, data));
+            if let Err(flume::TrySendError::Disconnected(_)) =
+                out.try_send(PubSubResponse::Message(chan, data))
+            {
+                return Ok(()); // If no one wants to receive any more messages from us, we exit this thread
+            }
         }
     }
-
-    Ok(())
 }
 
 fn handle_redis(
@@ -71,9 +74,8 @@ fn handle_redis(
     control: flume::Receiver<PubSubRequest>,
     out: flume::Sender<PubSubResponse>,
 ) {
-    let out_copy = out.clone();
-    if let Err(e) = handle_redis_inner(client, control, out) {
-        let _ = out_copy.send(PubSubResponse::Disconnected(e.to_string()));
+    if let Err(e) = handle_redis_inner(client, &control, &out) {
+        let _ = out.try_send(PubSubResponse::Disconnected(e.to_string()));
     }
 }
 
@@ -88,10 +90,8 @@ fn connect(addr: &str) -> Result<(), RedisError> {
 }
 
 fn disconnect() {
+    // Dropping the sender and receiver will cause the other thread to exit
     REQUEST_SENDER.with(|cell| {
-        if let Some(chan) = cell.borrow_mut().as_ref() {
-            let _ = chan.send(PubSubRequest::Quit);
-        }
         cell.replace(None);
     });
     RESPONSE_RECEIVER.with(|cell| {
