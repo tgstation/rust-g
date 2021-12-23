@@ -49,7 +49,7 @@ System libraries:
     ```sh
     sudo dpkg --add-architecture i386
     sudo apt-get update
-    sudo apt-get install zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386
+    sudo apt-get install zlib1g-dev:i386 libssl-dev:i386
     ```
 
 * Other Linux distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
