@@ -81,6 +81,7 @@ fn handle_redis(
 
 fn connect(addr: &str) -> Result<(), RedisError> {
     let client = redis::Client::open(addr)?;
+    let _ = client.get_connection_with_timeout(Duration::from_secs(1))?;
     let (c_sender, c_receiver) = flume::bounded(1000);
     let (o_sender, o_receiver) = flume::bounded(1000);
     REQUEST_SENDER.with(|cell| cell.replace(Some(c_sender)));
