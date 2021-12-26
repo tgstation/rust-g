@@ -90,6 +90,7 @@ The default features are:
 * noise: 2d Perlin noise.
 * toml: TOML parser.
 * time: High-accuracy time measuring.
+* acreplace: Aho-Corasick string matching and replacement.
 
 Additional features are:
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
