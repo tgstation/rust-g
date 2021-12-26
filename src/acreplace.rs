@@ -36,8 +36,8 @@ where
     D: serde::de::Deserializer<'de>,
 {
     match u8::deserialize(deserializer)? {
-        1 => Ok(true),
-        _ => Ok(false),
+        0 => Ok(false),
+        _ => Ok(true),
     }
 }
 
@@ -83,7 +83,7 @@ byond_fn! { setup_acreplace_with_options(key, options_json, patterns_json, repla
 byond_fn! { acreplace(key, text) {
     CREPLACE_MAP.with(|cell| -> Option<String> {
         let map = cell.borrow_mut();
-        let replacements = map.get(&key.to_owned())?;
+        let replacements = map.get(key)?;
         Some(replacements.automaton.replace_all(text, &replacements.replacements))
     })
 } }
@@ -92,7 +92,7 @@ byond_fn! { acreplace_with_replacements(key, text, replacements_json) {
     let call_replacements: Vec<String> = serde_json::from_str(&replacements_json).ok()?;
     CREPLACE_MAP.with(|cell| -> Option<String> {
         let map = cell.borrow_mut();
-        let replacements = map.get(&key.to_owned())?;
+        let replacements = map.get(key)?;
         Some(replacements.automaton.replace_all(text, &call_replacements))
     })
 }}
