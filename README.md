@@ -78,6 +78,7 @@ cargo build --release --target i686-pc-windows-msvc
 To get additional features, pass a list to `--features`, for example `--features hash,url`. To get all features, pass `--all-features`. To disable the default features, pass `--no-default-features`.
 
 The default features are:
+* acreplace: Aho-Corasick string matching and replacement.
 * cellularnoise: Function to generate cellular automata-based noise.
 * dmi: DMI manipulations which are impossible from within BYOND.
   Used by the asset cache subsystem to improve load times.
@@ -86,10 +87,10 @@ The default features are:
 * http: Asynchronous HTTP(s) client supporting most standard methods.
 * json: Function to check JSON validity.
 * log: Faster log output.
-* sql: Asynchronous MySQL/MariaDB client library.
 * noise: 2d Perlin noise.
-* toml: TOML parser.
+* sql: Asynchronous MySQL/MariaDB client library.
 * time: High-accuracy time measuring.
+* toml: TOML parser.
 
 Additional features are:
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
