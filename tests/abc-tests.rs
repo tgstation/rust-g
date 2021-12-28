@@ -35,8 +35,8 @@ fn test_librs() -> Result<(), String> {
 #[test]
 fn test_cargotoml() -> Result<(), String> {
     let cargotoml = std::fs::read_to_string("Cargo.toml").unwrap();
-    let blocksre = RegexBuilder::new(r"^# default features\r?\n((:?^.+?\r?\n)*)\r?\n# additional features\r?\n((:?^.+?\r?\n)*)").multi_line(true).build().unwrap();
-    let linesre = RegexBuilder::new(r"^\*(.+?)$").multi_line(true).build().unwrap();
+    let blocksre = RegexBuilder::new(r"^# default features\r?\n((:?^.+?\r?\n)*)\r?\n# additional features\r?\n((:?^.+?\r?\n)*)\r?\n#").multi_line(true).build().unwrap();
+    let linesre = RegexBuilder::new(r"^(\w.+?)$").multi_line(true).build().unwrap();
     let blocks = blocksre.captures(&cargotoml).unwrap();
     are_captures_sorted(linesre.captures_iter(blocks.get(1).unwrap().as_str()), "Cargo.toml default features")?;
     are_captures_sorted(linesre.captures_iter(blocks.get(3).unwrap().as_str()), "Cargo.toml additional features")
