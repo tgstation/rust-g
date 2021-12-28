@@ -1,5 +1,5 @@
 extern crate regex;
-use regex::{Regex,RegexBuilder,CaptureMatches};
+use regex::{RegexBuilder,CaptureMatches};
 use std::cmp::Ordering;
 
 fn are_captures_sorted(matches: CaptureMatches, context: &str) -> Result<(), String> {
