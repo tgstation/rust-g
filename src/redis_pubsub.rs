@@ -30,7 +30,7 @@ fn handle_redis_inner(
     let mut conn = client.get_connection()?;
     let mut pub_conn = client.get_connection()?;
     let mut pubsub = conn.as_pubsub();
-    let _ = pubsub.set_read_timeout(Some(Duration::from_secs(1)));
+    pubsub.set_read_timeout(Some(Duration::from_secs(1)))?;
 
     loop {
         loop {
@@ -75,7 +75,7 @@ fn handle_redis(
     out: flume::Sender<PubSubResponse>,
 ) {
     if let Err(e) = handle_redis_inner(client, &control, &out) {
-        let _ = out.try_send(PubSubResponse::Disconnected(e.to_string()));
+        let _ = out.send(PubSubResponse::Disconnected(e.to_string()));
     }
 }
 
@@ -100,19 +100,30 @@ fn disconnect() {
     });
 }
 
-fn subscribe(channel: &str) {
-    REQUEST_SENDER.with(|cell| {
+// It's lame as hell to use strings as errors, but I don't feel like
+// making a whole new type encompassing possible errors, since we're returning a string
+// to BYOND anyway.
+fn subscribe(channel: &str) -> Option<String> {
+    return REQUEST_SENDER.with(|cell| {
         if let Some(chan) = cell.borrow_mut().as_ref() {
-            let _ = chan.send(PubSubRequest::Subscribe(channel.to_owned()));
+            return chan
+                .try_send(PubSubRequest::Subscribe(channel.to_owned()))
+                .err()
+                .map(|e| e.to_string());
         };
+        Some("Not connected".to_owned())
     });
 }
 
-fn publish(channel: &str, msg: &str) {
-    REQUEST_SENDER.with(|cell| {
+fn publish(channel: &str, msg: &str) -> Option<String> {
+    return REQUEST_SENDER.with(|cell| {
         if let Some(chan) = cell.borrow_mut().as_ref() {
-            let _ = chan.send(PubSubRequest::Publish(channel.to_owned(), msg.to_owned()));
+            return chan
+                .try_send(PubSubRequest::Publish(channel.to_owned(), msg.to_owned()))
+                .err()
+                .map(|e| e.to_string());
         };
+        Some("Not connected".to_owned())
     });
 }
 
@@ -151,8 +162,7 @@ byond_fn! { redis_disconnect() {
 } }
 
 byond_fn! { redis_subscribe(channel) {
-    subscribe(channel);
-    Some("")
+    subscribe(channel)
 } }
 
 byond_fn! { redis_get_messages() {
@@ -160,6 +170,5 @@ byond_fn! { redis_get_messages() {
 } }
 
 byond_fn! { redis_publish(channel, message) {
-    publish(channel, message);
-    Some("")
+    publish(channel, message)
 } }

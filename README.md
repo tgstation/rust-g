@@ -93,10 +93,10 @@ The default features are:
 
 Additional features are:
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
+* redis_pubsub: Library for sending and receiving messages through Redis.
 * url: Faster replacements for `url_encode` and `url_decode`.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
 * worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise.
-* redis_pubsub: Library for sending and receiving messages through Redis.
 
 ## Installing
 
