@@ -62,10 +62,13 @@ time = []
 toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
 
-# non-default features
+# additional features
 hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2",  "twox-hash", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
 worleynoise = ["rand","dmsort"]
 
 # internal feature-like things
 jobs = ["flume"]
+
+[dev-dependencies]
+regex = "1"
