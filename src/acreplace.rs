@@ -1,9 +1,6 @@
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
-use std::{
-    cell::RefCell,
-    collections::hash_map::HashMap
-};
 use serde::Deserialize;
+use std::{cell::RefCell, collections::hash_map::HashMap};
 
 struct Replacements {
     pub automaton: AhoCorasick,
@@ -21,13 +18,13 @@ struct AhoCorasickOptions {
 }
 
 impl AhoCorasickOptions {
-    fn auto_configure_and_build(&self, patterns: &Vec<String>) -> AhoCorasick {
+    fn auto_configure_and_build(&self, patterns: &[String]) -> AhoCorasick {
         AhoCorasickBuilder::new()
-        .anchored(self.anchored)
-        .ascii_case_insensitive(self.ascii_case_insensitive)
-        .match_kind(self.match_kind)
-        .auto_configure(patterns)
-        .build(patterns)
+            .anchored(self.anchored)
+            .ascii_case_insensitive(self.ascii_case_insensitive)
+            .match_kind(self.match_kind)
+            .auto_configure(patterns)
+            .build(patterns)
     }
 }
 
@@ -79,7 +76,6 @@ byond_fn! { setup_acreplace_with_options(key, options_json, patterns_json, repla
     Some("")
 } }
 
-
 byond_fn! { acreplace(key, text) {
     CREPLACE_MAP.with(|cell| -> Option<String> {
         let map = cell.borrow_mut();
@@ -96,4 +92,3 @@ byond_fn! { acreplace_with_replacements(key, text, replacements_json) {
         Some(replacements.automaton.replace_all(text, &call_replacements))
     })
 }}
-

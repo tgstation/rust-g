@@ -107,7 +107,7 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
 
     match hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]) {
         Ok(value) => value,
-        Err(_) => return Err(Error::HexDecodeError),
+        Err(_) => return Err(Error::HexDecode),
     };
 
     let ipad: [u8; 64] = seed.map(|x| x ^ 0x36); // HMAC Step 4

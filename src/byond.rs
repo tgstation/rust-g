@@ -15,7 +15,7 @@ pub unsafe fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow
     unsafe {
         slice::from_raw_parts(argv, argc as usize)
             .iter()
-            .map(|ptr| unsafe { CStr::from_ptr(*ptr) })
+            .map(|ptr| CStr::from_ptr(*ptr))
             .map(|cstr| cstr.to_string_lossy())
             .collect()
     }

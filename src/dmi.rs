@@ -53,7 +53,7 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
 
     let bytes = data.as_bytes();
     if bytes.len() % 7 != 0 {
-        return Err(Error::InvalidPngDataError);
+        return Err(Error::InvalidPngData);
     }
 
     let mut result: Vec<u8> = Vec::new();
