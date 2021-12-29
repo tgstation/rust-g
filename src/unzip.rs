@@ -21,7 +21,7 @@ fn construct_unzip(url: &str, unzip_directory: &str) -> UnzipPrep {
 }
 
 byond_fn! { unzip_download_async(url, unzip_directory) {
-    let unzip = construct_unzip(&url, &unzip_directory);
+    let unzip = construct_unzip(url, unzip_directory);
     Some(jobs::start(move ||
         do_unzip_download(unzip).unwrap_or_else(|e| e.to_string())
     ))

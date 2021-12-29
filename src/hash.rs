@@ -72,7 +72,7 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
 }
 
 fn string_hash(algorithm: &str, string: &str) -> Result<String> {
-    Ok(hash_algorithm(algorithm, string)?)
+    hash_algorithm(algorithm, string)
 }
 
 fn file_hash(algorithm: &str, path: &str) -> Result<String> {
@@ -80,7 +80,7 @@ fn file_hash(algorithm: &str, path: &str) -> Result<String> {
     let mut file = BufReader::new(File::open(path)?);
     file.read_to_end(&mut bytes)?;
 
-    Ok(hash_algorithm(algorithm, &bytes)?)
+    hash_algorithm(algorithm, &bytes)
 }
 
 /// Generates multiple TOTP codes from 20 character hex_seed, with time step +-tolerance
