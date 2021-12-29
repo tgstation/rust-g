@@ -172,14 +172,14 @@ impl Map {
 fn distance_from_to(x1: i32, y1: i32, x2: i32, y2: i32) -> f32 {
     let x_diff = x1 - x2;
     let y_diff = y1 - y2;
-    
+
     (((x_diff * x_diff) + (y_diff * y_diff)) as f32).sqrt()
 }
 
 fn quick_distance_from_to(x1: i32, y1: i32, x2: i32, y2: i32) -> f32 {
     let x_diff = x1 - x2;
     let y_diff = y1 - y2;
-    
+
     (x_diff.abs() + y_diff.abs()) as f32
 }
 
