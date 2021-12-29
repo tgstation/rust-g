@@ -114,14 +114,14 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
     let opad: [u8; 64] = seed.map(|x| x ^ 0x5C); // HMAC Step 7
 
     // Will panic if the date is not between Jan 1 1970 and the year ~200 billion
-    let curr_time: i64 = time_override.unwrap_or(
+    let curr_time: i64 = time_override.unwrap_or_else(|| {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("SystemTime is before Unix Epoc")
             .as_secs()
             .try_into()
-            .unwrap(),
-    ) / 30;
+            .unwrap()
+    }) / 30;
     let time: u64 = (curr_time + offset) as u64;
 
     let time_bytes: [u8; 8] = time.to_be_bytes();
