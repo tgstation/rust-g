@@ -57,24 +57,24 @@ thread_local! {
 }
 
 byond_fn! { setup_acreplace(key, patterns_json, replacements_json) {
-    let patterns: Vec<String> = serde_json::from_str(&patterns_json).ok()?;
-    let replacements: Vec<String> = serde_json::from_str(&replacements_json).ok()?;
+    let patterns: Vec<String> = serde_json::from_str(patterns_json).ok()?;
+    let replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;
     let ac = AhoCorasickBuilder::new().auto_configure(&patterns).build(&patterns);
     CREPLACE_MAP.with(|cell| {
         let mut map = cell.borrow_mut();
-        map.insert(key.to_owned(), Replacements { automaton: ac, replacements: replacements });
+        map.insert(key.to_owned(), Replacements { automaton: ac, replacements });
     });
     Some("")
 } }
 
 byond_fn! { setup_acreplace_with_options(key, options_json, patterns_json, replacements_json) {
-    let options: AhoCorasickOptions = serde_json::from_str(&options_json).ok()?;
-    let patterns: Vec<String> = serde_json::from_str(&patterns_json).ok()?;
-    let replacements: Vec<String> = serde_json::from_str(&replacements_json).ok()?;
+    let options: AhoCorasickOptions = serde_json::from_str(options_json).ok()?;
+    let patterns: Vec<String> = serde_json::from_str(patterns_json).ok()?;
+    let replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;
     let ac = options.auto_configure_and_build(&patterns);
     CREPLACE_MAP.with(|cell| {
         let mut map = cell.borrow_mut();
-        map.insert(key.to_owned(), Replacements { automaton: ac, replacements: replacements });
+        map.insert(key.to_owned(), Replacements { automaton: ac, replacements });
     });
     Some("")
 } }
@@ -89,7 +89,7 @@ byond_fn! { acreplace(key, text) {
 } }
 
 byond_fn! { acreplace_with_replacements(key, text, replacements_json) {
-    let call_replacements: Vec<String> = serde_json::from_str(&replacements_json).ok()?;
+    let call_replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;
     CREPLACE_MAP.with(|cell| -> Option<String> {
         let map = cell.borrow_mut();
         let replacements = map.get(key)?;
