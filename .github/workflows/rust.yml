@@ -21,7 +21,6 @@ jobs:
         with:
           toolchain: stable
           token: ${{ secrets.GITHUB_TOKEN }}
-          command: clippy
           args: --target i686-pc-windows-msvc --all-features -- -D warnings
       - name: Rustfmt
         uses: actions-rs/cargo@v1
