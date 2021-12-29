@@ -15,12 +15,19 @@ jobs:
         with:
           toolchain: stable
           target: i686-pc-windows-msvc
-      - name: Check (all features)
+          components: rustfmt, clippy
+      - name: Clippy (all features)
+        uses: actions-rs/clippy-check@v1
+        with:
+          toolchain: stable
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --target i686-pc-windows-msvc --all-features -- -D warnings
+      - name: Rustfmt
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
-          command: check
-          args: --target i686-pc-windows-msvc --all-features
+          command: fmt
+          args: -- --check
       - name: Build (release) (default features)
         uses: actions-rs/cargo@v1
         with:

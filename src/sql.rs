@@ -168,7 +168,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
             let converted = match value {
                 mysql::Value::Bytes(b) => match ctype {
                     MYSQL_TYPE_VARCHAR | MYSQL_TYPE_STRING | MYSQL_TYPE_VAR_STRING => {
-                        serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
+                        serde_json::Value::String(String::from_utf8_lossy(b).into_owned())
                     }
                     MYSQL_TYPE_BLOB
                     | MYSQL_TYPE_LONG_BLOB
@@ -181,7 +181,7 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
                                     .collect(),
                             )
                         } else {
-                            serde_json::Value::String(String::from_utf8_lossy(&b).into_owned())
+                            serde_json::Value::String(String::from_utf8_lossy(b).into_owned())
                         }
                     }
                     _ => serde_json::Value::Null,

@@ -54,12 +54,12 @@ struct Map {
 impl Map {
     fn new(region_size: i32, cell_map_width: i32, cell_map_height: i32, node_chance: f32) -> Map {
         let mut map = Map {
-            region_size: region_size,
+            region_size,
             region_map: Vec::new(),
             cell_map: Vec::new(),
-            cell_map_width: cell_map_width,
-            cell_map_height: cell_map_height,
-            node_chance: node_chance,
+            cell_map_width,
+            cell_map_height,
+            node_chance,
         };
 
         map.init_regions();
@@ -172,15 +172,15 @@ impl Map {
 fn distance_from_to(x1: i32, y1: i32, x2: i32, y2: i32) -> f32 {
     let x_diff = x1 - x2;
     let y_diff = y1 - y2;
-    let distance = (((x_diff * x_diff) + (y_diff * y_diff)) as f32).sqrt();
-    distance
+
+    (((x_diff * x_diff) + (y_diff * y_diff)) as f32).sqrt()
 }
 
 fn quick_distance_from_to(x1: i32, y1: i32, x2: i32, y2: i32) -> f32 {
     let x_diff = x1 - x2;
     let y_diff = y1 - y2;
-    let distance = (x_diff.abs() + y_diff.abs()) as f32;
-    distance
+
+    (x_diff.abs() + y_diff.abs()) as f32
 }
 
 struct Cell {
@@ -193,10 +193,10 @@ struct Cell {
 impl Cell {
     fn new(x: i32, y: i32, region: Rc<Region>) -> Cell {
         Cell {
-            x: x,
-            y: y,
+            x,
+            y,
             value: false,
-            region: region,
+            region,
         }
     }
 }
@@ -210,8 +210,8 @@ struct Region {
 impl Region {
     fn new(reg_x: i32, reg_y: i32) -> Region {
         Region {
-            reg_x: reg_x,
-            reg_y: reg_y,
+            reg_x,
+            reg_y,
             node: None,
         }
     }
@@ -224,6 +224,6 @@ struct Node {
 
 impl Node {
     fn new(x: i32, y: i32) -> Node {
-        Node { x: x, y: y }
+        Node { x, y }
     }
 }

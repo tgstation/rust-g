@@ -79,7 +79,6 @@ fn noise_gen(
                 } else {
                     zplane[i][j] = false;
                 }
-
             }
         }
     }

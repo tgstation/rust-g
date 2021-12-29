@@ -27,7 +27,7 @@ byond_fn! { dmi_resize_png(path, width, height, resizetype) {
 
 fn strip_metadata(path: &str) -> Result<()> {
     let (info, image) = read_png(path)?;
-    Ok(write_png(path, info, image)?)
+    write_png(path, info, image)
 }
 
 fn read_png(path: &str) -> Result<(OutputInfo, Vec<u8>)> {
@@ -53,7 +53,7 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
 
     let bytes = data.as_bytes();
     if bytes.len() % 7 != 0 {
-        return Err(Error::InvalidPngDataError);
+        return Err(Error::InvalidPngData);
     }
 
     let mut result: Vec<u8> = Vec::new();

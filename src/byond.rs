@@ -12,11 +12,13 @@ thread_local! {
 }
 
 pub unsafe fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
-    slice::from_raw_parts(argv, argc as usize)
-        .iter()
-        .map(|ptr| CStr::from_ptr(*ptr))
-        .map(|cstr| cstr.to_string_lossy())
-        .collect()
+    unsafe {
+        slice::from_raw_parts(argv, argc as usize)
+            .iter()
+            .map(|ptr| CStr::from_ptr(*ptr))
+            .map(|cstr| cstr.to_string_lossy())
+            .collect()
+    }
 }
 
 pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
@@ -56,7 +58,7 @@ macro_rules! byond_fn {
     ($name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub extern "C" fn $name(
+        pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
             let __args = unsafe { $crate::byond::parse_args(_argc, _argv) };

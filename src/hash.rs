@@ -72,7 +72,7 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
 }
 
 fn string_hash(algorithm: &str, string: &str) -> Result<String> {
-    Ok(hash_algorithm(algorithm, string)?)
+    hash_algorithm(algorithm, string)
 }
 
 fn file_hash(algorithm: &str, path: &str) -> Result<String> {
@@ -80,7 +80,7 @@ fn file_hash(algorithm: &str, path: &str) -> Result<String> {
     let mut file = BufReader::new(File::open(path)?);
     file.read_to_end(&mut bytes)?;
 
-    Ok(hash_algorithm(algorithm, &bytes)?)
+    hash_algorithm(algorithm, &bytes)
 }
 
 /// Generates multiple TOTP codes from 20 character hex_seed, with time step +-tolerance
@@ -107,21 +107,21 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
 
     match hex::decode_to_slice(hex_seed, &mut seed[..10] as &mut [u8]) {
         Ok(value) => value,
-        Err(_) => return Err(Error::HexDecodeError),
+        Err(_) => return Err(Error::HexDecode),
     };
 
     let ipad: [u8; 64] = seed.map(|x| x ^ 0x36); // HMAC Step 4
     let opad: [u8; 64] = seed.map(|x| x ^ 0x5C); // HMAC Step 7
 
     // Will panic if the date is not between Jan 1 1970 and the year ~200 billion
-    let curr_time: i64 = time_override.unwrap_or(
+    let curr_time: i64 = time_override.unwrap_or_else(|| {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("SystemTime is before Unix Epoc")
             .as_secs()
             .try_into()
-            .unwrap(),
-    ) / 30;
+            .unwrap()
+    }) / 30;
     let time: u64 = (curr_time + offset) as u64;
 
     let time_bytes: [u8; 8] = time.to_be_bytes();

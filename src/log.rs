@@ -18,7 +18,7 @@ byond_fn! { log_write(path, data, ...rest) {
     FILE_MAP.with(|cell| -> Result<()> {
         // open file
         let mut map = cell.borrow_mut();
-        let path = Path::new(&path as &str);
+        let path = Path::new(path as &str);
         let file = match map.entry(path.into()) {
             Entry::Occupied(elem) => elem.into_mut(),
             Entry::Vacant(elem) => elem.insert(open(path)?),

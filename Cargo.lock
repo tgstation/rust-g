@@ -1504,6 +1504,7 @@ dependencies = [
 name = "rust-g"
 version = "0.5.0"
 dependencies = [
+ "aho-corasick",
  "base64 0.13.0",
  "chrono",
  "const-random",

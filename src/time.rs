@@ -35,4 +35,3 @@ byond_fn! { time_reset(instant_id) {
         Some("")
     })
 } }
-

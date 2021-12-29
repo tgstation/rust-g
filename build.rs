@@ -30,7 +30,12 @@ fn main() {
         if let Some(uprfeature) = key.strip_prefix("CARGO_FEATURE_") {
             let feature = uprfeature.to_lowercase().replace("_", "-"); // actual proper name of the enabled feature
             if feature_dm_exists!(&feature) {
-                writeln!(f, "{}", std::fs::read_to_string(feature_dm_file!(&feature)).unwrap()).unwrap();
+                writeln!(
+                    f,
+                    "{}",
+                    std::fs::read_to_string(feature_dm_file!(&feature)).unwrap()
+                )
+                .unwrap();
             }
         }
     }

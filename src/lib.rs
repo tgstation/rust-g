@@ -1,3 +1,5 @@
+#![forbid(unsafe_op_in_unsafe_fn)]
+
 #[macro_use]
 mod byond;
 #[allow(dead_code)]
@@ -38,7 +40,6 @@ pub mod unzip;
 pub mod url;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
-
 
 #[cfg(not(target_pointer_width = "32"))]
 compile_error!("rust-g must be compiled for a 32-bit target");
