@@ -44,7 +44,7 @@ pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
 
 #[macro_export]
 macro_rules! byond_fn {
-    ($name:ident() $body:block) => {
+    (fn $name:ident() $body:block) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $name(
@@ -55,7 +55,7 @@ macro_rules! byond_fn {
         }
     };
 
-    ($name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
+    (fn $name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $name(
@@ -79,6 +79,8 @@ macro_rules! byond_fn {
 }
 
 // Easy version checker. It's in this file so it is always included
-byond_fn! { get_version() {
-    Some(env!("CARGO_PKG_VERSION"))
-} }
+byond_fn!(
+    fn get_version() {
+        Some(env!("CARGO_PKG_VERSION"))
+    }
+);

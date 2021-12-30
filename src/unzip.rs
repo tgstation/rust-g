@@ -20,12 +20,12 @@ fn construct_unzip(url: &str, unzip_directory: &str) -> UnzipPrep {
     }
 }
 
-byond_fn! { unzip_download_async(url, unzip_directory) {
+byond_fn!(fn unzip_download_async(url, unzip_directory) {
     let unzip = construct_unzip(url, unzip_directory);
     Some(jobs::start(move ||
         do_unzip_download(unzip).unwrap_or_else(|e| e.to_string())
     ))
-} }
+});
 
 fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
     let unzip_path = Path::new(&prep.unzip_directory);
@@ -58,6 +58,6 @@ fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
     Ok("true".to_string())
 }
 
-byond_fn! { unzip_check(id) {
+byond_fn!(fn unzip_check(id) {
     Some(jobs::check(id))
-} }
+});

@@ -5,15 +5,15 @@ use std::{
     path::Path,
 };
 
-byond_fn! { dmi_strip_metadata(path) {
+byond_fn!(fn dmi_strip_metadata(path) {
     strip_metadata(path).err()
-} }
+});
 
-byond_fn! { dmi_create_png(path, width, height, data) {
+byond_fn!(fn dmi_create_png(path, width, height, data) {
     create_png(path, width, height, data).err()
-} }
+});
 
-byond_fn! { dmi_resize_png(path, width, height, resizetype) {
+byond_fn!(fn dmi_resize_png(path, width, height, resizetype) {
     let resizetype = match resizetype {
         "catmull" => image::imageops::CatmullRom,
         "gaussian" => image::imageops::Gaussian,
@@ -23,7 +23,7 @@ byond_fn! { dmi_resize_png(path, width, height, resizetype) {
         _ => image::imageops::Nearest,
     };
     resize_png(path, width, height, resizetype).err()
-} }
+});
 
 fn strip_metadata(path: &str) -> Result<()> {
     let (info, image) = read_png(path)?;
