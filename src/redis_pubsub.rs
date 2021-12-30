@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 
-static ERROR_CHANNEL: &'static str = "RUSTG_REDIS_ERROR_CHANNEL";
+static ERROR_CHANNEL: &str = "RUSTG_REDIS_ERROR_CHANNEL";
 
 thread_local! {
     static REQUEST_SENDER: RefCell<Option<flume::Sender<PubSubRequest>>> = RefCell::new(None);
