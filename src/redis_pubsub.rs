@@ -104,31 +104,32 @@ fn disconnect() {
 // making a whole new type encompassing possible errors, since we're returning a string
 // to BYOND anyway.
 fn subscribe(channel: &str) -> Option<String> {
-    return REQUEST_SENDER.with(|cell| {
+    REQUEST_SENDER.with(|cell| {
         if let Some(chan) = cell.borrow_mut().as_ref() {
-            return chan
-                .try_send(PubSubRequest::Subscribe(channel.to_owned()))
+            chan.try_send(PubSubRequest::Subscribe(channel.to_owned()))
                 .err()
-                .map(|e| e.to_string());
-        };
-        Some("Not connected".to_owned())
-    });
+                .map(|e| e.to_string())
+        } else {
+            Some("Not connected".to_owned())
+        }
+    })
 }
 
 fn publish(channel: &str, msg: &str) -> Option<String> {
-    return REQUEST_SENDER.with(|cell| {
+    REQUEST_SENDER.with(|cell| {
         if let Some(chan) = cell.borrow_mut().as_ref() {
-            return chan
-                .try_send(PubSubRequest::Publish(channel.to_owned(), msg.to_owned()))
+            chan.try_send(PubSubRequest::Publish(channel.to_owned(), msg.to_owned()))
                 .err()
-                .map(|e| e.to_string());
-        };
-        Some("Not connected".to_owned())
-    });
+                .map(|e| e.to_string())
+        } else {
+            Some("Not connected".to_owned())
+        }
+    })
 }
 
 fn get_messages() -> String {
     let mut result: HashMap<String, Vec<String>> = HashMap::new();
+
     RESPONSE_RECEIVER.with(|cell| {
         let opt = cell.borrow_mut();
         if let Some(recv) = opt.as_ref() {
@@ -149,7 +150,7 @@ fn get_messages() -> String {
         }
     });
 
-    serde_json::to_string(&result).unwrap_or("{}".to_owned())
+    serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_owned())
 }
 
 byond_fn!(fn redis_connect(addr) {
