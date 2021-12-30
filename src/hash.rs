@@ -13,22 +13,22 @@ use std::{
 };
 use twox_hash::XxHash64;
 
-byond_fn! { hash_string(algorithm, string) {
+byond_fn!(fn hash_string(algorithm, string) {
     string_hash(algorithm, string).ok()
-} }
+});
 
-byond_fn! { hash_file(algorithm, string) {
+byond_fn!(fn hash_file(algorithm, string) {
     file_hash(algorithm, string).ok()
-} }
+});
 
-byond_fn! { generate_totp(hex_seed) {
+byond_fn!(fn generate_totp(hex_seed) {
     match totp_generate(hex_seed, 0, None) {
         Ok(value) => Some(value),
         Err(error) => return Some(format!("ERROR: {:?}", error))
     }
-} }
+});
 
-byond_fn! { generate_totp_tolerance(hex_seed, tolerance) {
+byond_fn!(fn generate_totp_tolerance(hex_seed, tolerance) {
     let tolerance_value: i32 = match tolerance.parse() {
         Ok(value) => value,
         Err(_) => return Some(String::from("ERROR: Tolerance not a valid integer"))
@@ -37,7 +37,7 @@ byond_fn! { generate_totp_tolerance(hex_seed, tolerance) {
         Ok(value) => Some(value),
         Err(error) => return Some(format!("ERROR: {:?}", error))
     }
-} }
+});
 
 fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
     match name {

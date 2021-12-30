@@ -152,23 +152,27 @@ fn get_messages() -> String {
     serde_json::to_string(&result).unwrap_or("{}".to_owned())
 }
 
-byond_fn! { redis_connect(addr) {
+byond_fn!(fn redis_connect(addr) {
     connect(addr).err().map(|e| e.to_string())
-} }
+});
 
-byond_fn! { redis_disconnect() {
-    disconnect();
-    Some("")
-} }
+byond_fn!(
+    fn redis_disconnect() {
+        disconnect();
+        Some("")
+    }
+);
 
-byond_fn! { redis_subscribe(channel) {
+byond_fn!(fn redis_subscribe(channel) {
     subscribe(channel)
-} }
+});
 
-byond_fn! { redis_get_messages() {
-    Some(get_messages())
-} }
+byond_fn!(
+    fn redis_get_messages() {
+        Some(get_messages())
+    }
+);
 
-byond_fn! { redis_publish(channel, message) {
+byond_fn!(fn redis_publish(channel, message) {
     publish(channel, message)
-} }
+});

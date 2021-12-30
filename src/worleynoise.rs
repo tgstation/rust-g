@@ -3,9 +3,9 @@ use rand::*;
 use std::fmt::Write;
 use std::rc::Rc;
 
-byond_fn! { worley_generate(region_size, threshold, node_per_region_chance, width, height) {
+byond_fn!(fn worley_generate(region_size, threshold, node_per_region_chance, width, height) {
     worley_noise(region_size, threshold, node_per_region_chance, width, height).ok()
-} }
+});
 
 // This is a quite complex algorithm basically what it does is it creates 2 maps, one filled with cells and the other with 'regions' that map onto these cells.
 // Each region can spawn 1 node, the cell then determines wether it is true or false depending on the distance from it to the nearest node in the region minus the second closest node.
