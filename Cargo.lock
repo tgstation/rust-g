@@ -1565,6 +1565,7 @@ dependencies = [
  "png",
  "rand 0.8.4",
  "redis",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",
