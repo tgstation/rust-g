@@ -22,7 +22,7 @@ struct Response<'a> {
 
 // If the response can be deserialized -> success.
 // If the response can't be deserialized -> failure.
-byond_fn! { http_request_blocking(method, url, body, headers, ...rest) {
+byond_fn!(fn http_request_blocking(method, url, body, headers, ...rest) {
     let req = match construct_request(method, url, body, headers, rest.first().map(|x| &**x)) {
         Ok(r) => r,
         Err(e) => return Some(e.to_string())
@@ -32,10 +32,10 @@ byond_fn! { http_request_blocking(method, url, body, headers, ...rest) {
         Ok(r) => Some(r),
         Err(e) => Some(e.to_string())
     }
-} }
+} );
 
 // Returns new job-id.
-byond_fn! { http_request_async(method, url, body, headers, ...rest) {
+byond_fn!(fn http_request_async(method, url, body, headers, ...rest) {
     let req = match construct_request(method, url, body, headers, rest.first().map(|x| &**x)) {
         Ok(r) => r,
         Err(e) => return Some(e.to_string())
@@ -47,13 +47,13 @@ byond_fn! { http_request_async(method, url, body, headers, ...rest) {
             Err(e) => e.to_string()
         }
     }))
-} }
+} );
 
 // If the response can be deserialized -> success.
 // If the response can't be deserialized -> failure or WIP.
-byond_fn! { http_check_request(id) {
+byond_fn!(fn http_check_request(id) {
     Some(jobs::check(id))
-} }
+} );
 
 // ----------------------------------------------------------------------------
 // Shared HTTP client state

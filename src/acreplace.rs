@@ -53,7 +53,7 @@ thread_local! {
     static CREPLACE_MAP: RefCell<HashMap<String, Replacements>> = RefCell::new(HashMap::new());
 }
 
-byond_fn! { setup_acreplace(key, patterns_json, replacements_json) {
+byond_fn!(fn setup_acreplace(key, patterns_json, replacements_json) {
     let patterns: Vec<String> = serde_json::from_str(patterns_json).ok()?;
     let replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;
     let ac = AhoCorasickBuilder::new().auto_configure(&patterns).build(&patterns);
@@ -62,9 +62,9 @@ byond_fn! { setup_acreplace(key, patterns_json, replacements_json) {
         map.insert(key.to_owned(), Replacements { automaton: ac, replacements });
     });
     Some("")
-} }
+} );
 
-byond_fn! { setup_acreplace_with_options(key, options_json, patterns_json, replacements_json) {
+byond_fn!(fn setup_acreplace_with_options(key, options_json, patterns_json, replacements_json) {
     let options: AhoCorasickOptions = serde_json::from_str(options_json).ok()?;
     let patterns: Vec<String> = serde_json::from_str(patterns_json).ok()?;
     let replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;
@@ -74,21 +74,21 @@ byond_fn! { setup_acreplace_with_options(key, options_json, patterns_json, repla
         map.insert(key.to_owned(), Replacements { automaton: ac, replacements });
     });
     Some("")
-} }
+} );
 
-byond_fn! { acreplace(key, text) {
+byond_fn!(fn acreplace(key, text) {
     CREPLACE_MAP.with(|cell| -> Option<String> {
         let map = cell.borrow_mut();
         let replacements = map.get(key)?;
         Some(replacements.automaton.replace_all(text, &replacements.replacements))
     })
-} }
+} );
 
-byond_fn! { acreplace_with_replacements(key, text, replacements_json) {
+byond_fn!(fn acreplace_with_replacements(key, text, replacements_json) {
     let call_replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;
     CREPLACE_MAP.with(|cell| -> Option<String> {
         let map = cell.borrow_mut();
         let replacements = map.get(key)?;
         Some(replacements.automaton.replace_all(text, &call_replacements))
     })
-}}
+});

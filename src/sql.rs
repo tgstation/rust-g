@@ -32,7 +32,7 @@ struct ConnectOptions {
     max_threads: Option<usize>,
 }
 
-byond_fn! { sql_connect_pool(options) {
+byond_fn!(fn sql_connect_pool(options) {
     let options = match serde_json::from_str::<ConnectOptions>(options) {
         Ok(options) => options,
         Err(e) => return Some(err_to_json(e)),
@@ -41,16 +41,16 @@ byond_fn! { sql_connect_pool(options) {
         Ok(o) => o.to_string(),
         Err(e) => err_to_json(e)
     })
-} }
+} );
 
-byond_fn! { sql_query_blocking(handle, query, params) {
+byond_fn!(fn sql_query_blocking(handle, query, params) {
     Some(match do_query(handle, query, params) {
         Ok(o) => o.to_string(),
         Err(e) => err_to_json(e)
     })
-} }
+} );
 
-byond_fn! { sql_query_async(handle, query, params) {
+byond_fn!(fn sql_query_async(handle, query, params) {
     let handle = handle.to_owned();
     let query = query.to_owned();
     let params = params.to_owned();
@@ -60,10 +60,10 @@ byond_fn! { sql_query_async(handle, query, params) {
             Err(e) => err_to_json(e)
         }
     }))
-} }
+} );
 
 // hopefully won't panic if queries are running
-byond_fn! { sql_disconnect_pool(handle) {
+byond_fn!(fn sql_disconnect_pool(handle) {
     let handle = match handle.parse::<usize>() {
         Ok(o) => o,
         Err(e) => return Some(err_to_json(e)),
@@ -80,9 +80,9 @@ byond_fn! { sql_disconnect_pool(handle) {
             }).to_string()
         }
     )
-} }
+} );
 
-byond_fn! { sql_connected(handle) {
+byond_fn!(fn sql_connected(handle) {
     let handle = match handle.parse::<usize>() {
         Ok(o) => o,
         Err(e) => return Some(err_to_json(e)),
@@ -97,11 +97,11 @@ byond_fn! { sql_connected(handle) {
             }).to_string()
         }
     )
-} }
+} );
 
-byond_fn! { sql_check_query(id) {
+byond_fn!(fn sql_check_query(id) {
     Some(jobs::check(id))
-} }
+} );
 
 // ----------------------------------------------------------------------------
 // Main connect and query implementation

@@ -6,7 +6,7 @@ use std::{
 
 thread_local!( static INSTANTS: RefCell<HashMap<String, Instant>> = RefCell::new(HashMap::new()) );
 
-byond_fn! { time_microseconds(instant_id) {
+byond_fn!(fn time_microseconds(instant_id) {
     INSTANTS.with(|instants| {
         let mut map = instants.borrow_mut();
         let instant = match map.entry(instant_id.into()) {
@@ -15,9 +15,9 @@ byond_fn! { time_microseconds(instant_id) {
         };
         Some(instant.elapsed().as_micros().to_string())
     })
-} }
+} );
 
-byond_fn! { time_milliseconds(instant_id) {
+byond_fn!(fn time_milliseconds(instant_id) {
     INSTANTS.with(|instants| {
         let mut map = instants.borrow_mut();
         let instant = match map.entry(instant_id.into()) {
@@ -26,12 +26,12 @@ byond_fn! { time_milliseconds(instant_id) {
         };
         Some(instant.elapsed().as_millis().to_string())
     })
-} }
+} );
 
-byond_fn! { time_reset(instant_id) {
+byond_fn!(fn time_reset(instant_id) {
     INSTANTS.with(|instants| {
         let mut map = instants.borrow_mut();
         map.insert(instant_id.into(), Instant::now());
         Some("")
     })
-} }
+} );
