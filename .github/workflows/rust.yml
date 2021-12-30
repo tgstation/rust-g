@@ -17,10 +17,10 @@ jobs:
           target: i686-pc-windows-msvc
           components: rustfmt, clippy
       - name: Clippy (all features)
-        uses: actions-rs/clippy-check@v1
+        uses: actions-rs/cargo@v1
         with:
           toolchain: stable
-          token: ${{ secrets.GITHUB_TOKEN }}
+          command: clippy
           args: --target i686-pc-windows-msvc --all-features -- -D warnings
       - name: Rustfmt
         uses: actions-rs/cargo@v1
