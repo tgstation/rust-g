@@ -62,7 +62,7 @@ byond_fn!(fn setup_acreplace(key, patterns_json, replacements_json) {
         map.insert(key.to_owned(), Replacements { automaton: ac, replacements });
     });
     Some("")
-} );
+});
 
 byond_fn!(fn setup_acreplace_with_options(key, options_json, patterns_json, replacements_json) {
     let options: AhoCorasickOptions = serde_json::from_str(options_json).ok()?;
@@ -74,7 +74,7 @@ byond_fn!(fn setup_acreplace_with_options(key, options_json, patterns_json, repl
         map.insert(key.to_owned(), Replacements { automaton: ac, replacements });
     });
     Some("")
-} );
+});
 
 byond_fn!(fn acreplace(key, text) {
     CREPLACE_MAP.with(|cell| -> Option<String> {
@@ -82,7 +82,7 @@ byond_fn!(fn acreplace(key, text) {
         let replacements = map.get(key)?;
         Some(replacements.automaton.replace_all(text, &replacements.replacements))
     })
-} );
+});
 
 byond_fn!(fn acreplace_with_replacements(key, text, replacements_json) {
     let call_replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;

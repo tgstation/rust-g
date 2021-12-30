@@ -42,7 +42,7 @@ byond_fn!(fn log_write(path, data, ...rest) {
 
         Ok(())
     }).err()
-} );
+});
 
 byond_fn!(
     fn log_close_all() {

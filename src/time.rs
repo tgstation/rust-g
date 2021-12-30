@@ -15,7 +15,7 @@ byond_fn!(fn time_microseconds(instant_id) {
         };
         Some(instant.elapsed().as_micros().to_string())
     })
-} );
+});
 
 byond_fn!(fn time_milliseconds(instant_id) {
     INSTANTS.with(|instants| {
@@ -26,7 +26,7 @@ byond_fn!(fn time_milliseconds(instant_id) {
         };
         Some(instant.elapsed().as_millis().to_string())
     })
-} );
+});
 
 byond_fn!(fn time_reset(instant_id) {
     INSTANTS.with(|instants| {
@@ -34,4 +34,4 @@ byond_fn!(fn time_reset(instant_id) {
         map.insert(instant_id.into(), Instant::now());
         Some("")
     })
-} );
+});

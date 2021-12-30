@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 byond_fn!(fn cnoise_generate(percentage, smoothing_iterations, birth_limit, death_limit, width, height) {
     noise_gen(percentage, smoothing_iterations, birth_limit, death_limit, width, height).ok()
-} );
+});
 
 fn noise_gen(
     percentage_as_str: &str,

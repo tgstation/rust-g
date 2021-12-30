@@ -11,7 +11,7 @@ byond_fn!(fn rg_git_revparse(rev) {
         let object = repo.revparse_single(rev).map_err(|e| e.code())?;
         Ok(object.id().to_string())
     }).ok()
-} );
+});
 
 byond_fn!(fn rg_git_commit_date(rev) {
     REPOSITORY.with(|repo| -> Result<String, ErrorCode> {
@@ -21,4 +21,4 @@ byond_fn!(fn rg_git_commit_date(rev) {
         let datetime = Utc.timestamp(commit.time().seconds(), 0);
         Ok(datetime.format("%F").to_string())
     }).ok()
-} );
+});

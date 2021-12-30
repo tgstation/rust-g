@@ -6,19 +6,19 @@ use std::{
 
 byond_fn!(fn file_read(path) {
     read(path).ok()
-} );
+});
 
 byond_fn!(fn file_exists(path) {
     Some(exists(path))
-} );
+});
 
 byond_fn!(fn file_write(data, path) {
     write(data, path).err()
-} );
+});
 
 byond_fn!(fn file_append(data, path) {
     append(data, path).err()
-} );
+});
 
 fn read(path: &str) -> Result<String> {
     let file = File::open(path)?;

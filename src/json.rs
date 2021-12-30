@@ -10,7 +10,7 @@ byond_fn!(fn json_is_valid(text) {
     };
 
     Some(get_recursion_level(&value).is_ok().to_string())
-} );
+});
 
 /// Gets the recursion level of the given value
 /// If it is above VALID_JSON_MAX_RECURSION_DEPTH, returns Err(())
