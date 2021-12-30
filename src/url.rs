@@ -2,13 +2,13 @@ use crate::error::Result;
 use std::borrow::Cow;
 use url_dep::form_urlencoded::byte_serialize;
 
-byond_fn! { url_encode(data) {
+byond_fn!(fn url_encode(data) {
     Some(encode(data))
-} }
+});
 
-byond_fn! { url_decode(data) {
+byond_fn!(fn url_decode(data) {
     decode(data).ok()
-} }
+});
 
 fn encode(string: &str) -> String {
     byte_serialize(string.as_bytes()).collect()

@@ -2,9 +2,9 @@ use crate::error::Result;
 use rand::*;
 use std::fmt::Write;
 
-byond_fn! { cnoise_generate(percentage, smoothing_iterations, birth_limit, death_limit, width, height) {
+byond_fn!(fn cnoise_generate(percentage, smoothing_iterations, birth_limit, death_limit, width, height) {
     noise_gen(percentage, smoothing_iterations, birth_limit, death_limit, width, height).ok()
-} }
+});
 
 fn noise_gen(
     percentage_as_str: &str,
@@ -79,7 +79,6 @@ fn noise_gen(
                 } else {
                     zplane[i][j] = false;
                 }
-
             }
         }
     }
