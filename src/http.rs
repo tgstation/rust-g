@@ -9,7 +9,9 @@ use std::io::Write;
 
 #[derive(Deserialize)]
 struct RequestOptions {
+    #[serde(default)]
     output_filename: Option<String>,
+    #[serde(default)]
     body_filename: Option<String>,
 }
 
@@ -22,8 +24,8 @@ struct Response<'a> {
 
 // If the response can be deserialized -> success.
 // If the response can't be deserialized -> failure.
-byond_fn!(fn http_request_blocking(method, url, body, headers, ...rest) {
-    let req = match construct_request(method, url, body, headers, rest.first().map(|x| &**x)) {
+byond_fn!(fn http_request_blocking(method, url, body, headers, options) {
+    let req = match construct_request(method, url, body, headers, options) {
         Ok(r) => r,
         Err(e) => return Some(e.to_string())
     };
@@ -35,8 +37,8 @@ byond_fn!(fn http_request_blocking(method, url, body, headers, ...rest) {
 });
 
 // Returns new job-id.
-byond_fn!(fn http_request_async(method, url, body, headers, ...rest) {
-    let req = match construct_request(method, url, body, headers, rest.first().map(|x| &**x)) {
+byond_fn!(fn http_request_async(method, url, body, headers, options) {
+    let req = match construct_request(method, url, body, headers, options) {
         Ok(r) => r,
         Err(e) => return Some(e.to_string())
     };
@@ -91,7 +93,7 @@ fn construct_request(
     url: &str,
     body: &str,
     headers: &str,
-    options: Option<&str>,
+    options: &str,
 ) -> Result<RequestPrep> {
     let mut req = match method {
         "post" => HTTP_CLIENT.post(url),
@@ -114,7 +116,7 @@ fn construct_request(
     }
 
     let mut output_filename = None;
-    if let Some(options) = options {
+    if !options.is_empty() {
         let options: RequestOptions = serde_json::from_str(options)?;
         output_filename = options.output_filename;
         if let Some(fname) = options.body_filename {
