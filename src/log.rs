@@ -1,5 +1,5 @@
 use crate::error::Result;
-use chrono::Utc;
+use chrono::Local;
 use std::{
     cell::RefCell,
     collections::hash_map::{Entry, HashMap},
@@ -31,7 +31,7 @@ byond_fn!(fn log_write(path, data, ...rest) {
             // write first line, timestamped
             let mut iter = data.split('\n');
             if let Some(line) = iter.next() {
-                write!(file, "[{}] {}\n", Utc::now().format("%F %T%.3f"), line)?;
+                write!(file, "[{}] {}\n", Local::now().format("%F %T%.3f"), line)?;
             }
 
             // write remaining lines
