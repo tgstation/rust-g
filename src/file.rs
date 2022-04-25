@@ -1,7 +1,7 @@
 use crate::error::Result;
 use std::{
     fs::{File, OpenOptions},
-    io::{BufReader, BufWriter, Read, Write},
+    io::{BufRead, BufReader, BufWriter, Read, Write},
 };
 
 byond_fn!(fn file_read(path) {
@@ -20,6 +20,17 @@ byond_fn!(fn file_append(data, path) {
     append(data, path).err()
 });
 
+byond_fn!(fn file_get_line_count(path) {
+    Some(get_line_count(path).ok()?.to_string())
+});
+
+byond_fn!(fn file_seek_line(path, line) {
+    seek_line(path, match line.parse::<usize>() {
+        Ok(line) => line,
+        Err(_) => return None,
+    })
+});
+
 fn read(path: &str) -> Result<String> {
     let file = File::open(path)?;
     let metadata = file.metadata()?;
@@ -27,7 +38,7 @@ fn read(path: &str) -> Result<String> {
 
     let mut content = String::with_capacity(metadata.len() as usize);
     file.read_to_string(&mut content)?;
-    let content = content.replace("\r", "");
+    let content = content.replace('\r', "");
 
     Ok(content)
 }
@@ -69,4 +80,14 @@ fn append(data: &str, path: &str) -> Result<usize> {
         .sync_all()?;
 
     Ok(written)
+}
+
+fn get_line_count(path: &str) -> Result<u32> {
+    let file = BufReader::new(File::open(path)?);
+    Ok(file.lines().count() as u32)
+}
+
+fn seek_line(path: &str, line: usize) -> Option<String> {
+    let file = BufReader::new(File::open(path).ok()?);
+    file.lines().nth(line).and_then(|line| line.ok())
 }
