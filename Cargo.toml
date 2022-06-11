@@ -48,7 +48,7 @@ aho-corasick = { version = "0.7.18", optional = true}
 dbpnoise = { version = "0.1.2", optional = true}
 
 [features]
-default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "time", "toml", "url", "batchnoise"]
+default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "time", "toml", "url"]
 
 # default features
 acreplace = ["aho-corasick"]
@@ -63,13 +63,13 @@ sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
 time = []
 toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
-batchnoise = ["dbpnoise"]
 
 # additional features
 hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2",  "twox-hash", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
 worleynoise = ["rand","dmsort"]
+batchnoise = ["dbpnoise"]
 
 # internal feature-like things
 jobs = ["flume"]
