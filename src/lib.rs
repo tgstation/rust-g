@@ -12,6 +12,8 @@ mod jobs;
 pub mod acreplace;
 #[cfg(feature = "cellularnoise")]
 pub mod cellularnoise;
+#[cfg(feature = "dbpnoise")]
+pub mod dbpnoise;
 #[cfg(feature = "dmi")]
 pub mod dmi;
 #[cfg(feature = "file")]
@@ -42,9 +44,6 @@ pub mod unzip;
 pub mod url;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
-
-#[cfg(feature = "dbpnoise")]
-pub mod dbpnoise;
 
 #[cfg(not(target_pointer_width = "32"))]
 compile_error!("rust-g must be compiled for a 32-bit target");
