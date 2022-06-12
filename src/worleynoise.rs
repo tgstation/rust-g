@@ -235,8 +235,8 @@ fn mht_distance(p1: (i32, i32), p2: (i32, i32)) -> f32 {
 fn get_smallest_dist(centre: (i32, i32), set: &HashSet<(i32, i32)>) -> (i32, i32) {
     set.iter()
         .min_by(|a, b| {
-            mht_distance((*a).clone(), centre)
-                .partial_cmp(&mht_distance((*b).clone(), centre))
+            mht_distance(*a, centre)
+                .partial_cmp(&mht_distance(*b, centre))
                 .expect("Found NAN somehow")
         })
         .cloned()
