@@ -1,11 +1,17 @@
 use crate::error::Result;
-use rand::*;
+use rand::prelude::*;
+use core::panic;
 use std::fmt::Write;
-use std::rc::Rc;
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
+use std::{
+    collections::{HashSet}, sync::{Arc, RwLock},
+};
 
-byond_fn!(fn worley_generate(region_size, threshold, node_per_region_chance, width, height) {
-    worley_noise(region_size, threshold, node_per_region_chance, width, height).ok()
+byond_fn!(fn worley_generate(region_size, threshold, node_per_region_chance, size, node_min, node_max) {
+    worley_noise(region_size, threshold, node_per_region_chance, size, node_min, node_max).ok()
 });
+
+const RANGE: usize = 4;
 
 // This is a quite complex algorithm basically what it does is it creates 2 maps, one filled with cells and the other with 'regions' that map onto these cells.
 // Each region can spawn 1 node, the cell then determines wether it is true or false depending on the distance from it to the nearest node in the region minus the second closest node.
@@ -20,18 +26,19 @@ fn worley_noise(
 ) -> Result<String> {
     let region_size = str_reg_size.parse::<i32>()?;
     let positive_threshold = str_positive_threshold.parse::<f32>()?;
-    let size = str_size.parse::<i32>()?;
-    let node_per_region_chance = str_node_per_region_chance.parse::<f32>()?;
-    let node_min = str_node_min.parse::<i32>()?;
-    let node_max = str_node_max.parse::<i32>()?;
-
+    let size = str_size.parse::<usize>()?;
+    let node_per_region_chance = str_node_per_region_chance.parse::<usize>()?;
+    let node_min = str_node_min.parse::<u32>()?;
+    let node_max = str_node_max.parse::<u32>()?;
 
     let world_size = (size as f32 / region_size as f32).ceil() as i32;
 
-    let map = NoiseCellMap::new(region_size,world_size).node_fill(node_min, node_max, node_per_region_chance).worley_fill(positive_threshold);
+    let mut map = NoiseCellMap::new(region_size, world_size)
+        .node_fill(node_min, node_max, node_per_region_chance)
+        .worley_fill(positive_threshold)?;
 
     map.truncate(size);
-    map.into_mut_iter().for_each(|row| {
+    map.par_iter_mut().for_each(|row| {
         row.truncate(size);
     });
 
@@ -39,7 +46,7 @@ fn worley_noise(
 
     for row in map {
         for cell in row {
-            if cell.value {
+            if cell {
                 let _ = write!(output, "1");
             } else {
                 let _ = write!(output, "0");
@@ -48,12 +55,6 @@ fn worley_noise(
     }
     Ok(output)
 }
-
-fn generate_worley_noise() {
-
-    show_vec(NoiseCellMap::new(5,15).node_fill(1, 2, 10).worley_fill(3.0));
-}
-
 struct NoiseCellMap {
     reg_vec: Vec<Vec<NoiseCellRegion>>,
     reg_size: i32,
@@ -76,17 +77,18 @@ impl NoiseCellMap {
         noise_cell_map
     }
 
-    fn node_fill(&mut self, mut node_min: u32, mut node_max: u32, node_chance : usize) -> &mut Self {
+    fn node_fill(&mut self, mut node_min: u32, mut node_max: u32, node_chance: usize) -> &mut Self {
         node_min = node_min.max(1);
         node_max = node_min.max(node_max);
-        let node_counter :Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
+        let node_counter: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
+        let reg_size = self.reg_size;
         self.reg_vec.par_iter_mut().flatten().for_each(|region| {
             let mut rng = ThreadRng::default();
             {
                 let mut write_guard = node_counter.write().unwrap();
-                if (*write_guard < RANGE ) && rng.gen_range(0..100) > node_chance {
+                if (*write_guard < RANGE) && rng.gen_range(0..100) > node_chance {
                     *write_guard += 1;
-                    return ;
+                    return;
                 }
                 *write_guard = 0;
             }
@@ -94,8 +96,8 @@ impl NoiseCellMap {
             let amt = rng.gen_range(node_min..node_max);
             for _ in 0..amt {
                 let coord = (
-                    rng.gen_range(0..self.reg_size),
-                    rng.gen_range(0..self.reg_size),
+                    rng.gen_range(0..reg_size),
+                    rng.gen_range(0..reg_size),
                 );
                 region.insert_node(coord);
             }
@@ -124,21 +126,23 @@ impl NoiseCellMap {
         v
     }
 
-    fn worley_fill(&mut self, threshold: f32) -> Vec<Vec<bool>> {
+    fn worley_fill(&mut self, threshold: f32) -> Result<Vec<Vec<bool>>> {
         let new_data = self
             .reg_vec
             .par_iter()
             .flatten()
             .map(|region| {
                 let mut edit_region = region.clone();
-                let mut nodes_in_range = self.get_nodes_in_range(region.reg_coordinates, RANGE as i32);
+                let mut nodes_in_range =
+                    self.get_nodes_in_range(region.reg_coordinates, RANGE as i32);
                 {
                     let mut i = 1;
                     while nodes_in_range.len() < 2 {
                         i += 1;
-                        nodes_in_range = self.get_nodes_in_range(region.reg_coordinates, (i + RANGE) as i32);
+                        nodes_in_range =
+                            self.get_nodes_in_range(region.reg_coordinates, (i + RANGE) as i32);
                         if i > 32 {
-                            panic!("Too many iterations");
+                            panic!("Not enough nodes in range!");
                         }
                     }
                 }
@@ -156,8 +160,7 @@ impl NoiseCellMap {
                     }
                 }
                 edit_region
-            })
-            .collect::<Vec<NoiseCellRegion>>();
+            }).collect::<Vec<NoiseCellRegion>>();
         let mut final_vec: Vec<Vec<bool>> = Vec::new();
         for x in 0..self.reg_amt * self.reg_size {
             final_vec.push(Vec::new());
@@ -174,7 +177,7 @@ impl NoiseCellMap {
                 }
             }
         });
-        final_vec
+        Ok(final_vec)
     }
 }
 #[derive(Debug, Clone)]
