@@ -1,10 +1,11 @@
 use crate::error::Result;
-use rand::prelude::*;
 use core::panic;
-use std::fmt::Write;
+use rand::prelude::*;
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
+use std::fmt::Write;
 use std::{
-    collections::{HashSet}, sync::{Arc, RwLock},
+    collections::HashSet,
+    sync::{Arc, RwLock},
 };
 
 byond_fn!(fn worley_generate(region_size, threshold, node_per_region_chance, size, node_min, node_max) {
@@ -95,10 +96,7 @@ impl NoiseCellMap {
 
             let amt = rng.gen_range(node_min..node_max);
             for _ in 0..amt {
-                let coord = (
-                    rng.gen_range(0..reg_size),
-                    rng.gen_range(0..reg_size),
-                );
+                let coord = (rng.gen_range(0..reg_size), rng.gen_range(0..reg_size));
                 region.insert_node(coord);
             }
         });
@@ -160,7 +158,8 @@ impl NoiseCellMap {
                     }
                 }
                 edit_region
-            }).collect::<Vec<NoiseCellRegion>>();
+            })
+            .collect::<Vec<NoiseCellRegion>>();
         let mut final_vec: Vec<Vec<bool>> = Vec::new();
         for x in 0..self.reg_amt * self.reg_size {
             final_vec.push(Vec::new());

@@ -47,7 +47,7 @@ aho-corasick = { version = "0.7.18", optional = true}
 rayon = {version = "1.5.3", optional = true}
 
 [features]
-default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "time", "toml", "url", "worleynoise"]
+default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "time", "toml", "url"]
 
 # default features
 acreplace = ["aho-corasick"]
