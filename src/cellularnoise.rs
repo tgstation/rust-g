@@ -1,9 +1,7 @@
 use crate::error::Result;
 use rand::*;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::fmt::Write;
-use rayon::iter::{
-    IntoParallelIterator, ParallelIterator,
-};
 
 byond_fn!(fn cnoise_generate(percentage, smoothing_iterations, birth_limit, death_limit, width, height) {
     noise_gen(percentage, smoothing_iterations, birth_limit, death_limit, width, height).ok()
