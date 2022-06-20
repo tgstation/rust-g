@@ -21,7 +21,7 @@ fn noise_gen(
     let death_limit = death_limit_as_str.parse::<usize>()?;
     let width = width_as_str.parse::<usize>()?;
     let height = height_as_str.parse::<usize>()?;
-    //we populate it
+    //we populate it, from 0 to height+3, 0 to height+1 is exactly height long, but we also need border guards, so we add another +2, so it is 0..height+3
     let mut filled_vec = (0..height + 3)
         .into_par_iter()
         .map(|x| {
