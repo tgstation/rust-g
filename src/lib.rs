@@ -12,6 +12,8 @@ mod jobs;
 pub mod acreplace;
 #[cfg(feature = "cellularnoise")]
 pub mod cellularnoise;
+#[cfg(feature = "dbpnoise")]
+pub mod dbpnoise;
 #[cfg(feature = "dmi")]
 pub mod dmi;
 #[cfg(feature = "file")]

@@ -46,6 +46,7 @@ dmsort = {version = "1.0.0", optional = true }
 toml-dep = { version = "0.5.8", package="toml", optional = true }
 aho-corasick = { version = "0.7.18", optional = true}
 rayon = { version = "1.5.3", optional = true}
+dbpnoise = { version = "0.1.2", optional = true}
 
 [features]
 default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "time", "toml", "url"]
@@ -65,6 +66,7 @@ toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
 
 # additional features
+batchnoise = ["dbpnoise"]
 hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2",  "twox-hash", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
