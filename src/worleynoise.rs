@@ -85,8 +85,8 @@ impl NoiseCellMap {
         let reg_size = self.reg_size;
         self.reg_vec.par_iter_mut().flatten().for_each(|region| {
             let mut rng = ThreadRng::default();
-            //basically, to make sure the algorithm works optimally or rather works at all without panicing we have to ensure we spawn at least some nodes
-            //this amount of nodes scales inversely to range.
+            // basically, to make sure the algorithm works optimally or rather works at all without panicing we have to ensure we spawn at least some nodes
+            // this amount of nodes scales inversely to range.
             {
                 let mut write_guard = node_counter.write().unwrap();
                 if (*write_guard < RANGE) && rng.gen_range(0..100) > node_chance {
