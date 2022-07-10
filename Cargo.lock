@@ -412,12 +412,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
-name = "dmsort"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4699f5cb7678f099b747ffdc1e6ce6cdc42579e29d28315aa715b9fd10324fc"
-
-[[package]]
 name = "dtoa"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1581,7 +1575,6 @@ dependencies = [
  "const-random",
  "dashmap",
  "dbpnoise",
- "dmsort",
  "flume",
  "git2",
  "hex",
@@ -1594,6 +1587,7 @@ dependencies = [
  "percent-encoding",
  "png",
  "rand 0.8.5",
+ "rayon",
  "redis",
  "regex",
  "reqwest",

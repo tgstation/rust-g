@@ -1,11 +1,18 @@
 use crate::error::Result;
-use rand::*;
+use core::panic;
+use rand::prelude::*;
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::fmt::Write;
-use std::rc::Rc;
+use std::{
+    collections::HashSet,
+    sync::{Arc, RwLock},
+};
 
-byond_fn!(fn worley_generate(region_size, threshold, node_per_region_chance, width, height) {
-    worley_noise(region_size, threshold, node_per_region_chance, width, height).ok()
+byond_fn!(fn worley_generate(region_size, threshold, node_per_region_chance, size, node_min, node_max) {
+    worley_noise(region_size, threshold, node_per_region_chance, size, node_min, node_max).ok()
 });
+
+const RANGE: usize = 4;
 
 // This is a quite complex algorithm basically what it does is it creates 2 maps, one filled with cells and the other with 'regions' that map onto these cells.
 // Each region can spawn 1 node, the cell then determines wether it is true or false depending on the distance from it to the nearest node in the region minus the second closest node.
@@ -14,25 +21,33 @@ fn worley_noise(
     str_reg_size: &str,
     str_positive_threshold: &str,
     str_node_per_region_chance: &str,
-    str_width: &str,
-    str_height: &str,
+    str_size: &str,
+    str_node_min: &str,
+    str_node_max: &str,
 ) -> Result<String> {
     let region_size = str_reg_size.parse::<i32>()?;
     let positive_threshold = str_positive_threshold.parse::<f32>()?;
-    let width = str_width.parse::<i32>()?;
-    let height = str_height.parse::<i32>()?;
-    let node_per_region_chance = str_node_per_region_chance.parse::<f32>()?;
+    let size = str_size.parse::<usize>()?;
+    let node_per_region_chance = str_node_per_region_chance.parse::<usize>()?;
+    let node_min = str_node_min.parse::<u32>()?;
+    let node_max = str_node_max.parse::<u32>()?;
 
-    //i fucking mixed up width and height again. it really doesnt matter but here is a comment just warning you.
-    let mut map = Map::new(region_size, height, width, node_per_region_chance);
+    let world_size = (size as f32 / region_size as f32).ceil() as i32;
 
-    map.generate_noise(positive_threshold as f32);
+    let mut map = NoiseCellMap::new(region_size, world_size)
+        .node_fill(node_min, node_max, node_per_region_chance)
+        .worley_fill(positive_threshold)?;
+
+    map.truncate(size);
+    map.par_iter_mut().for_each(|row| {
+        row.truncate(size);
+    });
 
     let mut output = String::new();
 
-    for row in map.cell_map {
+    for row in map {
         for cell in row {
-            if cell.value {
+            if cell {
                 let _ = write!(output, "1");
             } else {
                 let _ = write!(output, "0");
@@ -41,189 +56,200 @@ fn worley_noise(
     }
     Ok(output)
 }
-
-struct Map {
-    region_size: i32,
-    region_map: Vec<Vec<Rc<Region>>>,
-    cell_map: Vec<Vec<Cell>>,
-    cell_map_width: i32,
-    cell_map_height: i32,
-    node_chance: f32,
+struct NoiseCellMap {
+    reg_vec: Vec<Vec<NoiseCellRegion>>,
+    reg_size: i32,
+    reg_amt: i32,
 }
 
-impl Map {
-    fn new(region_size: i32, cell_map_width: i32, cell_map_height: i32, node_chance: f32) -> Map {
-        let mut map = Map {
-            region_size,
-            region_map: Vec::new(),
-            cell_map: Vec::new(),
-            cell_map_width,
-            cell_map_height,
-            node_chance,
+impl NoiseCellMap {
+    fn new(reg_size: i32, reg_amt: i32) -> Self {
+        let mut noise_cell_map = NoiseCellMap {
+            reg_vec: Vec::new(),
+            reg_size,
+            reg_amt,
         };
-
-        map.init_regions();
-
-        for x in 0..cell_map_width {
-            map.cell_map.push(Vec::new());
-            for y in 0..cell_map_height {
-                let cell = Cell::new(
-                    x,
-                    y,
-                    map.region_map[(x / region_size) as usize][(y / region_size) as usize].clone(),
-                );
-                map.cell_map[(x) as usize].push(cell);
+        for x in 0..reg_amt {
+            noise_cell_map.reg_vec.push(Vec::new());
+            for y in 0..reg_amt {
+                noise_cell_map.reg_vec[x as usize].push(NoiseCellRegion::new((x, y), reg_size));
             }
         }
-        map
+        noise_cell_map
     }
-    fn init_regions(&mut self) {
-        let mut rng = rand::thread_rng();
 
-        let regions_x = self.cell_map_width / self.region_size;
-        let regions_y = self.cell_map_height / self.region_size;
-        //those two variables ensure that we dont EVER panic due to not having enough nodes spawned for the distance algorithm to function.
-        let mut node_count = 0;
-        let mut distance_in_regions_since_last_node = 0;
-
-        for i in 0..regions_x {
-            distance_in_regions_since_last_node += 1;
-            self.region_map.push(Vec::new());
-            for j in 0..regions_y {
-                distance_in_regions_since_last_node += 1;
-                let mut region = Region::new(i, j);
-                if rng.gen_range(0..100) as f32 <= self.node_chance || node_count < 2 {
-                    let xcord = rng.gen_range(0..self.region_size);
-                    let ycord = rng.gen_range(0..self.region_size);
-                    let node =
-                        Node::new(xcord + i * self.region_size, ycord + j * self.region_size);
-                    region.node = Some(node);
-                    node_count += 1;
-                    distance_in_regions_since_last_node = 0;
+    fn node_fill(&mut self, mut node_min: u32, mut node_max: u32, node_chance: usize) -> &mut Self {
+        node_min = node_min.max(1);
+        node_max = node_min.max(node_max);
+        let node_counter: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
+        let reg_size = self.reg_size;
+        self.reg_vec.par_iter_mut().flatten().for_each(|region| {
+            let mut rng = ThreadRng::default();
+            // basically, to make sure the algorithm works optimally or rather works at all without panicing we have to ensure we spawn at least some nodes
+            // this amount of nodes scales inversely to range.
+            {
+                let mut write_guard = node_counter.write().unwrap();
+                if (*write_guard < RANGE) && rng.gen_range(0..100) > node_chance {
+                    *write_guard += 1;
+                    return;
                 }
+                *write_guard = 0;
+            }
 
-                if distance_in_regions_since_last_node > 3 {
-                    node_count = 0;
+            let amt = rng.gen_range(node_min..node_max);
+            for _ in 0..amt {
+                let coord = (rng.gen_range(0..reg_size), rng.gen_range(0..reg_size));
+                region.insert_node(coord);
+            }
+        });
+        self
+    }
+
+    fn get_nodes_in_range(&self, centre: (i32, i32), range: i32) -> HashSet<(i32, i32)> {
+        let mut v = HashSet::new();
+        for x in centre.0 - range..centre.0 + range {
+            if x < 0 || x >= self.reg_amt {
+                continue;
+            }
+            for y in centre.1 - range..centre.1 + range {
+                if y < 0 || y >= self.reg_amt {
+                    continue;
                 }
-
-                let rcregion = Rc::new(region);
-
-                self.region_map[i as usize].push(rcregion);
+                v.extend(
+                    self.reg_vec[x as usize][y as usize]
+                        .get_nodes()
+                        .iter()
+                        .cloned(),
+                )
             }
         }
+        v
     }
 
-    fn get_regions_in_bound(&self, x: i32, y: i32, radius: i32) -> Vec<&Region> {
-        let mut regions = Vec::new();
-        let x_min = x - radius;
-        let x_max = x + radius;
-        let y_min = y - radius;
-        let y_max = y + radius;
-        for i in x_min..x_max {
-            for j in y_min..y_max {
-                let region_x = i;
-                let region_y = j;
-                if region_x >= 0
-                    && region_x < self.region_map.len() as i32
-                    && region_y >= 0
-                    && region_y < self.region_map[region_x as usize].len() as i32
+    fn worley_fill(&mut self, threshold: f32) -> Result<Vec<Vec<bool>>> {
+        let new_data = self
+            .reg_vec
+            .par_iter()
+            .flatten()
+            .map(|region| {
+                let mut edit_region = region.clone();
+                let mut nodes_in_range =
+                    self.get_nodes_in_range(region.reg_coordinates, RANGE as i32);
                 {
-                    let region = &self.region_map[region_x as usize][region_y as usize];
-                    regions.push(region.as_ref());
-                }
-            }
-        }
-        regions
-    }
-
-    fn generate_noise(&mut self, threshold: f32) {
-        for i in 0..self.cell_map.len() {
-            for j in 0..self.cell_map[i as usize].len() {
-                let cell = &self.cell_map[i as usize][j as usize];
-                let region = &self.region_map[cell.region.as_ref().reg_x as usize]
-                    [cell.region.as_ref().reg_y as usize];
-                let neighbours = self.get_regions_in_bound(region.reg_x, region.reg_y, 3);
-
-                let mut node_vec = Vec::new();
-                for neighbour in neighbours {
-                    if neighbour.node.is_some() {
-                        let node = neighbour.node.as_ref().unwrap();
-                        node_vec.push(node);
+                    let mut i = 1;
+                    while nodes_in_range.len() < 2 {
+                        i += 1;
+                        nodes_in_range =
+                            self.get_nodes_in_range(region.reg_coordinates, (i + RANGE) as i32);
+                        if i > 32 {
+                            panic!("Not enough nodes in range!");
+                        }
                     }
                 }
-
-                dmsort::sort_by(&mut node_vec, |a, b| {
-                    quick_distance_from_to(cell.x, cell.y, a.x, a.y)
-                        .partial_cmp(&quick_distance_from_to(cell.x, cell.y, b.x, b.y))
-                        .unwrap()
-                });
-                let dist = distance_from_to(cell.x, cell.y, node_vec[0].x, node_vec[0].y)
-                    - distance_from_to(cell.x, cell.y, node_vec[1].x, node_vec[1].y);
-                //
-                let mutable_cell = &mut self.cell_map[i as usize][j as usize];
-                if dist.abs() > threshold {
-                    mutable_cell.value = true;
+                for x in 0..region.reg_size {
+                    for y in 0..region.reg_size {
+                        edit_region.cell_vec[x as usize][y as usize] = (get_nth_smallest_dist(
+                            region.to_global_coordinates((x, y)),
+                            1,
+                            &nodes_in_range,
+                        ) - get_nth_smallest_dist(
+                            region.to_global_coordinates((x, y)),
+                            0,
+                            &nodes_in_range,
+                        )) > threshold;
+                    }
                 }
+                edit_region
+            })
+            .collect::<Vec<NoiseCellRegion>>();
+        let mut final_vec: Vec<Vec<bool>> = Vec::new();
+        for x in 0..self.reg_amt * self.reg_size {
+            final_vec.push(Vec::new());
+            for _ in 0..self.reg_amt * self.reg_size {
+                final_vec[x as usize].push(false);
             }
         }
+        new_data.into_iter().for_each(|reg| {
+            for x in 0..reg.reg_size {
+                for y in 0..reg.reg_size {
+                    let g_coords = reg.to_global_coordinates((x, y));
+                    final_vec[g_coords.0 as usize][g_coords.1 as usize] =
+                        reg.cell_vec[x as usize][y as usize];
+                }
+            }
+        });
+        Ok(final_vec)
     }
 }
-
-fn distance_from_to(x1: i32, y1: i32, x2: i32, y2: i32) -> f32 {
-    let x_diff = x1 - x2;
-    let y_diff = y1 - y2;
-
-    (((x_diff * x_diff) + (y_diff * y_diff)) as f32).sqrt()
+#[derive(Debug, Clone)]
+struct NoiseCellRegion {
+    cell_vec: Vec<Vec<bool>>,
+    node_set: HashSet<(i32, i32)>,
+    reg_coordinates: (i32, i32),
+    reg_size: i32,
 }
 
-fn quick_distance_from_to(x1: i32, y1: i32, x2: i32, y2: i32) -> f32 {
-    let x_diff = x1 - x2;
-    let y_diff = y1 - y2;
-
-    (x_diff.abs() + y_diff.abs()) as f32
-}
-
-struct Cell {
-    x: i32,
-    y: i32,
-    value: bool,
-    region: Rc<Region>,
-}
-
-impl Cell {
-    fn new(x: i32, y: i32, region: Rc<Region>) -> Cell {
-        Cell {
-            x,
-            y,
-            value: false,
-            region,
+impl NoiseCellRegion {
+    fn new(reg_coordinates: (i32, i32), reg_size: i32) -> Self {
+        let mut noise_cell_region = NoiseCellRegion {
+            cell_vec: Vec::new(),
+            node_set: HashSet::new(),
+            reg_coordinates,
+            reg_size,
+        };
+        for x in 0..reg_size {
+            noise_cell_region.cell_vec.push(Vec::new());
+            for _ in 0..reg_size {
+                noise_cell_region.cell_vec[x as usize].push(false);
+            }
         }
+        noise_cell_region
+    }
+
+    fn insert_node(&mut self, node: (i32, i32)) {
+        self.node_set.insert(node);
+    }
+
+    fn to_global_coordinates(&self, coord: (i32, i32)) -> (i32, i32) {
+        let mut c = (0, 0);
+        c.0 = coord.0 + self.reg_coordinates.0 * self.reg_size;
+        c.1 = coord.1 + self.reg_coordinates.1 * self.reg_size;
+        c
+    }
+
+    fn get_nodes(&self) -> Vec<(i32, i32)> {
+        self.node_set
+            .clone()
+            .into_iter()
+            .map(|x| self.to_global_coordinates(x))
+            .collect()
     }
 }
 
-struct Region {
-    reg_x: i32,
-    reg_y: i32,
-    node: Option<Node>,
+fn sqr_distance(p1: (i32, i32), p2: (i32, i32)) -> f32 {
+    (((p1.0 - p2.0).pow(2) + (p1.1 - p2.1).pow(2)) as f32).sqrt()
 }
 
-impl Region {
-    fn new(reg_x: i32, reg_y: i32) -> Region {
-        Region {
-            reg_x,
-            reg_y,
-            node: None,
-        }
+fn mht_distance(p1: (i32, i32), p2: (i32, i32)) -> f32 {
+    ((p1.0 - p2.0).abs() + (p1.1 - p2.1).abs()) as f32
+}
+
+fn get_smallest_dist(centre: (i32, i32), set: &HashSet<(i32, i32)>) -> (i32, i32) {
+    set.iter()
+        .min_by(|a, b| {
+            mht_distance(**a, centre)
+                .partial_cmp(&mht_distance(**b, centre))
+                .expect("Found NAN somehow")
+        })
+        .cloned()
+        .expect("No minimum found")
+}
+
+fn get_nth_smallest_dist(centre: (i32, i32), mut nth: u32, set: &HashSet<(i32, i32)>) -> f32 {
+    let mut our_set = set.clone();
+    while nth > 0 && set.len() > 1 {
+        our_set.remove(&get_smallest_dist(centre, &our_set));
+        nth -= 1;
     }
-}
-
-struct Node {
-    x: i32,
-    y: i32,
-}
-
-impl Node {
-    fn new(x: i32, y: i32) -> Node {
-        Node { x, y }
-    }
+    sqr_distance(centre, get_smallest_dist(centre, &our_set))
 }
