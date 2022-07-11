@@ -44,7 +44,7 @@ zip = { version = "0.5.8", optional = true }
 rand = {version = "0.8", optional = true}
 toml-dep = { version = "0.5.8", package="toml", optional = true }
 aho-corasick = { version = "0.7.18", optional = true}
-rayon = {version = "1.5.3", optional = true}
+rayon = { version = "1.5.3", optional = true}
 dbpnoise = { version = "0.1.2", optional = true}
 
 [features]
@@ -52,7 +52,7 @@ default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "
 
 # default features
 acreplace = ["aho-corasick"]
-cellularnoise = ["rand"]
+cellularnoise = ["rand","rayon"]
 dmi = ["png", "image"]
 file = []
 git = ["git2", "chrono"]
