@@ -15,7 +15,7 @@ fn noise_gen(
     width_as_str: &str,
     height_as_str: &str,
 ) -> Result<String> {
-    let percentage = percentage_as_str.parse::<i32>()?;
+    let percentage = percentage_as_str.parse::<usize>()?;
     let smoothing_level = smoothing_level_as_str.parse::<usize>()?;
     let birth_limit = birth_limit_as_str.parse::<usize>()?;
     let death_limit = death_limit_as_str.parse::<usize>()?;
