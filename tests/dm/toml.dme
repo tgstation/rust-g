@@ -18,6 +18,5 @@ var/test_json = @{"
     var/toml_output = json_encode(rustg_read_toml_file("test.toml"))
     var/test_output = json_encode(json_decode(test_json)) // Double-encode so true becomes 1
 
-    // ~= checks for structural equality
-    if (toml_output["content"] != test_output)
+    if (toml_output != test_output)
         CRASH("test:\n[test_toml]\n \nexpected:\n[test_output]\n \nrustg:\n[toml_output]")
