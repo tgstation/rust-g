@@ -1,5 +1,6 @@
 use crate::error::Result;
 use rand::*;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::fmt::Write;
 
 byond_fn!(fn cnoise_generate(percentage, smoothing_iterations, birth_limit, death_limit, width, height) {
@@ -14,77 +15,76 @@ fn noise_gen(
     width_as_str: &str,
     height_as_str: &str,
 ) -> Result<String> {
-    let percentage = percentage_as_str.parse::<i32>()?;
-    let smoothing_level = smoothing_level_as_str.parse::<i32>()?;
-    let birth_limit = birth_limit_as_str.parse::<i32>()?;
-    let death_limit = death_limit_as_str.parse::<i32>()?;
+    let percentage = percentage_as_str.parse::<usize>()?;
+    let smoothing_level = smoothing_level_as_str.parse::<usize>()?;
+    let birth_limit = birth_limit_as_str.parse::<usize>()?;
+    let death_limit = death_limit_as_str.parse::<usize>()?;
     let width = width_as_str.parse::<usize>()?;
     let height = height_as_str.parse::<usize>()?;
-
-    // Noise generation
-    let mut zplane = vec![vec![false; width]; height];
-    for row in zplane.iter_mut() {
-        for cell in row.iter_mut() {
-            *cell = rand::thread_rng().gen_range(0..100) < percentage;
-        }
-    }
-
-    // Smoothing part
-    for _timer in 0..smoothing_level {
-        let zplane_old = zplane.clone();
-        for i in 0..height {
-            for j in 0..width {
-                let mut sum = 0;
-
-                if i > 0 {
-                    if j > 0 {
-                        sum += if zplane_old[i - 1][j - 1] { 1 } else { 0 };
+    //we populate it, from 0 to height+3, 0 to height+1 is exactly height long, but we also need border guards, so we add another +2, so it is 0..height+3
+    let mut filled_vec = (0..height + 3)
+        .into_par_iter()
+        .map(|x| {
+            let mut rng = rand::thread_rng();
+            (0..width + 3)
+                .into_iter()
+                .map(|y| {
+                    if x == 0 || y == 0 || x == width + 2 || y == height + 2 {
+                        return false;
                     }
+                    rng.gen_range(0..100) < percentage
+                })
+                .collect::<Vec<bool>>()
+        })
+        .collect::<Vec<Vec<bool>>>();
 
-                    sum += if zplane_old[i - 1][j] { 1 } else { 0 };
+    //then we smoothe it
+    (0..smoothing_level).into_iter().for_each(|_| {
+        let replace_vec = (0..width + 3)
+            .into_par_iter()
+            .map(|x| {
+                (0..height + 3)
+                    .into_iter()
+                    .map(|y| {
+                        if x == 0 || y == 0 || x == width + 2 || y == height + 2 {
+                            return false;
+                        }
+                        let sum: usize = filled_vec[x - 1][y - 1] as usize
+                            + filled_vec[x - 1][y] as usize
+                            + filled_vec[x - 1][y + 1] as usize
+                            + filled_vec[x][y - 1] as usize
+                            + filled_vec[x][y + 1] as usize
+                            + filled_vec[x + 1][y - 1] as usize
+                            + filled_vec[x + 1][y] as usize
+                            + filled_vec[x + 1][y + 1] as usize;
 
-                    if j + 1 < width {
-                        sum += if zplane_old[i - 1][j + 1] { 1 } else { 0 };
-                    }
-                }
+                        if sum < death_limit && filled_vec[x][y] {
+                            return false;
+                        }
+                        if sum > birth_limit && !filled_vec[x][y] {
+                            return true;
+                        }
+                        filled_vec[x][y]
+                    })
+                    .collect::<Vec<bool>>()
+            })
+            .collect::<Vec<Vec<bool>>>();
+        filled_vec = replace_vec;
+    });
 
-                if j > 0 {
-                    sum += if zplane_old[i][j - 1] { 1 } else { 0 };
-                }
-
-                if j + 1 < width {
-                    sum += if zplane_old[i][j + 1] { 1 } else { 0 };
-                }
-
-                if i + 1 < height {
-                    if j > 0 {
-                        sum += if zplane_old[i + 1][j - 1] { 1 } else { 0 };
-                    }
-
-                    sum += if zplane_old[i + 1][j] { 1 } else { 0 };
-
-                    if j + 1 < width {
-                        sum += if zplane_old[i + 1][j + 1] { 1 } else { 0 };
-                    }
-                }
-
-                if zplane_old[i][j] {
-                    if sum < death_limit {
-                        zplane[i][j] = false;
-                    } else {
-                        zplane[i][j] = true;
-                    }
-                } else if sum > birth_limit {
-                    zplane[i][j] = true;
-                } else {
-                    zplane[i][j] = false;
-                }
-            }
-        }
-    }
+    //then we cut it
+    let map = (1..width + 1)
+        .into_par_iter()
+        .map(|x| {
+            (1..height + 1)
+                .into_iter()
+                .map(|y| filled_vec[x][y])
+                .collect::<Vec<bool>>()
+        })
+        .collect::<Vec<Vec<bool>>>();
 
     let mut string = String::new();
-    for row in zplane.iter() {
+    for row in map.iter() {
         for cell in row.iter() {
             if *cell {
                 let _ = write!(string, "1");
