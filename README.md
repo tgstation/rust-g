@@ -54,6 +54,11 @@ System libraries:
 
 * Other Linux distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
 
+If you want to use the `pc-windows-gnu` or similar other target ABI, do the following:
+1. Change the `"rust-analyzer.cargo.target"` setting in `.cargo/config` to `i686-pc-windows-gnu`.
+2. Run `git update-index --assume-unchanged .cargo/config`, which will tell git to 'ignore' the changes you made.
+3. If you find yourself ever wanting to change back, run `git update-index --no-assume-unchanged .cargo/config`.
+
 ## Compiling
 
 The [Cargo] tool handles compilation, as well as automatically downloading and
