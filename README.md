@@ -178,9 +178,6 @@ open("rust_g", O_RDONLY|O_NONBLOCK|O_LARGEFILE|O_DIRECTORY|O_CLOEXEC) = -1 ENOTD
 If you're still having problems, ask in the [Coderbus Discord]'s
 `#tooling-questions` channel.
 
-You can also try [/tg/station]'s IRC, `#coderbus` on Rizon, but it is usually
-quiet.
-
 [/tg/station]: https://github.com/tgstation/tgstation
 [Rust]: https://rust-lang.org
 [Cargo]: https://doc.rust-lang.org/cargo/
