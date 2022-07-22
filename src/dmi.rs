@@ -31,11 +31,11 @@ fn strip_metadata(path: &str) -> Result<()> {
 }
 
 fn read_png(path: &str) -> Result<(OutputInfo, Vec<u8>)> {
-    let (info, mut reader) = Decoder::new(File::open(path)?).read_info()?;
-    let mut buf = vec![0; info.buffer_size()];
+    let mut reader = Decoder::new(File::open(path)?).read_info()?;
+    let mut buf = vec![0; reader.output_buffer_size()];
 
-    reader.next_frame(&mut buf)?;
-    Ok((info, buf))
+    let out_info = reader.next_frame(&mut buf)?;
+    Ok((out_info, buf))
 }
 
 fn write_png(path: &str, info: OutputInfo, image: Vec<u8>) -> Result<()> {
@@ -70,7 +70,7 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     }
 
     let mut encoder = Encoder::new(File::create(path)?, width, height);
-    encoder.set_color(png::ColorType::RGB);
+    encoder.set_color(png::ColorType::Rgb);
     encoder.set_depth(png::BitDepth::Eight);
     let mut writer = encoder.write_header()?;
     Ok(writer.write_image_data(&result)?)
