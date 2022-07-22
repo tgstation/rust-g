@@ -98,12 +98,13 @@ The default features are:
 * sql: Asynchronous MySQL/MariaDB client library.
 * time: High-accuracy time measuring.
 * toml: TOML parser.
+* url: Faster replacements for `url_encode` and `url_decode`.
 
 Additional features are:
+* batchnoise: Discrete Batched Perlin-like Noise, fast and multi-threaded - sent over once instead of having to query for every tile.
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
-* url: Faster replacements for `url_encode` and `url_decode`.
 * worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise
 
 ## Installing
