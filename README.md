@@ -3,7 +3,7 @@
 rust-g (pronounced rusty-g) is a library which offloads certain expensive or
 difficult tasks from BYOND.
 
-This library is currently used in the [tgstation] codebase, and is required for
+This library is currently used in the [/tg/station] codebase, and is required for
 it to run. A pre-compiled DLL version can be found in the repo root, but you
 can build your own from this repo at your preference. Builds can also be found
 on the [releases page].
@@ -177,9 +177,6 @@ open("rust_g", O_RDONLY|O_NONBLOCK|O_LARGEFILE|O_DIRECTORY|O_CLOEXEC) = -1 ENOTD
 
 If you're still having problems, ask in the [Coderbus Discord]'s
 `#tooling-questions` channel.
-
-You can also try [tgstation]'s IRC, `#coderbus` on Rizon, but it is usually
-quiet.
 
 [/tg/station]: https://github.com/tgstation/tgstation
 [Rust]: https://rust-lang.org
