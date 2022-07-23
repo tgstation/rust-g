@@ -1,10 +1,10 @@
 [package]
 name = "rust-g"
-edition = "2018"
-version = "0.8.0"
-authors = ["Bjorn Neergaard <bjorn@neersighted.com>"]
+edition = "2021"
+version = "1.0.0"
+authors = ["Bjorn Neergaard <bjorn@neersighted.com>, Tad Hardesty <tad@platymuus.com>, rust-g maintainer team"]
 repository = "https://github.com/tgstation/rust-g"
-license-file = "LICENSE"
+license = "MIT"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
 
 [lib]
