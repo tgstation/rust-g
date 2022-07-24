@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use png::{Decoder, Encoder, OutputInfo};
+use png::{Decoder, Encoder, OutputInfo, Reader};
 use std::{
     fs::{create_dir_all, File},
     path::Path,
@@ -26,24 +26,41 @@ byond_fn!(fn dmi_resize_png(path, width, height, resizetype) {
 });
 
 fn strip_metadata(path: &str) -> Result<()> {
-    let (info, image) = read_png(path)?;
-    write_png(path, info, image)
+    let (reader, frame_info, image) = read_png(path)?;
+    write_png(path, reader, frame_info, image, true)
 }
 
-fn read_png(path: &str) -> Result<(OutputInfo, Vec<u8>)> {
+fn read_png(path: &str) -> Result<(Reader<File>, OutputInfo, Vec<u8>)> {
     let mut reader = Decoder::new(File::open(path)?).read_info()?;
     let mut buf = vec![0; reader.output_buffer_size()];
+    let frame_info = reader.next_frame(&mut buf)?;
 
-    let out_info = reader.next_frame(&mut buf)?;
-    Ok((out_info, buf))
+    Ok((reader, frame_info, buf))
 }
 
-fn write_png(path: &str, info: OutputInfo, image: Vec<u8>) -> Result<()> {
+fn write_png(
+    path: &str,
+    reader: Reader<File>,
+    info: OutputInfo,
+    image: Vec<u8>,
+    strip: bool,
+) -> Result<()> {
     let mut encoder = Encoder::new(File::create(path)?, info.width, info.height);
     encoder.set_color(info.color_type);
     encoder.set_depth(info.bit_depth);
 
+    let reader_info = reader.info();
+    if let Some(palette) = reader_info.palette.to_owned() {
+        encoder.set_palette(palette);
+    }
+
     let mut writer = encoder.write_header()?;
+    // Handles zTxt chunk copying from the original image if we /don't/ want to strip it
+    if !strip {
+        for chunk in &reader_info.compressed_latin1_text {
+            writer.write_text_chunk(chunk)?;
+        }
+    }
     Ok(writer.write_image_data(&image)?)
 }
 
