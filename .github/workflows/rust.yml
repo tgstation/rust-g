@@ -44,7 +44,10 @@ jobs:
       - uses: actions/upload-artifact@v1
         with:
           name: rust_g.dll
-          path: target/i686-pc-windows-msvc/release/rust_g.dll
+          path: |
+            target/i686-pc-windows-msvc/release/rust_g.dll
+            target/rust_g.dm
+
 
   build-linux:
     runs-on: ubuntu-latest
@@ -99,7 +102,9 @@ jobs:
           command: build
           args: --target i686-unknown-linux-gnu --release
 
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
         with:
           name: rust_g
-          path: target/i686-unknown-linux-gnu/release/librust_g.so
+          path: |
+          target/i686-unknown-linux-gnu/release/librust_g.so
+          target/rust_g.dm

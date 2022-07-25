@@ -1,4 +1,3 @@
-
 /**
  * This proc generates a cellular automata noise grid which can be used in procedural generation methods.
  *

@@ -1,4 +1,3 @@
-
 #define rustg_hash_string(algorithm, text) call(RUST_G, "hash_string")(algorithm, text)
 #define rustg_hash_file(algorithm, fname) call(RUST_G, "hash_file")(algorithm, fname)
 #define rustg_hash_generate_totp(seed) call(RUST_G, "generate_totp")(seed)

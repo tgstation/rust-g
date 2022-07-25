@@ -1,4 +1,3 @@
-
 /**
  * This proc generates a grid of perlin-like noise
  *
