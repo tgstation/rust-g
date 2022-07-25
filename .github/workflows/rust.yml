@@ -106,5 +106,5 @@ jobs:
         with:
           name: rust_g
           path: |
-          target/i686-unknown-linux-gnu/release/librust_g.so
-          target/rust_g.dm
+            target/i686-unknown-linux-gnu/release/librust_g.so
+            target/rust_g.dm
