@@ -2,7 +2,7 @@
 name = "rust-g"
 edition = "2021"
 version = "1.0.0"
-authors = ["Bjorn Neergaard <bjorn@neersighted.com>, Tad Hardesty <tad@platymuus.com>, rust-g maintainer team"]
+authors = ["Bjorn Neergaard <bjorn@neersighted.com>", "Tad Hardesty <tad@platymuus.com>", "rust-g maintainer team"]
 repository = "https://github.com/tgstation/rust-g"
 license = "MIT"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
