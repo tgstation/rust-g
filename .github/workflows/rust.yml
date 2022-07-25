@@ -41,7 +41,7 @@ jobs:
           command: build
           args: --target i686-pc-windows-msvc --release
 
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
         with:
           name: rust_g.dll
           path: |
