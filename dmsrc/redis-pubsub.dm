@@ -1,3 +1,4 @@
+
 #define RUSTG_REDIS_ERROR_CHANNEL "RUSTG_REDIS_ERROR_CHANNEL"
 
 #define rustg_redis_connect(addr) call(RUST_G, "redis_connect")(addr)

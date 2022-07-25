@@ -40,3 +40,5 @@
  * * replacements - Replacements for this call. Must be the same length as the set-up patterns
  */
 #define rustg_acreplace_with_replacements(key, text, replacements) call(RUST_G, "acreplace_with_replacements")(key, text, json_encode(replacements))
+
+
