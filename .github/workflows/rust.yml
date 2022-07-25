@@ -43,7 +43,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: rust_g.dll
+          name: Windows Build
           path: |
             target/i686-pc-windows-msvc/release/rust_g.dll
             target/rust_g.dm
@@ -104,7 +104,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: librust_g.so
+          name: Linux Build
           path: |
             target/i686-unknown-linux-gnu/release/librust_g.so
             target/rust_g.dm
