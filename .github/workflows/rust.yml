@@ -104,7 +104,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: rust_g
+          name: librust_g.so
           path: |
             target/i686-unknown-linux-gnu/release/librust_g.so
             target/rust_g.dm
