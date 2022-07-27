@@ -17,5 +17,5 @@ var/test_json = @{"
 
     var/toml_output = rustg_read_toml_file("test.toml")
 
-    if (toml_output != test_json)
+    if (toml_output != json_decode(test_json)) // We want to compare the decoded *objects*
         CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[toml_output]")
