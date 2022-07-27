@@ -4,9 +4,11 @@ rust-g (pronounced rusty-g) is a library which offloads certain expensive or
 difficult tasks from BYOND.
 
 This library is currently used in the [/tg/station] codebase, and is required for
-it to run. A pre-compiled DLL version can be found in the repo root, but you
-can build your own from this repo at your preference. Builds can also be found
-on the [releases page].
+it to run. A pre-compiled DLL version can be found in the repo root of codebases that use it,
+but you can build your own from this repo (and you should if you're running a server).
+
+Builds can also be found on the [releases page] but should only be used for Windows,
+as Linux has compatibility issues across distributions.
 
 [releases page]: https://github.com/tgstation/rust-g/releases
 
