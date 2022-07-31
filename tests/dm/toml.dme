@@ -9,7 +9,7 @@ temp_targets = { cpu = 79, case = 72 }
 "}
 
 var/test_json = @{"
-{"database":{"data":[["delta","phi"]],"enabled":1,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}
+{"database":{"data":[["delta","phi"]],"enabled":true,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}
 "}
 
 /test/proc/check_toml_file2json()
@@ -17,5 +17,5 @@ var/test_json = @{"
 
     var/toml_output = rustg_read_toml_file("test.toml")
 
-    if (toml_output ~= json_decode(test_json)) // We want to compare the decoded *objects*
+    if (json_encode(toml_output) ~= json_encode(json_decode(test_json))) // Double-encode so true becomes 1
         CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
