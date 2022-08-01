@@ -67,9 +67,9 @@ fn register_nodes_(json: &str) -> Result<String, RegisteringNodesError>{
     Ok("1".to_string())
 }
 
-byond_fn!(fn astar_generate_path(start_id, goal_id) {
-    if let (Ok(start_id), Ok(goal_id)) = (start_id.parse::<usize>(), goal_id.parse::<usize>()) {
-        match astar_generate_path_(start_id, goal_id) {
+byond_fn!(fn astar_generate_path(start_node_id, goal_node_id) {
+    if let (Ok(start_node_id), Ok(goal_node_id)) = (start_node_id.parse::<usize>(), goal_node_id.parse::<usize>()) {
+        match astar_generate_path_(start_node_id, goal_node_id) {
             Ok(vector) => Some(match serde_json::to_string(&vector) {
                 Ok(s) => s,
                 Err(_) => "Cannot serialize path".to_string(),
@@ -100,15 +100,15 @@ impl From<mut_static::Error> for AstarError {
     }
 }
 
-fn astar_generate_path_(start_id: usize, goal_id: usize) -> Result<Vec<usize>, AstarError> {
+fn astar_generate_path_(start_node_id: usize, goal_node_id: usize) -> Result<Vec<usize>, AstarError> {
     let nodes = NODES.read()?;
 
-    let start_node = nodes.get(start_id);
+    let start_node = nodes.get(start_node_id);
     if start_node.is_none() {
         return Err(AstarError::StartNodeNotFound);
     }
 
-    let goal_node = nodes.get(goal_id);
+    let goal_node = nodes.get(goal_node_id);
     if goal_node.is_none() {
         return Err(AstarError::GoalNodeNotFound);
     }
