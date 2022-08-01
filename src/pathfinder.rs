@@ -36,6 +36,7 @@ lazy_static! {
 pub enum RegisteringNodesError {
     SerdeError(serde_json::Error),
     MutexError(mut_static::Error),
+    NodesNotCorrectlyIndexed,
 }
 
 impl From<serde_json::Error> for RegisteringNodesError {
@@ -53,14 +54,19 @@ byond_fn!(fn register_nodes(json) {
     match register_nodes_(json) {
         Ok(s) => Some(s),
         Err(e) => Some(match e {
-            RegisteringNodesError::MutexError(_) => "Mutex error".to_string(),
-            RegisteringNodesError::SerdeError(_) => "Parsing error".to_string()
+            RegisteringNodesError::MutexError(e) => format!("Mutex error : {}", e),
+            RegisteringNodesError::SerdeError(e) => format!("Parsing error : {}", e),
+            RegisteringNodesError::NodesNotCorrectlyIndexed => "Nodes not sorted".to_string()
         })
     }
 });
 
 fn register_nodes_(json: &str) -> Result<String, RegisteringNodesError>{
-    let nodes:Vec<Node> = serde_json::from_str(json)?;
+    let mut nodes:Vec<Node> = serde_json::from_str(json)?;
+    nodes.sort();
+    if nodes.iter().enumerate().filter(|(i, node)| i != &node.unique_id).count() != 0 {
+        return Err(RegisteringNodesError::NodesNotCorrectlyIndexed);
+    }
     if let Err(e) = NODES.set(nodes) {
         return Err(RegisteringNodesError::MutexError(e));
     }
@@ -75,7 +81,7 @@ byond_fn!(fn astar_generate_path(start_node_id, goal_node_id) {
                 Err(_) => "Cannot serialize path".to_string(),
             }),
             Err(e) => Some(match e {
-                AstarError::MutexError(_) => "Mutex error".to_string(),
+                AstarError::MutexError(e) => format!("Mutex error : {}", e),
                 AstarError::StartNodeNotFound => "Start node not found".to_string(),
                 AstarError::GoalNodeNotFound => "Goal node not found".to_string(),
                 AstarError::NoPathFound => "No path found".to_string(),
