@@ -10,6 +10,7 @@ struct Node {
     unique_id: usize,
     x: usize,
     y: usize,
+    z: usize,
     connected_nodes_id: Vec<usize>,
 }
 
@@ -24,7 +25,7 @@ impl Node {
     }
 
     fn distance(&self, other: &Self) -> usize {
-        sqrt((self.x - other.x).pow(2) + (self.y - other.y).pow(2))
+        sqrt(((self.x as isize - other.x as isize).pow(2) + (self.y as isize - other.y as isize).pow(2)) as usize)
     }
 }
 
@@ -209,6 +210,10 @@ fn astar_generate_path_(
     let goal_node = nodes.get(goal_node_id);
     if goal_node.is_none() || goal_node.unwrap().is_none() {
         return Err(AstarError::GoalNodeNotFound);
+    }
+
+    if start_node.unwrap().as_ref().unwrap().z != goal_node.unwrap().as_ref().unwrap().z {
+        return Err(AstarError::NoPathFound)
     }
 
     let path = astar(
