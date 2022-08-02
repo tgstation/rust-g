@@ -238,12 +238,15 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(unused_must_use)]
     fn test_register_node() {
         let json = std::fs::read_to_string("tests/rsc/ai_nodes_info.json").unwrap();
-        assert!(register_nodes_(&json).is_ok())
+        register_nodes_(&json).is_ok();
+        assert!(NODES.read().unwrap().len() != 0)
     }
 
     #[test]
+    #[allow(unused_must_use)]
     fn test_remove_node() {
         let json = std::fs::read_to_string("tests/rsc/ai_nodes_info.json").unwrap();
         register_nodes_(&json);
@@ -251,6 +254,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(unused_must_use)]
     fn test_add_node() {
         let json = std::fs::read_to_string("tests/rsc/ai_nodes_info.json").unwrap();
         register_nodes_(&json);
