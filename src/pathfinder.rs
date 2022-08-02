@@ -241,7 +241,7 @@ mod tests {
     #[allow(unused_must_use)]
     fn test_register_node() {
         let json = std::fs::read_to_string("tests/rsc/ai_nodes_info.json").unwrap();
-        register_nodes_(&json).is_ok();
+        register_nodes_(&json);
         assert!(NODES.read().unwrap().len() != 0)
     }
 
