@@ -16,16 +16,8 @@ impl Node {
     fn successors(&self) -> Vec<(Self, usize)> {
         self.connected_nodes_id
             .iter()
-            .map(|id| {
-                if let Some(connected_node) = NODES.read().unwrap().get(*id) {
-                    Some(connected_node.clone())
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .map(|node| (self.distance(&node), node))
-            .map(|(distance, node)| (node, distance))
+            .filter_map(|id| NODES.read().unwrap().get(*id).cloned())
+            .map(|node| (node.clone(), self.distance(&node)))
             .collect()
     }
 

@@ -70,10 +70,10 @@ url = ["url-dep", "percent-encoding"]
 # additional features
 batchnoise = ["dbpnoise"]
 hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2",  "twox-hash", "serde", "serde_json"]
+pathfinder = [ "lazy_static", "mut_static", "num", "pathfinding", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
 worleynoise = ["rand","rayon"]
-pathfinder = ["pathfinding", "serde_json", "serde", "mut_static", "lazy_static", "num"]
 
 # internal feature-like things
 jobs = ["flume"]

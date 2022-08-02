@@ -30,6 +30,8 @@ pub mod json;
 pub mod log;
 #[cfg(feature = "noise")]
 pub mod noise_gen;
+#[cfg(feature = "pathfinder")]
+pub mod pathfinder;
 #[cfg(feature = "redis_pubsub")]
 pub mod redis_pubsub;
 #[cfg(feature = "sql")]
@@ -44,8 +46,6 @@ pub mod unzip;
 pub mod url;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
-#[cfg(feature = "pathfinder")]
-pub mod pathfinder;
 
 #[cfg(not(target_pointer_width = "32"))]
 compile_error!("rust-g must be compiled for a 32-bit target");
