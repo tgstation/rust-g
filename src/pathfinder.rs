@@ -25,7 +25,10 @@ impl Node {
     }
 
     fn distance(&self, other: &Self) -> usize {
-        sqrt(((self.x as isize - other.x as isize).pow(2) + (self.y as isize - other.y as isize).pow(2)) as usize)
+        sqrt(
+            ((self.x as isize - other.x as isize).pow(2)
+                + (self.y as isize - other.y as isize).pow(2)) as usize,
+        )
     }
 }
 
@@ -213,7 +216,7 @@ fn astar_generate_path_(
     }
 
     if start_node.unwrap().as_ref().unwrap().z != goal_node.unwrap().as_ref().unwrap().z {
-        return Err(AstarError::NoPathFound)
+        return Err(AstarError::NoPathFound);
     }
 
     let path = astar(
