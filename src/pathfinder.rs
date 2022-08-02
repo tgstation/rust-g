@@ -1,9 +1,9 @@
-use std::num::ParseIntError;
 use lazy_static::lazy_static;
 use mut_static::MutStatic;
 use num::integer::sqrt;
 use pathfinding::prelude::astar;
 use serde::{Deserialize, Serialize};
+use std::num::ParseIntError;
 
 #[derive(Serialize, Deserialize, Default, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct Node {
@@ -12,28 +12,6 @@ struct Node {
     y: usize,
     connected_nodes_id: Vec<usize>,
 }
-
-/* fn main() {
-    let json= std::fs::read_to_string("ai_nodes_info.json").unwrap();
-    match register_nodes_(&json) {
-        Ok(_) => (),
-        Err(e) => println!("Error :{e}")
-    }
-    match remove_node_("15") {
-        Ok(_) => (),
-        Err(e) => println!("Error: {e}")
-    }
-    if NODES.read().unwrap().get(15).unwrap().is_some() {
-        print!("Error: node not deleted")
-    }
-    let mut node_to_add = NODES.read().unwrap().get(18).unwrap().clone().unwrap();
-    node_to_add.unique_id = NODES.read().unwrap().len();
-    let node_to_add = serde_json::to_string(&node_to_add).unwrap();
-    match add_node_(&node_to_add) {
-        Ok(_) => (),
-        Err(e) => println!("Error :{e}")
-    }
-} */
 
 impl Node {
     fn successors(&self) -> Vec<(Self, usize)> {
@@ -76,7 +54,9 @@ impl std::fmt::Display for RegisteringNodesError {
         match self {
             RegisteringNodesError::MutexError(e) => write!(f, "Mutex error : {e}"),
             RegisteringNodesError::SerdeError(e) => write!(f, "Parsing error : {e}"),
-            RegisteringNodesError::NodesNotCorrectlyIndexed => write!(f, "Node not indexed properly")
+            RegisteringNodesError::NodesNotCorrectlyIndexed => {
+                write!(f, "Node not indexed properly")
+            }
         }
     }
 }
@@ -150,7 +130,7 @@ impl std::fmt::Display for DeleteNodeError {
         match self {
             DeleteNodeError::MutexError(e) => write!(f, "Mutex error : {e}"),
             DeleteNodeError::ParsingError(e) => write!(f, "Parsing error : {e}"),
-            DeleteNodeError::NodeNotFound => write!(f, "Node not found")
+            DeleteNodeError::NodeNotFound => write!(f, "Node not found"),
         }
     }
 }
@@ -243,4 +223,32 @@ fn astar_generate_path_(
 
     let (path, _) = path.unwrap();
     Ok(path.into_iter().map(|node| node.unique_id).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_register_node() {
+        let json = std::fs::read_to_string("tests/rsc/ai_nodes_info.json").unwrap();
+        assert!(register_nodes_(&json).is_ok())
+    }
+
+    #[test]
+    fn test_remove_node() {
+        let json = std::fs::read_to_string("tests/rsc/ai_nodes_info.json").unwrap();
+        register_nodes_(&json);
+        assert!(remove_node_("15").is_ok())
+    }
+
+    #[test]
+    fn test_add_node() {
+        let json = std::fs::read_to_string("tests/rsc/ai_nodes_info.json").unwrap();
+        register_nodes_(&json);
+        let mut node_to_add = NODES.read().unwrap().get(18).unwrap().clone().unwrap();
+        node_to_add.unique_id = NODES.read().unwrap().len();
+        let node_to_add = serde_json::to_string(&node_to_add).unwrap();
+        assert!(add_node_(&node_to_add).is_ok())
+    }
 }
