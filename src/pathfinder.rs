@@ -1,36 +1,41 @@
-use serde::Deserialize;
-use mut_static::MutStatic;
 use lazy_static::lazy_static;
-use pathfinding::prelude::astar;
+use mut_static::MutStatic;
 use num::integer::sqrt;
+use pathfinding::prelude::astar;
+use serde::Deserialize;
 
 #[derive(Deserialize, Default, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct Node {
     unique_id: usize,
     x: usize,
     y: usize,
-    connected_nodes_id: Vec<usize>
+    connected_nodes_id: Vec<usize>,
 }
 
 impl Node {
     fn successors(&self) -> Vec<(Self, usize)> {
-        self.connected_nodes_id.iter().map(|id| {
-            if let Some(connected_node) = NODES.read().unwrap().get(*id) {
-                Some(connected_node.clone())
-            }
-            else {
-                None
-            }
-        }).filter_map(|node| node).map(|node| (self.distance(&node), node)).map(|(distance, node)| (node.clone(), distance)).collect()
+        self.connected_nodes_id
+            .iter()
+            .map(|id| {
+                if let Some(connected_node) = NODES.read().unwrap().get(*id) {
+                    Some(connected_node.clone())
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .map(|node| (self.distance(&node), node))
+            .map(|(distance, node)| (node, distance))
+            .collect()
     }
 
-    fn distance(&self, other:&Self) -> usize {
+    fn distance(&self, other: &Self) -> usize {
         sqrt((self.x - other.x).pow(2) + (self.y - other.y).pow(2))
     }
 }
 
 lazy_static! {
-    static ref NODES:MutStatic<Vec<Node>> = MutStatic::new();
+    static ref NODES: MutStatic<Vec<Node>> = MutStatic::new();
 }
 
 pub enum RegisteringNodesError {
@@ -40,12 +45,12 @@ pub enum RegisteringNodesError {
 }
 
 impl From<serde_json::Error> for RegisteringNodesError {
-    fn from(error:serde_json::Error) -> Self {
+    fn from(error: serde_json::Error) -> Self {
         RegisteringNodesError::SerdeError(error)
     }
 }
 impl From<mut_static::Error> for RegisteringNodesError {
-    fn from(error:mut_static::Error) -> Self {
+    fn from(error: mut_static::Error) -> Self {
         RegisteringNodesError::MutexError(error)
     }
 }
@@ -61,10 +66,16 @@ byond_fn!(fn register_nodes(json) {
     }
 });
 
-fn register_nodes_(json: &str) -> Result<String, RegisteringNodesError>{
-    let mut nodes:Vec<Node> = serde_json::from_str(json)?;
+fn register_nodes_(json: &str) -> Result<String, RegisteringNodesError> {
+    let mut nodes: Vec<Node> = serde_json::from_str(json)?;
     nodes.sort();
-    if nodes.iter().enumerate().filter(|(i, node)| i != &node.unique_id).count() != 0 {
+    if nodes
+        .iter()
+        .enumerate()
+        .filter(|(i, node)| i != &node.unique_id)
+        .count()
+        != 0
+    {
         return Err(RegisteringNodesError::NodesNotCorrectlyIndexed);
     }
     if let Err(e) = NODES.set(nodes) {
@@ -101,12 +112,15 @@ pub enum AstarError {
 }
 
 impl From<mut_static::Error> for AstarError {
-    fn from(error:mut_static::Error) -> Self {
+    fn from(error: mut_static::Error) -> Self {
         AstarError::MutexError(error)
     }
 }
 
-fn astar_generate_path_(start_node_id: usize, goal_node_id: usize) -> Result<Vec<usize>, AstarError> {
+fn astar_generate_path_(
+    start_node_id: usize,
+    goal_node_id: usize,
+) -> Result<Vec<usize>, AstarError> {
     let nodes = NODES.read()?;
 
     let start_node = nodes.get(start_node_id);
@@ -119,7 +133,12 @@ fn astar_generate_path_(start_node_id: usize, goal_node_id: usize) -> Result<Vec
         return Err(AstarError::GoalNodeNotFound);
     }
 
-    let path = astar(start_node.unwrap(), |node| node.successors(), |node| node.distance(goal_node.unwrap()), |node| node == goal_node.unwrap());
+    let path = astar(
+        start_node.unwrap(),
+        |node| node.successors(),
+        |node| node.distance(goal_node.unwrap()),
+        |node| node == goal_node.unwrap(),
+    );
     if path.is_none() {
         return Err(AstarError::NoPathFound);
     }
