@@ -36,7 +36,7 @@ lazy_static! {
     static ref NODES: MutStatic<Vec<Option<Node>>> = MutStatic::new();
 }
 
-pub enum RegisteringNodesError {
+enum RegisteringNodesError {
     SerdeError(serde_json::Error),
     MutexError(mut_static::Error),
     NodesNotCorrectlyIndexed,
@@ -111,7 +111,7 @@ fn add_node_(json: &str) -> Result<String, RegisteringNodesError> {
     Ok("1".to_string())
 }
 
-pub enum DeleteNodeError {
+enum DeleteNodeError {
     ParsingError(ParseIntError),
     MutexError(mut_static::Error),
     NodeNotFound,
@@ -166,7 +166,7 @@ fn remove_node_(unique_id: &str) -> Result<String, DeleteNodeError> {
     Ok("1".to_string())
 }
 
-pub enum AstarError {
+enum AstarError {
     MutexError(mut_static::Error),
     StartNodeNotFound,
     GoalNodeNotFound,
