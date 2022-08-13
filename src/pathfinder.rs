@@ -114,7 +114,7 @@ impl std::fmt::Display for RegisteringNodesError {
     }
 }
 
-byond_fn!(fn register_nodesastar(json) {
+byond_fn!(fn register_nodes_astar(json) {
     match register_nodes(json) {
         Ok(s) => Some(s),
         Err(e) => Some(format!("{e}"))
@@ -143,7 +143,7 @@ fn register_nodes(json: &str) -> Result<String, RegisteringNodesError> {
     Ok("1".to_string())
 }
 
-byond_fn!(fn add_nodeastart(json) {
+byond_fn!(fn add_node_astar(json) {
     match add_node(json) {
         Ok(s) => Some(s),
         Err(e) => Some(format!("{e}"))
@@ -204,7 +204,7 @@ impl std::fmt::Display for DeleteNodeError {
     }
 }
 
-byond_fn!(fn remove_nodeastar(unique_id) {
+byond_fn!(fn remove_node_astar(unique_id) {
     match remove_node(unique_id) {
         Ok(s) => Some(s),
         Err(e) => Some(format!("{e}"))
@@ -261,7 +261,7 @@ impl From<mut_static::Error> for AstarError {
 
 byond_fn!(fn astar_generate_path(start_node_id, goal_node_id) {
     if let (Ok(start_node_id), Ok(goal_node_id)) = (start_node_id.parse::<usize>(), goal_node_id.parse::<usize>()) {
-        match astar_generate_path_(start_node_id, goal_node_id) {
+        match generate_path(start_node_id, goal_node_id) {
             Ok(vector) => Some(match serde_json::to_string(&vector) {
                 Ok(s) => s,
                 Err(_) => "Cannot serialize path".to_string(),
@@ -280,10 +280,7 @@ byond_fn!(fn astar_generate_path(start_node_id, goal_node_id) {
 });
 
 // Compute the shortest path between start node and goal node using A*
-fn astar_generate_path_(
-    start_node_id: usize,
-    goal_node_id: usize,
-) -> Result<Vec<usize>, AstarError> {
+fn generate_path(start_node_id: usize, goal_node_id: usize) -> Result<Vec<usize>, AstarError> {
     // Get the container of the start node. Errors if the start node cannot be found or is none
     let start_node_container = match unsafe { NODES.get(start_node_id) } {
         None => return Err(AstarError::StartNodeNotFound),
