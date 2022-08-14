@@ -29,4 +29,4 @@
 /**
  * Compute the shortest path between start_node and goal_node using A*. Heuristic used is simple geometric distance
  */
-#define rustg_generate_path_astar(start_node_id, goal_node_id) call(RUST_G, "astar_generate_path")(start_node_id, goal_node_id)
+#define rustg_generate_path_astar(start_node_id, goal_node_id) call(RUST_G, "generate_path_astar")(start_node_id, goal_node_id)
