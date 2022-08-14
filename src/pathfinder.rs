@@ -1,3 +1,5 @@
+use lazy_static::lazy_static;
+use mut_static::MutStatic;
 use num::integer::sqrt;
 use pathfinding::prelude::astar;
 use serde::{Deserialize, Serialize};
@@ -7,9 +9,9 @@ use std::num::ParseIntError;
 use std::sync::{Arc, RwLock};
 use std::usize::MAX;
 
-// static mut are not thread safe, and manipulating one is only possible behind unsafe tag
-// However, most of the unsafe call should be thread safe because nodes inside this vec are behind a RwLock
-static mut NODES: Vec<NodeContainer> = Vec::new();
+lazy_static! {
+    static ref NODES: MutStatic<Vec<NodeContainer>> = MutStatic::new();
+}
 
 // Container for a node. Exist mainly to be able to implement Hash, which is not implemented for RefCell
 #[derive(Clone)]
@@ -60,14 +62,13 @@ struct Node {
 
 impl Node {
     // Return a vector of all connected nodes, encapsulated in a NodeContainer.
-    fn successors(&self) -> Vec<(NodeContainer, usize)> {
+    fn successors(&self, nodes: &Vec<NodeContainer>) -> Vec<(NodeContainer, usize)> {
         self.connected_nodes_id
             .iter()
-            .map(|index| unsafe { NODES.get(*index) })
+            .map(|index| nodes.get(*index))
             .flatten()
             .map(|node_container| {
                 (
-                    // We create a new Arc to be able to share ownership without having to clone the node itself
                     node_container.clone(),
                     self.distance(node_container.node.read().unwrap().as_ref().unwrap()),
                 )
@@ -115,7 +116,11 @@ impl std::fmt::Display for RegisteringNodesError {
 }
 
 byond_fn!(fn register_nodes_astar(json) {
-    match register_nodes(json) {
+    if let Err(e) = NODES.set(Vec::new()) {
+        return Some(format!("{e}"));
+    }
+    let mut nodes = NODES.write().unwrap();
+    match register_nodes(json, nodes.as_mut()) {
         Ok(s) => Some(s),
         Err(e) => Some(format!("{e}"))
     }
@@ -124,9 +129,12 @@ byond_fn!(fn register_nodes_astar(json) {
 // Builds a list of nodes from a json file.
 // Errors if the input list of nodes is not correctly indexed. Each node should have for unique id its position in the list, with the first unique-id being 0.
 // Memory safety not guaranteed in multithread environment
-fn register_nodes(json: &str) -> Result<String, RegisteringNodesError> {
-    let nodes: Vec<Node> = serde_json::from_str(json)?;
-    if nodes
+fn register_nodes(
+    json: &str,
+    nodes: &mut Vec<NodeContainer>,
+) -> Result<String, RegisteringNodesError> {
+    let deserialized_nodes: Vec<Node> = serde_json::from_str(json)?;
+    if deserialized_nodes
         .iter()
         .enumerate()
         .filter(|(i, node)| i != &node.unique_id)
@@ -136,15 +144,16 @@ fn register_nodes(json: &str) -> Result<String, RegisteringNodesError> {
         return Err(RegisteringNodesError::NodesNotCorrectlyIndexed);
     }
 
-    nodes
+    deserialized_nodes
         .into_iter()
-        .for_each(|node| unsafe { NODES.push(NodeContainer::new(node)) });
+        .for_each(|node| nodes.push(NodeContainer::new(node)));
 
     Ok("1".to_string())
 }
 
 byond_fn!(fn add_node_astar(json) {
-    match add_node(json) {
+    let mut nodes = NODES.write().unwrap();
+    match add_node(json, nodes.as_mut()) {
         Ok(s) => Some(s),
         Err(e) => Some(format!("{e}"))
     }
@@ -152,26 +161,24 @@ byond_fn!(fn add_node_astar(json) {
 
 // Add a node to the static list of node.
 // If it is connected to other existing nodes, it will update their connected_nodes_id list.
-fn add_node(json: &str) -> Result<String, RegisteringNodesError> {
+fn add_node(json: &str, nodes: &mut Vec<NodeContainer>) -> Result<String, RegisteringNodesError> {
     let new_node: Node = serde_json::from_str(json)?;
 
     // As always, a node unique id should correspond to its index in NODES
-    if new_node.unique_id != unsafe { NODES.len() } {
+    if new_node.unique_id != nodes.len() {
         return Err(RegisteringNodesError::NodesNotCorrectlyIndexed);
     }
 
     // Make sure every connection we have we other nodes is 2 ways
     new_node.connected_nodes_id.iter().for_each(|index| {
-        if let Some(node_container) = unsafe { NODES.get_mut(*index) } {
+        if let Some(node_container) = nodes.get_mut(*index) {
             if let Some(node) = node_container.node.write().unwrap().as_mut() {
                 node.connected_nodes_id.push(new_node.unique_id)
             }
         };
     });
 
-    unsafe {
-        NODES.push(NodeContainer::new(new_node));
-    }
+    nodes.push(NodeContainer::new(new_node));
 
     Ok("1".to_string())
 }
@@ -205,7 +212,8 @@ impl std::fmt::Display for DeleteNodeError {
 }
 
 byond_fn!(fn remove_node_astar(unique_id) {
-    match remove_node(unique_id) {
+    let mut nodes = NODES.write().unwrap();
+    match remove_node(unique_id, nodes.as_mut()) {
         Ok(s) => Some(s),
         Err(e) => Some(format!("{e}"))
     }
@@ -214,16 +222,18 @@ byond_fn!(fn remove_node_astar(unique_id) {
 // Replace the node with unique_id by None
 // Update connected nodes as well so nothing target the removed node anymore
 // Errors if no node can be found with unique_id
-fn remove_node(unique_id: &str) -> Result<String, DeleteNodeError> {
+fn remove_node(unique_id: &str, nodes: &mut Vec<NodeContainer>) -> Result<String, DeleteNodeError> {
     let unique_id = unique_id.parse::<usize>()?;
 
     {
-        let node_to_delete_container = unsafe { NODES.get(unique_id) };
+        let node_to_delete_container = nodes.get(unique_id).cloned();
 
         let node_to_delete_ref = match node_to_delete_container {
             None => return Err(DeleteNodeError::NodeNotFound),
-            Some(node_container) => node_container.node.write().unwrap(),
+            Some(node_container) => node_container.node,
         };
+
+        let node_to_delete_ref = node_to_delete_ref.as_ref().read().unwrap();
 
         let node_to_delete = match node_to_delete_ref.as_ref() {
             None => return Err(DeleteNodeError::NodeNotFound),
@@ -232,7 +242,7 @@ fn remove_node(unique_id: &str) -> Result<String, DeleteNodeError> {
 
         // Erase all links to the removed node
         node_to_delete.connected_nodes_id.iter().for_each(|i| {
-            if let Some(node_container) = unsafe { NODES.get_mut(*i) } {
+            if let Some(node_container) = nodes.get_mut(*i) {
                 if let Some(node) = node_container.node.write().unwrap().as_mut() {
                     node.connected_nodes_id
                         .retain(|index| index != &node_to_delete.unique_id);
@@ -241,7 +251,7 @@ fn remove_node(unique_id: &str) -> Result<String, DeleteNodeError> {
         });
     } // We need to drop everything before set the removed node to None. This is to ensure memory safety
 
-    unsafe { NODES[unique_id] = NodeContainer::new_empty() }
+    nodes[unique_id] = NodeContainer::new_empty();
 
     Ok("1".to_string())
 }
@@ -259,9 +269,10 @@ impl From<mut_static::Error> for AstarError {
     }
 }
 
-byond_fn!(fn astar_generate_path(start_node_id, goal_node_id) {
+byond_fn!(fn generate_path_astar(start_node_id, goal_node_id) {
+    let nodes = NODES.read().unwrap();
     if let (Ok(start_node_id), Ok(goal_node_id)) = (start_node_id.parse::<usize>(), goal_node_id.parse::<usize>()) {
-        match generate_path(start_node_id, goal_node_id) {
+        match generate_path(start_node_id, goal_node_id, &nodes) {
             Ok(vector) => Some(match serde_json::to_string(&vector) {
                 Ok(s) => s,
                 Err(_) => "Cannot serialize path".to_string(),
@@ -280,9 +291,13 @@ byond_fn!(fn astar_generate_path(start_node_id, goal_node_id) {
 });
 
 // Compute the shortest path between start node and goal node using A*
-fn generate_path(start_node_id: usize, goal_node_id: usize) -> Result<Vec<usize>, AstarError> {
+fn generate_path(
+    start_node_id: usize,
+    goal_node_id: usize,
+    nodes: &Vec<NodeContainer>,
+) -> Result<Vec<usize>, AstarError> {
     // Get the container of the start node. Errors if the start node cannot be found or is none
-    let start_node_container = match unsafe { NODES.get(start_node_id) } {
+    let start_node_container = match nodes.get(start_node_id) {
         None => return Err(AstarError::StartNodeNotFound),
         Some(node_container) => match node_container.node.read().unwrap().as_ref() {
             None => return Err(AstarError::StartNodeNotFound),
@@ -291,7 +306,7 @@ fn generate_path(start_node_id: usize, goal_node_id: usize) -> Result<Vec<usize>
     };
 
     // Get a reference to the goal node. Errors if the goal node cannot be found or is none
-    let goal_node_container = match unsafe { NODES.get(goal_node_id) } {
+    let goal_node_container = match nodes.get(goal_node_id) {
         None => return Err(AstarError::GoalNodeNotFound),
         Some(node_container) => node_container.node.read().unwrap(),
     };
@@ -318,7 +333,7 @@ fn generate_path(start_node_id: usize, goal_node_id: usize) -> Result<Vec<usize>
         start_node_container,
         |node_container| {
             if let Some(node) = node_container.node.read().unwrap().as_ref() {
-                node.successors()
+                node.successors(nodes)
             } else {
                 Vec::new()
             }
