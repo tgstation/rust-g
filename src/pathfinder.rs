@@ -62,11 +62,10 @@ struct Node {
 
 impl Node {
     // Return a vector of all connected nodes, encapsulated in a NodeContainer.
-    fn successors(&self, nodes: &Vec<NodeContainer>) -> Vec<(NodeContainer, usize)> {
+    fn successors(&self, nodes: &[NodeContainer]) -> Vec<(NodeContainer, usize)> {
         self.connected_nodes_id
             .iter()
-            .map(|index| nodes.get(*index))
-            .flatten()
+            .filter_map(|index| nodes.get(*index))
             .map(|node_container| {
                 (
                     node_container.clone(),
@@ -128,7 +127,6 @@ byond_fn!(fn register_nodes_astar(json) {
 
 // Builds a list of nodes from a json file.
 // Errors if the input list of nodes is not correctly indexed. Each node should have for unique id its position in the list, with the first unique-id being 0.
-// Memory safety not guaranteed in multithread environment
 fn register_nodes(
     json: &str,
     nodes: &mut Vec<NodeContainer>,
@@ -222,7 +220,7 @@ byond_fn!(fn remove_node_astar(unique_id) {
 // Replace the node with unique_id by None
 // Update connected nodes as well so nothing target the removed node anymore
 // Errors if no node can be found with unique_id
-fn remove_node(unique_id: &str, nodes: &mut Vec<NodeContainer>) -> Result<String, DeleteNodeError> {
+fn remove_node(unique_id: &str, nodes: &mut [NodeContainer]) -> Result<String, DeleteNodeError> {
     let unique_id = unique_id.parse::<usize>()?;
 
     {
@@ -294,7 +292,7 @@ byond_fn!(fn generate_path_astar(start_node_id, goal_node_id) {
 fn generate_path(
     start_node_id: usize,
     goal_node_id: usize,
-    nodes: &Vec<NodeContainer>,
+    nodes: &[NodeContainer],
 ) -> Result<Vec<usize>, AstarError> {
     // Get the container of the start node. Errors if the start node cannot be found or is none
     let start_node_container = match nodes.get(start_node_id) {
