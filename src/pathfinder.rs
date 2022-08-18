@@ -362,5 +362,6 @@ fn generate_path(
     Ok(path
         .into_iter()
         .map(|node| node.node.read().unwrap().as_ref().unwrap().unique_id)
+        .rev() // Reverse iterator so it is easy to pop the list in byond
         .collect())
 }
