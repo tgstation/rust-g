@@ -24,7 +24,7 @@ byond_fn!(fn hash_file(algorithm, string) {
 byond_fn!(fn generate_totp(hex_seed) {
     match totp_generate(hex_seed, 0, None) {
         Ok(value) => Some(value),
-        Err(error) => return Some(format!("ERROR: {:?}", error))
+        Err(error) => Some(format!("ERROR: {:?}", error))
     }
 });
 
@@ -35,7 +35,7 @@ byond_fn!(fn generate_totp_tolerance(hex_seed, tolerance) {
     };
     match totp_generate_tolerance(hex_seed, tolerance_value, None) {
         Ok(value) => Some(value),
-        Err(error) => return Some(format!("ERROR: {:?}", error))
+        Err(error) => Some(format!("ERROR: {:?}", error))
     }
 });
 
