@@ -90,7 +90,7 @@ fn register_nodes(json: &str) -> Result<String, RegisteringNodesError> {
 
     deserialized_nodes
         .into_iter()
-        .for_each(|node| push_node(node));
+        .for_each(push_node);
 
     Ok("1".to_string())
 }
@@ -181,7 +181,7 @@ enum AstarError {
     #[error("Goal node not found")]
     GoalNodeNotFound,
     #[error("No path found")]
-    NoPathFound,
+    NoPath,
 }
 
 byond_fn!(fn generate_path_astar(start_node_id, goal_node_id) {
@@ -212,7 +212,7 @@ fn generate_path(start_node_id: usize, goal_node_id: usize) -> Result<Vec<usize>
     };
 
     if goal_node.z != start_node.z {
-        return Err(AstarError::NoPathFound);
+        return Err(AstarError::NoPath);
     }
 
     // Compute the shortest path between start node and goal node using A*
@@ -225,7 +225,7 @@ fn generate_path(start_node_id: usize, goal_node_id: usize) -> Result<Vec<usize>
 
     // Extract a vector of node container from the path variable. Errors if no path was found
     let path = match path {
-        None => return Err(AstarError::NoPathFound),
+        None => return Err(AstarError::NoPath),
         Some(path) => path.0,
     };
 
