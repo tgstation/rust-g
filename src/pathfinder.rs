@@ -88,9 +88,7 @@ fn register_nodes(json: &str) -> Result<String, RegisteringNodesError> {
         return Err(RegisteringNodesError::NodesNotCorrectlyIndexed);
     }
 
-    deserialized_nodes
-        .into_iter()
-        .for_each(push_node);
+    deserialized_nodes.into_iter().for_each(push_node);
 
     Ok("1".to_string())
 }
