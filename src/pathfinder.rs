@@ -113,7 +113,7 @@ fn add_node(json: &str) -> Result<String, RegisteringNodesError> {
     }
 
     // Make sure every connection we have we other nodes is 2 ways
-    new_node.connected_nodes_id.iter().for_each(|index| {
+    for index in new_node.connected_nodes_id.iter() {
         NODES.with(|nodes_ref| {
             if let Some(Some(node)) = nodes_ref.borrow_mut().get_mut(*index) {
                 Rc::get_mut(node)
@@ -122,7 +122,7 @@ fn add_node(json: &str) -> Result<String, RegisteringNodesError> {
                     .push(new_node.unique_id)
             }
         })
-    });
+    }
 
     push_node(new_node);
 
@@ -158,16 +158,16 @@ fn remove_node(unique_id: &str) -> Result<String, DeleteNodeError> {
         _ => return Err(DeleteNodeError::NodeNotFound),
     };
 
-    node_to_delete.connected_nodes_id.iter().for_each(|i| {
+    for index in node_to_delete.connected_nodes_id.iter() {
         NODES.with(|nodes_ref| {
-            if let Some(Some(node)) = nodes_ref.borrow_mut().get_mut(*i) {
+            if let Some(Some(node)) = nodes_ref.borrow_mut().get_mut(*index) {
                 Rc::get_mut(node)
                     .unwrap()
                     .connected_nodes_id
                     .retain(|index| index != &node_to_delete.unique_id);
             }
         })
-    });
+    }
 
     null_out_node(unique_id);
 
