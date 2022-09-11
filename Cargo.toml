@@ -46,6 +46,8 @@ toml-dep = { version = "0.5.8", package="toml", optional = true }
 aho-corasick = { version = "0.7.18", optional = true}
 rayon = { version = "1.5", optional = true}
 dbpnoise = { version = "0.1.2", optional = true}
+pathfinding = { version = "3.0.13", optional = true }
+num = { version = "0.4.0", optional = true }
 
 [features]
 default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "time", "toml", "url"]
@@ -67,6 +69,7 @@ url = ["url-dep", "percent-encoding"]
 # additional features
 batchnoise = ["dbpnoise"]
 hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2",  "twox-hash", "serde", "serde_json"]
+pathfinder = [ "num", "pathfinding", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
 worleynoise = ["rand","rayon"]
