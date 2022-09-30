@@ -2,19 +2,11 @@
 
 var/test_toml = @{"
 [database]
-data = [[
-    'delta',
-    'phi',
-]]
 enabled = true
-ports = [
-    8000,
-    25565,
-]
-
-[database.temp_targets]
-case = 72
-cpu = 79"}
+ports = [ 8000, 25565 ]
+data = [ ["delta", "phi"] ]
+temp_targets = { cpu = 79, case = 72 }
+"}
 
 var/test_json = @{"
 {"database":{"data":[["delta","phi"]],"enabled":true,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}
@@ -28,6 +20,10 @@ var/test_json = @{"
     if (toml_output ~! json_decode(test_json))
         CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
 
-/test/proc/toml_encode()
-    var/encode_result = rustg_toml_encode(json_decode(test_json))
-    TEST_ASSERT_EQUAL(encode_result, test_toml)
+/test/proc/check_write_toml_file()
+    var/json_value = json_decode(test_json)
+    rustg_write_toml_file(json_value, "test.toml")
+    var/toml_output = rustg_read_toml_file("test.toml")
+
+    if (toml_output ~! json_value)
+        CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
