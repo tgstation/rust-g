@@ -14,8 +14,7 @@ ports = [
 
 [database.temp_targets]
 case = 72
-cpu = 79
-"}
+cpu = 79"}
 
 var/test_json = @{"
 {"database":{"data":[["delta","phi"]],"enabled":true,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}
