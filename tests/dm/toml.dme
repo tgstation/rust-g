@@ -21,5 +21,5 @@ var/test_json = @{"
         CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
 
 /test/proc/toml_encode()
-    var/encode_result = rustg_toml_encode(list("names" = list("alice", "bob")))
-    TEST_ASSERT_EQUAL(encode_result, "what is it")
+    var/encode_result = rustg_toml_encode(json_decode(test_json))
+    TEST_ASSERT_EQUAL(encode_result, test_toml)
