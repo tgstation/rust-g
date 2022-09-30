@@ -34,6 +34,9 @@ pub enum Error {
     #[cfg(feature = "png")]
     #[error(transparent)]
     ImageEncoding(#[from] EncodingError),
+    #[cfg(feature = "http")]
+    #[error(transparent)]
+    JsonSerialization(#[from] serde_json::Error),
     #[error(transparent)]
     ParseInt(#[from] ParseIntError),
     #[error(transparent)]
@@ -49,9 +52,9 @@ pub enum Error {
     #[cfg(feature = "toml")]
     #[error(transparent)]
     TomlDeserialization(#[from] toml_dep::de::Error),
-    #[cfg(feature = "http")]
+    #[cfg(feature = "toml")]
     #[error(transparent)]
-    Serialization(#[from] serde_json::Error),
+    TomlSerialization(#[from] toml_dep::ser::Error),
     #[cfg(feature = "unzip")]
     #[error(transparent)]
     Unzip(#[from] ZipError),
