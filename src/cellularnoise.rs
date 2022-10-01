@@ -22,11 +22,11 @@ fn noise_gen(
     let width = width_as_str.parse::<usize>()?;
     let height = height_as_str.parse::<usize>()?;
     //we populate it, from 0 to height+3, 0 to height+1 is exactly height long, but we also need border guards, so we add another +2, so it is 0..height+3
-    let mut filled_vec = (0..height + 3)
+    let mut filled_vec = (0..width + 3)
         .into_par_iter()
         .map(|x| {
             let mut rng = rand::thread_rng();
-            (0..width + 3)
+            (0..height + 3)
                 .into_iter()
                 .map(|y| {
                     if x == 0 || y == 0 || x == width + 2 || y == height + 2 {
