@@ -6,4 +6,4 @@
     ASSERT(fexists("rustg_panic.log"))
 
     var/contents = file2text("rustg_panic.log")
-    ASSERT(findtext(contents, "last byond fn: panic_test"))
+    ASSERT(findtext(contents, "panic_test"))
