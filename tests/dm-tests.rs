@@ -18,6 +18,11 @@ fn url() {
     run_dm_tests("url");
 }
 
+#[test]
+fn panic() {
+    run_dm_tests("panic");
+}
+
 #[cfg(feature = "hash")]
 #[test]
 fn hash() {
