@@ -42,6 +42,25 @@ pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
     }
 }
 
+pub fn panicked(
+    name: &str,
+    thread_error: Box<dyn std::any::Any + Send + 'static>,
+    args: &[Cow<str>],
+) {
+    let thread_error_message = if let Some(payload) = thread_error.downcast_ref::<&str>() {
+        payload
+    } else if let Some(payload) = thread_error.downcast_ref::<String>() {
+        payload
+    } else {
+        "unknown panic"
+    };
+
+    crate::panic_hook::write_to_error_log(&format!(
+        "panic occurred while calling {name}({}):\n{thread_error_message}",
+        args.join(", "),
+    ));
+}
+
 #[macro_export]
 macro_rules! byond_fn {
     (fn $name:ident() $body:block) => {
@@ -50,8 +69,17 @@ macro_rules! byond_fn {
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
-            let closure = || ($body);
-            $crate::byond::byond_return(closure().map(From::from))
+            $crate::panic_hook::set_last_byond_fn(stringify!($name));
+
+            $crate::byond::byond_return(match std::panic::catch_unwind(|| -> Option<Vec<u8>> {
+                (|| { $body })().map(From::from)
+            }) {
+                Ok(output) => output,
+                Err(thread_error) => {
+                    $crate::byond::panicked(stringify!($name), thread_error, &[]);
+                    None
+                }
+            })
         }
     };
 
@@ -61,6 +89,8 @@ macro_rules! byond_fn {
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
+            $crate::panic_hook::set_last_byond_fn(stringify!($name));
+
             let __args = unsafe { $crate::byond::parse_args(_argc, _argv) };
 
             let mut __argn = 0;
@@ -72,8 +102,15 @@ macro_rules! byond_fn {
                 let $rest = __args.get(__argn..).unwrap_or(&[]);
             )?
 
-            let closure = || ($body);
-            $crate::byond::byond_return(closure().map(From::from))
+            $crate::byond::byond_return(match std::panic::catch_unwind(|| -> Option<Vec<u8>> {
+                (|| { $body })().map(From::from)
+            }) {
+                Ok(output) => output,
+                Err(thread_error) => {
+                    $crate::byond::panicked(stringify!($name), thread_error, &__args);
+                    None
+                }
+            })
         }
     };
 }

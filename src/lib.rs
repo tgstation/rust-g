@@ -47,5 +47,10 @@ pub mod url;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
 
+mod panic_hook;
+
+#[cfg(test)]
+mod panic_test;
+
 #[cfg(not(target_pointer_width = "32"))]
 compile_error!("rust-g must be compiled for a 32-bit target");

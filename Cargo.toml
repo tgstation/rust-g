@@ -49,6 +49,7 @@ rayon = { version = "1.5", optional = true}
 dbpnoise = { version = "0.1.2", optional = true}
 pathfinding = { version = "3.0.13", optional = true }
 num = { version = "0.4.0", optional = true }
+ctor = "0.1.26"
 
 [features]
 default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "time", "toml", "url"]

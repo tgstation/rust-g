@@ -1,0 +1,9 @@
+#include "common.dm"
+
+/test/proc/panic()
+    call(RUST_G, "panic_test")()
+
+    ASSERT(fexists("rustg_panic.log"))
+
+    var/contents = file2text("rustg_panic.log")
+    ASSERT(findtext(contents, "last byond fn: panic_test"))
