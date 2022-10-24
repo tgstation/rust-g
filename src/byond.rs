@@ -66,6 +66,7 @@ macro_rules! byond_fn {
     (fn $name:ident() $body:block) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
+        #[allow(clippy::redundant_closure_call)] // Without it, this errors
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
@@ -86,6 +87,7 @@ macro_rules! byond_fn {
     (fn $name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
+        #[allow(clippy::redundant_closure_call)] // Without it, this errors
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
