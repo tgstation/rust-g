@@ -1,7 +1,7 @@
 #include "common.dm"
 
 /test/proc/panic()
-    call(RUST_G, "panic_test")()
+    rustg_panic_test()
 
     ASSERT(fexists("rustg_panic.log"))
 

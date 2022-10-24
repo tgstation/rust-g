@@ -78,6 +78,7 @@ worleynoise = ["rand","rayon"]
 
 # internal feature-like things
 jobs = ["flume"]
+panic_test = []
 
 [dev-dependencies]
 regex = "1"

@@ -18,6 +18,7 @@ fn url() {
     run_dm_tests("url");
 }
 
+#[cfg(feature = "panic_test")]
 #[test]
 fn panic() {
     run_dm_tests("panic");

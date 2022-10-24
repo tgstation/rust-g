@@ -49,7 +49,7 @@ pub mod worleynoise;
 
 mod panic_hook;
 
-#[cfg(test)]
+#[cfg(feature = "panic_test")]
 mod panic_test;
 
 #[cfg(not(target_pointer_width = "32"))]
