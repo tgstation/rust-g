@@ -46,6 +46,7 @@ jobs:
           name: Windows Build
           path: |
             target/i686-pc-windows-msvc/release/rust_g.dll
+            target/i686-pc-windows-msvc/release/rust_g.pdb
             target/rust_g.dm
 
 
