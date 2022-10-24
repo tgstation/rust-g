@@ -7,7 +7,7 @@ This library is currently used in the [/tg/station] codebase, and is required fo
 it to run. A pre-compiled DLL version can be found in the repo root of codebases that use it,
 but you can build your own from this repo (and you should if you're running a server).
 
-Builds can also be found on the [releases page] but should only be used for Windows,
+Builds can also be found on the [releases page] **but should only be used for Windows**,
 as Linux has compatibility issues across distributions.
 
 [releases page]: https://github.com/tgstation/rust-g/releases
@@ -104,10 +104,13 @@ The default features are:
 
 Additional features are:
 * batchnoise: Discrete Batched Perlin-like Noise, fast and multi-threaded - sent over once instead of having to query for every tile.
+* pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
 * worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise
+
+Regarding rust-analyzer: If you are using a feature set other than the default, you will need to adjust `rust-analyzer.cargo.features`.
 
 ## Installing
 
