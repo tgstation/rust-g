@@ -41,8 +41,5 @@ fn main() {
     }
     
     // footer
-    writeln!(
-        f,
-        "#undef RGCALL"
-    ).unwrap();
+    writeln!(f, "#undef RGCALL").unwrap();
 }
