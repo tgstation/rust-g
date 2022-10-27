@@ -12,5 +12,5 @@
  * * node_max: maximum amount of nodes in a region
  */
 #define rustg_worley_generate(region_size, threshold, node_per_region_chance, size, node_min, node_max) \
-	RGCALL(RUST_G, "worley_generate")(region_size, threshold, node_per_region_chance, size, node_min, node_max)
+	RUSTG_CALL(RUST_G, "worley_generate")(region_size, threshold, node_per_region_chance, size, node_min, node_max)
 

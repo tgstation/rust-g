@@ -40,10 +40,10 @@
 
 // Handle 515 call() -> call_ext() changes
 #if DM_VERSION >= 515
-#define RGCALL call_ext
+#define RUSTG_CALL call_ext
 #else
-#define RGCALL call
+#define RUSTG_CALL call
 #endif
 
 /// Gets the version of rust_g
-/proc/rustg_get_version() return RGCALL(RUST_G, "get_version")()
+/proc/rustg_get_version() return RUSTG_CALL(RUST_G, "get_version")()
