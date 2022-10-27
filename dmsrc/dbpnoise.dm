@@ -12,5 +12,5 @@
  * * upper_range: upper bound of values selected for. (exclusive)
  */
 #define rustg_dbp_generate(seed, accuracy, stamp_size, world_size, lower_range, upper_range) \
-	call(RUST_G, "dbp_generate")(seed, accuracy, stamp_size, world_size, lower_range, upper_range)
+	RUSTG_CALL(RUST_G, "dbp_generate")(seed, accuracy, stamp_size, world_size, lower_range, upper_range)
 
