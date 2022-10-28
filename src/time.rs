@@ -35,3 +35,7 @@ byond_fn!(fn time_reset(instant_id) {
         Some("")
     })
 });
+
+byond_fn!(fn unix_timestamp() {
+    Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs().to_string())
+});
