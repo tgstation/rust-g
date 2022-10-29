@@ -42,7 +42,7 @@ byond_fn!(
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
-                .as_secs()
+                .as_secs_f64()
                 .to_string(),
         )
     }
