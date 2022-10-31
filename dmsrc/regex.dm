@@ -24,7 +24,7 @@
 		var/character = copytext(flags, character_index, character_index + 1)
 		switch (character)
 			if ("g")
-				flags |= RUSTG_REGEX_FLAG_GLOBAL
+				src.flags |= RUSTG_REGEX_FLAG_GLOBAL
 			else
 				CRASH("unknown flag passed to regex: [character]")
 
