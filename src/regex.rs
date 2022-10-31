@@ -51,9 +51,9 @@ fn regex_captures_impl(
         None => return Ok(None),
     };
 
-    let mut captures = Vec::with_capacity(locations.len());
+    let mut captures = Vec::with_capacity(locations.len().saturating_sub(1));
 
-    for i in 0..locations.len() {
+    for i in 1..locations.len() {
         let (start, end) = locations.get(i).expect("invalid capture location");
         captures.push(text[start..end].to_string());
     }

@@ -7,7 +7,7 @@
 	var/lhs = ##a; \
 	var/rhs = ##b; \
 	if (lhs != rhs) { \
-		stack_trace("Expected [isnull(lhs) ? "null" : lhs] to be equal to [isnull(rhs) ? "null" : rhs]."); \
+		stack_trace("[__FILE__]:[__LINE__]: Expected [isnull(lhs) ? "null" : lhs] to be equal to [isnull(rhs) ? "null" : rhs]."); \
 	} \
 } while (FALSE)
 
