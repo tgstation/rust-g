@@ -6,6 +6,11 @@ fn git() {
     run_dm_tests("git");
 }
 
+#[test]
+fn regex() {
+    run_dm_tests("regex");
+}
+
 #[cfg(feature = "toml")]
 #[test]
 fn toml() {
