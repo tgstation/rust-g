@@ -36,7 +36,7 @@
 		else
 			start = 1
 
-	var/list/result = json_decode(RUSTG_CALL(RUST_G, "regex_captures")(haystack, "[start - 1]"))
+	var/list/result = json_decode(RUSTG_CALL(RUST_G, "regex_captures")(pattern, haystack, "[start - 1]"))
 	if (!result["success"])
 		CRASH(result["reason"])
 		return
