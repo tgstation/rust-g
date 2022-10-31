@@ -3,11 +3,11 @@
 
 /// Asserts that the two parameters passed are equal, fails otherwise
 /// Optionally allows an additional message in the case of a failure
-#define TEST_ASSERT_EQUAL(a, b, message) do { \
+#define TEST_ASSERT_EQUAL(a, b) do { \
 	var/lhs = ##a; \
 	var/rhs = ##b; \
 	if (lhs != rhs) { \
-		stack_trace("Expected [isnull(lhs) ? "null" : lhs] to be equal to [isnull(rhs) ? "null" : rhs].[message ? " [message]" : ""]"); \
+		stack_trace("Expected [isnull(lhs) ? "null" : lhs] to be equal to [isnull(rhs) ? "null" : rhs]."); \
 	} \
 } while (FALSE)
 
