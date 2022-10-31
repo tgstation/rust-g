@@ -6,6 +6,7 @@ fn git() {
     run_dm_tests("git");
 }
 
+#[cfg(feature = "regex")]
 #[test]
 fn regex() {
     run_dm_tests("regex");

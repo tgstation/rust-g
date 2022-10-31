@@ -20,7 +20,7 @@
 	if (!istext(flags))
 		CRASH("Expected string for flags, received [flags]")
 
-	for (var/character_index in flags.len)
+	for (var/character_index in length(flags))
 		var/character = copytext(flags, character_index, character_index + 1)
 		switch (character)
 			if ("g")
