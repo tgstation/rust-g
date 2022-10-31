@@ -6,7 +6,7 @@
 /datum/rustg_regex
 	var/index
 	var/next
-	var/group
+	var/list/group
 
 	var/flags = 0
 
