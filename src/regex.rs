@@ -54,10 +54,11 @@ fn regex_captures_impl(
     let mut captures = Vec::with_capacity(locations.len().saturating_sub(1));
 
     for i in 1..locations.len() {
-        captures.push(match locations.get(i) {
-            Some((start, end)) => Some(text[start..end].to_owned()),
-            None => None,
-        });
+        captures.push(
+            locations
+                .get(i)
+                .map(|(start, end)| text[start..end].to_owned()),
+        );
     }
 
     Ok(Some(CaptureResult {
