@@ -17,7 +17,7 @@
 	// MBTODO: Validate
 	src.pattern = pattern
 
-	if (!istext(flags))
+	if (!istext(flags) && !isnull(flags))
 		CRASH("Expected string for flags, received [flags]")
 
 	for (var/character_index in 1 to length(flags))
