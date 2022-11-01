@@ -14,3 +14,12 @@
 
     TEST_ASSERT_EQUAL(re_global.group.len, 1)
     TEST_ASSERT_EQUAL(re_global.group[1], "d")
+
+/test/proc/regex_multiple_captures()
+    var/datum/rustg_regex/re_multiple_captures = new("(a.c)|(d.f)")
+
+    TEST_ASSERT_EQUAL(re_multiple_captures.Find("def"), 1)
+
+    TEST_ASSERT_EQUAL(re_multiple_captures.group.len, 2)
+    TEST_ASSERT_EQUAL(re_multiple_captures.group[1], null)
+    TEST_ASSERT_EQUAL(re_multiple_captures.group[2], "def")

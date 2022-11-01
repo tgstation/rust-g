@@ -29,7 +29,7 @@ byond_fn!(
 
 #[derive(Serialize)]
 struct CaptureResult {
-    captures: Vec<String>,
+    captures: Vec<Option<String>>,
 
     index: usize,
     next: usize,
@@ -54,8 +54,10 @@ fn regex_captures_impl(
     let mut captures = Vec::with_capacity(locations.len().saturating_sub(1));
 
     for i in 1..locations.len() {
-        let (start, end) = locations.get(i).expect("invalid capture location");
-        captures.push(text[start..end].to_string());
+        captures.push(match locations.get(i) {
+            Some((start, end)) => Some(text[start..end].to_owned()),
+            None => None,
+        });
     }
 
     Ok(Some(CaptureResult {
