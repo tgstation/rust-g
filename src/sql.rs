@@ -274,7 +274,7 @@ fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Para
         Params::Named(
             params
                 .into_iter()
-                .map(|(key, val)| (key, json_to_mysql(val)))
+                .map(|(key, val)| (Vec::from(key), json_to_mysql(val)))
                 .collect(),
         )
     }
