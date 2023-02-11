@@ -138,16 +138,13 @@ sample output, but the most important thing is that nothing is listed as
 
 ```sh
 $ ldd librust_g.so  # Linux
-    linux-gate.so.1 (0xf7f45000)
-    libssl.so.1.1 => /usr/lib/i386-linux-gnu/libssl.so.1.1 (0xf6c79000)
-    libcrypto.so.1.1 => /usr/lib/i386-linux-gnu/libcrypto.so.1.1 (0xf69cd000)
-    libdl.so.2 => /lib/i386-linux-gnu/libdl.so.2 (0xf69c8000)
-    librt.so.1 => /lib/i386-linux-gnu/librt.so.1 (0xf69be000)
-    libpthread.so.0 => /lib/i386-linux-gnu/libpthread.so.0 (0xf699f000)
-    libgcc_s.so.1 => /lib/i386-linux-gnu/libgcc_s.so.1 (0xf6981000)
-    libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf67a5000)
-    /lib/ld-linux.so.2 (0xf7f47000)
-    libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf66a3000)
+    linux-gate.so.1 (0xf7edb000)
+    libssl.so.3 => /lib/i386-linux-gnu/libssl.so.3 (0xf6403000)
+    libcrypto.so.3 => /lib/i386-linux-gnu/libcrypto.so.3 (0xf5fc8000)
+    libgcc_s.so.1 => /lib/i386-linux-gnu/libgcc_s.so.1 (0xf5fa1000)
+    libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf5e99000)
+    libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf5c64000)
+    /lib/ld-linux.so.2 (0xf7edd000)
 ```
 
 If BYOND cannot find the shared library, ensure that the directory containing
