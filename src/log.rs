@@ -31,12 +31,12 @@ byond_fn!(fn log_write(path, data, ...rest) {
             // write first line, timestamped
             let mut iter = data.split('\n');
             if let Some(line) = iter.next() {
-                write!(file, "[{}] {}\n", Utc::now().format("%F %T%.3f"), line)?;
+                writeln!(file, "[{}] {}", Utc::now().format("%F %T%.3f"), line)?;
             }
 
             // write remaining lines
             for line in iter {
-                write!(file, " - {}\n", line)?;
+                writeln!(file, " - {}", line)?;
             }
         }
 

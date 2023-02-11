@@ -1,4 +1,4 @@
-use noise::{NoiseFn, Perlin, Seedable};
+use noise::{NoiseFn, Perlin};
 use std::{
     cell::RefCell,
     collections::hash_map::{Entry, HashMap},
@@ -25,7 +25,7 @@ fn get_at_coordinates(seed_as_str: &str, x_as_str: &str, y_as_str: &str) -> Resu
             Entry::Occupied(ref mut occ) => occ.get_mut(),
             Entry::Vacant(vac) => {
                 let seed = seed_as_str.parse::<u32>()?;
-                let perlin = Perlin::new().set_seed(seed);
+                let perlin = Perlin::new(seed);
                 vac.insert(perlin)
             }
         };
