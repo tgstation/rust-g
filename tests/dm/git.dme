@@ -2,6 +2,3 @@
 
 /test/proc/rev_parse_head()
     ASSERT(rustg_git_revparse("HEAD"))
-
-/test/proc/rev_parse_head_old()
-    ASSERT(rustg_git_revparseold("HEAD"))
