@@ -6,16 +6,16 @@ thread_local! {
 }
 
 byond_fn!(fn rg_git_revparse(rev) {
-    REPOSITORY.with(|rep| -> Result<String, String> {
-        let repo = rep.as_ref().map_err(|e| e.to_string())?;
+    REPOSITORY.with(|repo| -> Result<String, String> {
+        let repo = repo.as_ref().map_err(|e| e.to_string())?;
         let object = repo.rev_parse_single(rev).map_err(|e| e.to_string())?;
         Ok(object.to_hex().to_string())
     }).ok()
 });
 
 byond_fn!(fn rg_git_commit_date(rev) {
-    REPOSITORY.with(|rep| -> Result<String, String> {
-        let repo = rep.as_ref().map_err(|e| e.to_string())?;
+    REPOSITORY.with(|repo| -> Result<String, String> {
+        let repo = repo.as_ref().map_err(|e| e.to_string())?;
         let object = repo.rev_parse_single(rev).map_err(|e| e.to_string())?;
         let commit = object.object().map_err(|e| e.to_string())?.into_commit();
         let time = commit.time().map_err(|e| e.to_string())?;
