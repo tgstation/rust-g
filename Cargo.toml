@@ -22,6 +22,7 @@ debug = true
 
 [dependencies]
 thiserror = "1.0"
+crossbeam = { version = "0.8.2", optional = true }
 flume = { version = "0.10", optional = true }
 chrono = { version = "0.4", optional = true }
 base64 = { version = "0.13", optional = true }
@@ -34,7 +35,9 @@ hex = { version = "0.4", optional = true }
 percent-encoding = { version = "2.1", optional = true }
 url-dep = { version = "2.1", package = "url", optional = true }
 png = { version = "0.17", optional = true }
-image = { version = "0.24", optional = true, default-features = false, features = ["png"] }
+image = { version = "0.24", optional = true, default-features = false, features = [
+    "png",
+] }
 git2 = { version = "0.14", optional = true, default-features = false }
 noise = { version = "0.8", optional = true }
 redis = { version = "0.21", optional = true }
@@ -107,7 +110,7 @@ unzip = ["zip", "jobs"]
 worleynoise = ["rand", "rayon"]
 
 # internal feature-like things
-jobs = ["flume"]
+jobs = ["crossbeam"]
 
 [dev-dependencies]
 regex = "1"

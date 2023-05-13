@@ -1,5 +1,4 @@
 //! Job system
-use flume::Receiver;
 use std::{
     cell::RefCell,
     collections::hash_map::{Entry, HashMap},
@@ -7,7 +6,7 @@ use std::{
 };
 
 struct Job {
-    rx: Receiver<Output>,
+    rx: crossbeam::channel::Receiver<Output>,
     handle: thread::JoinHandle<()>,
 }
 
@@ -26,7 +25,7 @@ struct Jobs {
 
 impl Jobs {
     fn start<F: FnOnce() -> Output + Send + 'static>(&mut self, f: F) -> JobId {
-        let (tx, rx) = flume::unbounded();
+        let (tx, rx) = crossbeam::channel::unbounded();
         let handle = thread::spawn(move || {
             let _ = tx.send(f());
         });
@@ -43,8 +42,8 @@ impl Jobs {
         };
         let result = match entry.get().rx.try_recv() {
             Ok(result) => result,
-            Err(flume::TryRecvError::Disconnected) => JOB_PANICKED.to_owned(),
-            Err(flume::TryRecvError::Empty) => return NO_RESULTS_YET.to_owned(),
+            Err(crossbeam::channel::TryRecvError::Disconnected) => JOB_PANICKED.to_owned(),
+            Err(crossbeam::channel::TryRecvError::Empty) => return NO_RESULTS_YET.to_owned(),
         };
         let _ = entry.remove().handle.join();
         result
