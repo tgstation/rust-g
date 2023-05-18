@@ -107,6 +107,7 @@ Additional features are:
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 * pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
 * redis_pubsub: Library for sending and receiving messages through Redis.
+* redis_rpoplpush: Library for using a reliable queue pattern through Redis.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
 * worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise
 
