@@ -29,7 +29,7 @@ fn lpush(key: String, elements: Vec<String>) -> serde_json::Value {
                 Ok(conn) => conn,
                 Err(e) => {
                     return serde_json::json!({
-                        "success": false, "content": format!("Failed to get connection: {}", e)
+                        "success": false, "content": format!("Failed to get connection: {e}")
                     })
                 }
             };
@@ -38,14 +38,13 @@ fn lpush(key: String, elements: Vec<String>) -> serde_json::Value {
                     "success": true, "content": res
                 }),
                 Err(e) => serde_json::json!({
-                    "success": false, "content": format!("Failed to perform LPUSH operation: {}", e)
+                    "success": false, "content": format!("Failed to perform LPUSH operation: {e}")
                 }),
             };
-        } else {
-            serde_json::json!({
-                "success": false, "content": "Not Connected"
-            })
         }
+        serde_json::json!({
+            "success": false, "content": "Not Connected"
+        })
     })
 }
 
@@ -55,23 +54,24 @@ fn lrange(key: String, start: isize, stop: isize) -> serde_json::Value {
         if let Some(client) = client_ref.as_ref() {
             let mut conn = match client.get_connection() {
                 Ok(conn) => conn,
-                Err(e) => return serde_json::json!({
-                    "success": false, "content": format!("Failed to get connection: {}", e)
-                })
+                Err(e) => {
+                    return serde_json::json!({
+                        "success": false, "content": format!("Failed to get connection: {e}")
+                    })
+                }
             };
             return match conn.lrange::<String, String>(key, start, stop) {
                 Ok(res) => serde_json::json!({
                     "success": true, "content": res
                 }),
                 Err(e) => serde_json::json!({
-                    "success": false, "content": format!("Failed to perform LRANGE operation: {}", e)
-                })
+                    "success": false, "content": format!("Failed to perform LRANGE operation: {e}")
+                }),
             };
-        } else {
-            serde_json::json!({
-                "success": false, "content": "Not Connected"
-            })
         }
+        serde_json::json!({
+            "success": false, "content": "Not Connected"
+        })
     })
 }
 
@@ -83,7 +83,7 @@ fn lpop(key: String, count: Option<NonZeroUsize>) -> serde_json::Value {
                 Ok(conn) => conn,
                 Err(e) => {
                     return serde_json::json!({
-                        "success": false, "content": format!("Failed to get connection: {}", e)
+                        "success": false, "content": format!("Failed to get connection: {e}")
                     })
                 }
             };
@@ -92,14 +92,13 @@ fn lpop(key: String, count: Option<NonZeroUsize>) -> serde_json::Value {
                     "success": true, "content": res
                 }),
                 Err(e) => serde_json::json!({
-                    "success": false, "content": format!("Failed to perform LPOP operation: {}", e)
+                    "success": false, "content": format!("Failed to perform LPOP operation: {e}")
                 }),
             };
-        } else {
-            serde_json::json!({
-                "success": false, "content": "Not Connected"
-            })
         }
+        serde_json::json!({
+            "success": false, "content": "Not Connected"
+        })
     })
 }
 
@@ -135,7 +134,7 @@ fn json_str_to_vec(json_str: &str) -> Vec<String> {
     if let Some(json_array) = json_value.as_array() {
         let string_vec: Vec<String> = json_array
             .iter()
-            .filter_map(|value| value.as_str().map(|s| s.to_string()))
+            .filter_map(|value| value.as_str().map(std::string::ToString::to_string))
             .collect();
 
         string_vec
