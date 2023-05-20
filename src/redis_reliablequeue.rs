@@ -21,19 +21,32 @@ fn disconnect() {
     });
 }
 
-/// https://redis.io/commands/lpush/
+/// <https://redis.io/commands/lpush/>
 fn lpush(key: &str, data: serde_json::Value) -> serde_json::Value {
     REDIS_CLIENT.with(|client| {
         let client_ref = client.borrow();
         if let Some(client) = client_ref.as_ref() {
             return match client.get_connection() {
-                Ok(mut conn) => match conn.lpush::<&str, String, isize>(key, data.to_string()) {
-                    Ok(res) => serde_json::json!(
-                        {"success": true, "content": res}
-                    ),
-                    Err(e) => serde_json::json!(
-                        {"success": false, "content": format!("Failed to perform LPUSH operation: {e}")}
-                    ),
+                Ok(mut conn) => {
+                    // Need to handle the case of `[{}, {}]` and `{}`
+                    let result = match data {
+                        serde_json::Value::Null => return serde_json::json!(
+                            {"success": false, "content": format!("Failed to perform LPUSH operation: Data sent was null")}
+                        ),
+                        serde_json::Value::Bool(_) |
+                        serde_json::Value::Number(_) |
+                        serde_json::Value::String(_) |
+                        serde_json::Value::Object(_) => conn.lpush::<&str, String, isize>(key, data.to_string()),
+                        serde_json::Value::Array(arr) => conn.lpush::<&str, Vec<String>, isize>(key, map_jvalues_to_strings(&arr)),
+                    };
+                    return match result {
+                        Ok(res) => serde_json::json!(
+                            {"success": true, "content": res}
+                        ),
+                        Err(e) => serde_json::json!(
+                            {"success": false, "content": format!("Failed to perform LPUSH operation: {e}")}
+                        ),
+                    };
                 },
                 Err(e) => {
                     serde_json::json!(
@@ -48,7 +61,11 @@ fn lpush(key: &str, data: serde_json::Value) -> serde_json::Value {
     })
 }
 
-/// https://redis.io/commands/lrange/
+fn map_jvalues_to_strings(values: &[serde_json::Value]) -> Vec<String> {
+    values.iter().map(|value| value.to_string()).collect()
+}
+
+/// <https://redis.io/commands/lrange/>
 fn lrange(key: &str, start: isize, stop: isize) -> serde_json::Value {
     REDIS_CLIENT.with(|client| {
         let client_ref = client.borrow();
@@ -74,7 +91,7 @@ fn lrange(key: &str, start: isize, stop: isize) -> serde_json::Value {
     })
 }
 
-/// https://redis.io/commands/lpop/
+/// <https://redis.io/commands/lpop/>
 fn lpop(key: &str, count: Option<NonZeroUsize>) -> serde_json::Value {
     REDIS_CLIENT.with(|client| {
         let client_ref = client.borrow();
