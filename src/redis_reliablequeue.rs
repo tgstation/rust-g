@@ -87,13 +87,29 @@ fn lpop(key: String, count: Option<NonZeroUsize>) -> serde_json::Value {
                     })
                 }
             };
-            return match conn.lpop::<String, String>(key, count) {
-                Ok(res) => serde_json::json!({
-                    "success": true, "content": res
-                }),
-                Err(e) => serde_json::json!({
-                    "success": false, "content": format!("Failed to perform LPOP operation: {e}")
-                }),
+            match count {
+                None => {
+                    let result = conn.lpop::<String, String>(key, count);
+                    return match result {
+                        Ok(res) => serde_json::json!({
+                            "success": true, "content": res
+                        }),
+                        Err(e) => serde_json::json!({
+                            "success": false, "content": format!("Failed to perform LPOP operation: {e}")
+                        }),
+                    };
+                }
+                Some(_) => {
+                    let result = conn.lpop::<String, Vec<String>>(key, count);
+                    return match result {
+                        Ok(res) => serde_json::json!({
+                            "success": true, "content": res
+                        }),
+                        Err(e) => serde_json::json!({
+                            "success": false, "content": format!("Failed to perform LPOP operation: {e}")
+                        }),
+                    };
+                }
             };
         }
         serde_json::json!({
@@ -127,5 +143,10 @@ byond_fn!(fn redis_lrange(key, start, stop) {
 });
 
 byond_fn!(fn redis_lpop(key, count) {
-    Some(lpop(key.to_owned(), std::num::NonZeroUsize::new(count.parse().unwrap_or(0))).to_string())
+    let count_parsed = if count.is_empty() {
+        0
+    } else {
+        count.parse().unwrap_or(0)
+    };
+    Some(lpop(key.to_owned(), std::num::NonZeroUsize::new(count_parsed)).to_string())
 });
