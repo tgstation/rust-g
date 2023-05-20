@@ -37,7 +37,7 @@ png = { version = "0.17", optional = true }
 image = { version = "0.24", optional = true, default-features = false, features = ["png"] }
 git2 = { version = "0.14", optional = true, default-features = false }
 noise = { version = "0.8", optional = true }
-redis = { version = "0.21", optional = true }
+redis = { version = "0.23", optional = true }
 reqwest = { version = "0.11", optional = true, default-features = false, features = [
     "blocking",
     "rustls-tls",
