@@ -13,24 +13,26 @@
  * https://redis.io/commands/lpush/
  *
  * Arguments
- * * key - The key to use
- * * elements - A list of the elements to push, use a list even if there's only one element.
+ * * key (string) - The key to use
+ * * elements (list) - The elements to push, use a list even if there's only one element.
  */
-#define rustg_redis_lpush(key, elements) RUSTG_CALL(RUST_G, "redis_lpush")(key, elements)
+#define rustg_redis_lpush(key, elements) RUSTG_CALL(RUST_G, "redis_lpush")(key, json_encode(elements))
 /**
  * https://redis.io/commands/lrange/
  *
  * Arguments
- * * key - The key to use
- * * start - The zero-based index to start retrieving at
- * * stop - The zero-based index to stop retrieving at (inclusive)
+ * * key (string) - The key to use
+ * * start (string) - The zero-based index to start retrieving at
+ * * stop (string) - The zero-based index to stop retrieving at (inclusive)
  */
 #define rustg_redis_lrange(key, start, stop) RUSTG_CALL(RUST_G, "redis_lrange")(key, start, stop)
 /**
  * https://redis.io/commands/lpop/
  *
  * Arguments
- * * key - The key to use
- * * count - The amount to pop off the list, pass null to omit
+ * * key (string) - The key to use
+ * * count (string|null) - The amount to pop off the list, pass null to omit
+ *
+ * Note: `count` was added in Redis version 6.2.0
  */
 #define rustg_redis_lpop(key, count) RUSTG_CALL(RUST_G, "redis_lpop")(key, count)

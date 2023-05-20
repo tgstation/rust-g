@@ -21,7 +21,7 @@ fn disconnect() {
     });
 }
 
-fn lpush(key: String, elements: Vec<String>) -> serde_json::Value {
+fn lpush(key: &str, data: serde_json::Value) -> serde_json::Value {
     REDIS_CLIENT.with(|client| {
         let client_ref = client.borrow();
         if let Some(client) = client_ref.as_ref() {
@@ -33,7 +33,7 @@ fn lpush(key: String, elements: Vec<String>) -> serde_json::Value {
                     })
                 }
             };
-            return match conn.lpush::<String, Vec<String>, String>(key, elements) {
+            return match conn.lpush::<&str, String, isize>(key, data.to_string()) {
                 Ok(res) => serde_json::json!({
                     "success": true, "content": res
                 }),
@@ -60,7 +60,7 @@ fn lrange(key: String, start: isize, stop: isize) -> serde_json::Value {
                     })
                 }
             };
-            return match conn.lrange::<String, String>(key, start, stop) {
+            return match conn.lrange::<String, Vec<String>>(key, start, stop) {
                 Ok(res) => serde_json::json!({
                     "success": true, "content": res
                 }),
@@ -114,31 +114,18 @@ byond_fn!(
 );
 
 byond_fn!(fn redis_lpush(key, elements) {
-    serde_json::to_string(&lpush(key.to_owned(), json_str_to_vec(elements))).ok()
+    return match serde_json::from_str(elements) {
+        Ok(elem) => Some(lpush(key, elem).to_string()),
+        Err(e) => Some(serde_json::json!({
+            "success": false, "content": format!("Failed to deserialize JSON: {e}")
+        }).to_string()),
+    };
 });
 
 byond_fn!(fn redis_lrange(key, start, stop) {
-    serde_json::to_string(&lrange(key.to_owned(), start.parse().unwrap_or(0), stop.parse().unwrap_or(-1))).ok()
+    Some(lrange(key.to_owned(), start.parse().unwrap_or(0), stop.parse().unwrap_or(-1)).to_string())
 });
 
 byond_fn!(fn redis_lpop(key, count) {
-    serde_json::to_string(&lpop(key.to_owned(), count.parse().ok().and_then(std::num::NonZeroUsize::new))).ok()
+    Some(lpop(key.to_owned(), std::num::NonZeroUsize::new(count.parse().unwrap_or(0))).to_string())
 });
-
-fn json_str_to_vec(json_str: &str) -> Vec<String> {
-    // Get the value from the game, if it's malformed just treat it as a null
-    let json_value: serde_json::Value = serde_json::from_str(json_str)
-        .ok()
-        .unwrap_or(serde_json::Value::Null);
-
-    if let Some(json_array) = json_value.as_array() {
-        let string_vec: Vec<String> = json_array
-            .iter()
-            .filter_map(|value| value.as_str().map(std::string::ToString::to_string))
-            .collect();
-
-        string_vec
-    } else {
-        vec![]
-    }
-}
