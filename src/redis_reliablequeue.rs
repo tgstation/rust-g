@@ -21,26 +21,26 @@ fn disconnect() {
     });
 }
 
+/// https://redis.io/commands/lpush/
 fn lpush(key: &str, data: serde_json::Value) -> serde_json::Value {
     REDIS_CLIENT.with(|client| {
         let client_ref = client.borrow();
         if let Some(client) = client_ref.as_ref() {
-            let mut conn = match client.get_connection() {
-                Ok(conn) => conn,
+            return match client.get_connection() {
+                Ok(mut conn) => match conn.lpush::<&str, String, isize>(key, data.to_string()) {
+                    Ok(res) => serde_json::json!(
+                        {"success": true, "content": res}
+                    ),
+                    Err(e) => serde_json::json!(
+                        {"success": false, "content": format!("Failed to perform LPUSH operation: {e}")}
+                    ),
+                },
                 Err(e) => {
-                    return serde_json::json!({
-                        "success": false, "content": format!("Failed to get connection: {e}")
-                    })
+                    serde_json::json!(
+                        {"success": false, "content": format!("Failed to get connection: {e}")}
+                    )
                 }
-            };
-            return match conn.lpush::<&str, String, isize>(key, data.to_string()) {
-                Ok(res) => serde_json::json!({
-                    "success": true, "content": res
-                }),
-                Err(e) => serde_json::json!({
-                    "success": false, "content": format!("Failed to perform LPUSH operation: {e}")
-                }),
-            };
+            }
         }
         serde_json::json!({
             "success": false, "content": "Not Connected"
@@ -48,7 +48,34 @@ fn lpush(key: &str, data: serde_json::Value) -> serde_json::Value {
     })
 }
 
-fn lrange(key: String, start: isize, stop: isize) -> serde_json::Value {
+/// https://redis.io/commands/lrange/
+fn lrange(key: &str, start: isize, stop: isize) -> serde_json::Value {
+    REDIS_CLIENT.with(|client| {
+        let client_ref = client.borrow();
+        if let Some(client) = client_ref.as_ref() {
+            return match client.get_connection() {
+                Ok(mut conn) => match conn.lrange::<&str, Vec<String>>(key, start, stop) {
+                    Ok(res) => serde_json::json!(
+                        {"success": true, "content": res}
+                    ),
+                    Err(e) => serde_json::json!(
+                        {"success": false, "content": format!("Failed to perform LRANGE operation: {e}")}
+                    ),
+                },
+                Err(e) =>
+                    serde_json::json!(
+                        {"success": false, "content": format!("Failed to get connection: {e}")}
+                    ),
+            }
+        }
+        serde_json::json!(
+            {"success": false, "content": "Not Connected"}
+        )
+    })
+}
+
+/// https://redis.io/commands/lpop/
+fn lpop(key: &str, count: Option<NonZeroUsize>) -> serde_json::Value {
     REDIS_CLIENT.with(|client| {
         let client_ref = client.borrow();
         if let Some(client) = client_ref.as_ref() {
@@ -60,36 +87,11 @@ fn lrange(key: String, start: isize, stop: isize) -> serde_json::Value {
                     })
                 }
             };
-            return match conn.lrange::<String, Vec<String>>(key, start, stop) {
-                Ok(res) => serde_json::json!({
-                    "success": true, "content": res
-                }),
-                Err(e) => serde_json::json!({
-                    "success": false, "content": format!("Failed to perform LRANGE operation: {e}")
-                }),
-            };
-        }
-        serde_json::json!({
-            "success": false, "content": "Not Connected"
-        })
-    })
-}
-
-fn lpop(key: String, count: Option<NonZeroUsize>) -> serde_json::Value {
-    REDIS_CLIENT.with(|client| {
-        let client_ref = client.borrow();
-        if let Some(client) = client_ref.as_ref() {
-            let mut conn = match client.get_connection() {
-                Ok(conn) => conn,
-                Err(e) => {
-                    return serde_json::json!({
-                        "success": false, "content": format!("Failed to get connection: {e}")
-                    })
-                }
-            };
+            // It will return either an Array or a BulkStr per ref
+            // Yes, this code could be written more tersely but it's more intensive
             match count {
                 None => {
-                    let result = conn.lpop::<String, String>(key, count);
+                    let result = conn.lpop::<&str, String>(key, count);
                     return match result {
                         Ok(res) => serde_json::json!({
                             "success": true, "content": res
@@ -100,7 +102,7 @@ fn lpop(key: String, count: Option<NonZeroUsize>) -> serde_json::Value {
                     };
                 }
                 Some(_) => {
-                    let result = conn.lpop::<String, Vec<String>>(key, count);
+                    let result = conn.lpop::<&str, Vec<String>>(key, count);
                     return match result {
                         Ok(res) => serde_json::json!({
                             "success": true, "content": res
@@ -139,7 +141,7 @@ byond_fn!(fn redis_lpush(key, elements) {
 });
 
 byond_fn!(fn redis_lrange(key, start, stop) {
-    Some(lrange(key.to_owned(), start.parse().unwrap_or(0), stop.parse().unwrap_or(-1)).to_string())
+    Some(lrange(key, start.parse().unwrap_or(0), stop.parse().unwrap_or(-1)).to_string())
 });
 
 byond_fn!(fn redis_lpop(key, count) {
@@ -148,5 +150,5 @@ byond_fn!(fn redis_lpop(key, count) {
     } else {
         count.parse().unwrap_or(0)
     };
-    Some(lpop(key.to_owned(), std::num::NonZeroUsize::new(count_parsed)).to_string())
+    Some(lpop(key, std::num::NonZeroUsize::new(count_parsed)).to_string())
 });

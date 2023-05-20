@@ -31,7 +31,7 @@
  *
  * Arguments
  * * key (string) - The key to use
- * * count (string|null) - The amount to pop off the list, pass null to omit
+ * * count (string|null) - The amount to pop off the list, pass null to omit (thus just 1)
  *
  * Note: `count` was added in Redis version 6.2.0
  */
