@@ -34,6 +34,8 @@ pub mod noise_gen;
 pub mod pathfinder;
 #[cfg(feature = "redis_pubsub")]
 pub mod redis_pubsub;
+#[cfg(feature = "regex")]
+pub mod regex;
 #[cfg(feature = "sql")]
 pub mod sql;
 #[cfg(feature = "time")]

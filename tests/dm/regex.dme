@@ -1,0 +1,25 @@
+#include "common.dm"
+
+/test/proc/regex_global()
+    var/datum/rustg_regex/re_global = new("a(.)c", "g")
+
+    TEST_ASSERT_EQUAL(re_global.Find("abc adc"), 1)
+    TEST_ASSERT_EQUAL(re_global.next, 4)
+
+    TEST_ASSERT_EQUAL(re_global.group.len, 1)
+    TEST_ASSERT_EQUAL(re_global.group[1], "b")
+
+    TEST_ASSERT_EQUAL(re_global.Find("abc adc"), 5)
+    TEST_ASSERT_EQUAL(re_global.next, 8)
+
+    TEST_ASSERT_EQUAL(re_global.group.len, 1)
+    TEST_ASSERT_EQUAL(re_global.group[1], "d")
+
+/test/proc/regex_multiple_captures()
+    var/datum/rustg_regex/re_multiple_captures = new("(a.c)|(d.f)")
+
+    TEST_ASSERT_EQUAL(re_multiple_captures.Find("def"), 1)
+
+    TEST_ASSERT_EQUAL(re_multiple_captures.group.len, 2)
+    TEST_ASSERT_EQUAL(re_multiple_captures.group[1], null)
+    TEST_ASSERT_EQUAL(re_multiple_captures.group[2], "def")

@@ -97,6 +97,7 @@ The default features are:
 * json: Function to check JSON validity.
 * log: Faster log output.
 * noise: 2d Perlin noise.
+* regex: Adds a /datum/rustg_regex replacement for /regex.
 * sql: Asynchronous MySQL/MariaDB client library.
 * time: High-accuracy time measuring.
 * toml: TOML parser.
