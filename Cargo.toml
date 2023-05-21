@@ -50,7 +50,7 @@ mysql = { version = "22.2", optional = true }
 dashmap = { version = "5.3", optional = true }
 zip = { version = "0.6", optional = true }
 rand = { version = "0.8", optional = true }
-toml-dep = { version = "0.5.8", package = "toml", optional = true }
+toml-dep = { version = "0.7.4", package = "toml", optional = true }
 aho-corasick = { version = "0.7.18", optional = true }
 rayon = { version = "1.5", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
