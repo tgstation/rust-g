@@ -35,7 +35,7 @@ percent-encoding = { version = "2.1", optional = true }
 url-dep = { version = "2.1", package = "url", optional = true }
 png = { version = "0.17", optional = true }
 image = { version = "0.24", optional = true, default-features = false, features = ["png"] }
-git2 = { version = "0.14", optional = true, default-features = false }
+git2 = { version = "0.17.1", optional = true, default-features = false }
 noise = { version = "0.8", optional = true }
 redis = { version = "0.21", optional = true }
 reqwest = { version = "0.11", optional = true, default-features = false, features = [
