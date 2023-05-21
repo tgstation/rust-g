@@ -148,7 +148,6 @@ byond_fn!(
     }
 );
 
-
 byond_fn!(fn redis_lpush(key, elements) {
     #[allow(clippy::needless_return)]
     return match serde_json::from_str(elements) {

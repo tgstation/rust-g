@@ -20,7 +20,11 @@ struct AhoCorasickOptions {
 impl AhoCorasickOptions {
     fn auto_configure_and_build(&self, patterns: &[String]) -> AhoCorasick {
         AhoCorasickBuilder::new()
-            .start_kind(if self.anchored { StartKind::Anchored } else { StartKind::Unanchored })
+            .start_kind(if self.anchored {
+                StartKind::Anchored
+            } else {
+                StartKind::Unanchored
+            })
             .ascii_case_insensitive(self.ascii_case_insensitive)
             .match_kind(self.match_kind)
             .build(patterns)
