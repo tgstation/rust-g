@@ -23,7 +23,6 @@ impl AhoCorasickOptions {
             .anchored(self.anchored)
             .ascii_case_insensitive(self.ascii_case_insensitive)
             .match_kind(self.match_kind)
-            .auto_configure(patterns)
             .build(patterns)
     }
 }
@@ -56,7 +55,7 @@ thread_local! {
 byond_fn!(fn setup_acreplace(key, patterns_json, replacements_json) {
     let patterns: Vec<String> = serde_json::from_str(patterns_json).ok()?;
     let replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;
-    let ac = AhoCorasickBuilder::new().auto_configure(&patterns).build(&patterns);
+    let ac = AhoCorasickBuilder::new().build(&patterns);
     CREPLACE_MAP.with(|cell| {
         let mut map = cell.borrow_mut();
         map.insert(key.to_owned(), Replacements { automaton: ac, replacements });
