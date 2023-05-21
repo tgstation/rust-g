@@ -3,12 +3,12 @@ use dashmap::DashMap;
 use mysql::{
     consts::{ColumnFlags, ColumnType::*},
     prelude::Queryable,
-    OptsBuilder, Params, Pool,
+    OptsBuilder, Params, Pool, PoolConstraints, PoolOpts,
 };
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_json::{json, map::Map, Number};
-use std::sync::atomic::AtomicUsize;
+use std::{collections::HashMap, sync::atomic::AtomicUsize};
 use std::{error::Error, time::Duration};
 
 // ----------------------------------------------------------------------------
@@ -110,6 +110,17 @@ static POOL: Lazy<DashMap<usize, Pool>> = Lazy::new(DashMap::new);
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Error>> {
+    let pool_constraints = PoolConstraints::new(
+        options.min_threads.unwrap_or(DEFAULT_MIN_THREADS),
+        options.max_threads.unwrap_or(DEFAULT_MAX_THREADS),
+    )
+    .unwrap_or(PoolConstraints::new_const::<
+        DEFAULT_MIN_THREADS,
+        DEFAULT_MAX_THREADS,
+    >());
+
+    let pool_opts = PoolOpts::with_constraints(PoolOpts::new(), pool_constraints);
+
     let builder = OptsBuilder::new()
         .ip_or_hostname(options.host)
         .tcp_port(options.port.unwrap_or(DEFAULT_PORT))
@@ -120,13 +131,10 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
         .pass(options.pass)
         .db_name(options.db_name)
         .read_timeout(options.read_timeout.map(Duration::from_secs_f32))
-        .write_timeout(options.write_timeout.map(Duration::from_secs_f32));
+        .write_timeout(options.write_timeout.map(Duration::from_secs_f32))
+        .pool_opts(pool_opts);
 
-    let pool = Pool::new_manual(
-        options.min_threads.unwrap_or(DEFAULT_MIN_THREADS),
-        options.max_threads.unwrap_or(DEFAULT_MAX_THREADS),
-        builder,
-    )?;
+    let pool = Pool::new(builder)?;
 
     let handle = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     POOL.insert(handle, pool);
@@ -274,8 +282,11 @@ fn object_to_params(params: Map<std::string::String, serde_json::Value>) -> Para
         Params::Named(
             params
                 .into_iter()
-                .map(|(key, val)| (key, json_to_mysql(val)))
-                .collect(),
+                .map(|(key, val)| {
+                    let key_bytes: Vec<u8> = key.into_bytes();
+                    (key_bytes, json_to_mysql(val))
+                })
+                .collect::<HashMap<_, _>>(),
         )
     }
 }
