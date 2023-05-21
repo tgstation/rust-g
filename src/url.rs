@@ -1,25 +1,24 @@
 use crate::error::Result;
+use byond_fn::byond_fn;
 use std::borrow::Cow;
 use url_dep::form_urlencoded::byte_serialize;
-
-byond_fn!(fn url_encode(data) {
-    Some(encode(data))
-});
 
 byond_fn!(fn url_decode(data) {
     decode(data).ok()
 });
 
-fn encode(string: &str) -> String {
+#[byond_fn]
+fn url_encode(string: &str) -> String {
     byte_serialize(string.as_bytes()).collect()
 }
 
-fn decode(string: &str) -> Result<String> {
+#[byond_fn]
+fn url_decode(string: &str) -> String {
     let replaced = replace_plus(string.as_bytes());
     // into_owned() is not strictly necessary here, but saves some refactoring work.
-    Ok(percent_encoding::percent_decode(&replaced)
+    percent_encoding::percent_decode(&replaced)
         .decode_utf8_lossy()
-        .into_owned())
+        .into_owned()
 }
 
 // From `url` crate.

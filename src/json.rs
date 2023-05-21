@@ -1,16 +1,16 @@
+use byond_fn::byond_fn;
 use serde_json::Value;
 use std::cmp;
 
 const VALID_JSON_MAX_RECURSION_DEPTH: usize = 8;
 
-byond_fn!(fn json_is_valid(text) {
-    let value = match serde_json::from_str::<Value>(text) {
-        Ok(value) => value,
-        Err(_) => return Some("false".to_owned())
-    };
-
-    Some(get_recursion_level(&value).is_ok().to_string())
-});
+#[byond_fn]
+fn json_is_valid(text: &str) -> bool {
+    match serde_json::from_str::<Value>(text) {
+        Ok(value) => get_recursion_level(&value).is_ok(),
+        Err(_) => false,
+    }
+}
 
 /// Gets the recursion level of the given value
 /// If it is above VALID_JSON_MAX_RECURSION_DEPTH, returns Err(())

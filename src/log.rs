@@ -10,49 +10,49 @@ use std::{
     path::Path,
 };
 
+use byond_fn::byond_fn;
+
 thread_local! {
     static FILE_MAP: RefCell<HashMap<OsString, File>> = RefCell::new(HashMap::new());
 }
 
-byond_fn!(fn log_write(path, data, ...rest) {
-    FILE_MAP.with(|cell| -> Result<()> {
+#[byond_fn]
+fn log_write(path: &Path, data: &str, with_format: Option<bool>) -> Result<()> {
+    FILE_MAP.with(|cell| {
         // open file
         let mut map = cell.borrow_mut();
-        let path = Path::new(path as &str);
         let file = match map.entry(path.into()) {
             Entry::Occupied(elem) => elem.into_mut(),
             Entry::Vacant(elem) => elem.insert(open(path)?),
         };
 
-        if rest.first().map(|x| &**x) == Some("false") {
-            // Write the data to the file with no accoutrements.
-            write!(file, "{}", data)?;
-        } else {
+        if with_format.unwrap_or(true) {
             // write first line, timestamped
             let mut iter = data.split('\n');
             if let Some(line) = iter.next() {
-                writeln!(file, "[{}] {}", Utc::now().format("%F %T%.3f"), line)?;
+                let time = Utc::now().format("%F %T%.3f");
+                writeln!(file, "[{time}] {line}")?;
             }
 
-            // write remaining lines
+            // write the rest of the lines
             for line in iter {
-                writeln!(file, " - {}", line)?;
+                writeln!(file, "{line}")?;
             }
+        } else {
+            // Write the data to the file with no accoutrement's.
+            write!(file, "{data}")?;
         }
-
         Ok(())
-    }).err()
-});
+    })
+}
 
-byond_fn!(
-    fn log_close_all() {
-        FILE_MAP.with(|cell| {
-            let mut map = cell.borrow_mut();
-            map.clear();
-        });
-        Some("")
-    }
-);
+#[byond_fn]
+fn log_close_all() {
+    FILE_MAP.with(|cell| {
+        let mut map = cell.borrow_mut();
+        map.clear();
+    });
+}
 
 fn open(path: &Path) -> Result<File> {
     if let Some(parent) = path.parent() {
