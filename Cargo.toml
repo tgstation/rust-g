@@ -24,7 +24,7 @@ debug = true
 thiserror = "1.0"
 flume = { version = "0.10", optional = true }
 chrono = { version = "0.4", optional = true }
-base64 = { version = "0.13", optional = true }
+base64 = { version = "0.21", optional = true }
 md-5 = { version = "0.10", optional = true }
 twox-hash = { version = "1.6", optional = true }
 const-random = { version = "0.1.13", optional = true }
@@ -35,7 +35,7 @@ percent-encoding = { version = "2.1", optional = true }
 url-dep = { version = "2.1", package = "url", optional = true }
 png = { version = "0.17", optional = true }
 image = { version = "0.24", optional = true, default-features = false, features = ["png"] }
-git2 = { version = "0.14", optional = true, default-features = false }
+git2 = { version = "0.17.1", optional = true, default-features = false }
 noise = { version = "0.8", optional = true }
 redis = { version = "0.23", optional = true }
 reqwest = { version = "0.11", optional = true, default-features = false, features = [
@@ -46,15 +46,15 @@ serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 lazy_static = { version = "1.4", optional = true }
 once_cell = { version = "1.4", optional = true }
-mysql = { version = "22.2", optional = true }
+mysql = { version = "24.0", optional = true }
 dashmap = { version = "5.3", optional = true }
 zip = { version = "0.6", optional = true }
 rand = { version = "0.8", optional = true }
-toml-dep = { version = "0.5.8", package = "toml", optional = true }
-aho-corasick = { version = "0.7.18", optional = true }
+toml-dep = { version = "0.7.4", package = "toml", optional = true }
+aho-corasick = { version = "1.0", optional = true }
 rayon = { version = "1.5", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
-pathfinding = { version = "3.0.13", optional = true }
+pathfinding = { version = "4.2.1", optional = true }
 num = { version = "0.4.0", optional = true }
 
 [features]
