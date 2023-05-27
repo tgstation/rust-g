@@ -54,7 +54,7 @@ fn write_png(
         encoder.set_palette(palette);
     }
 
-    if let Some(trns_chunk) = reader_info.trns.to_owned(){
+    if let Some(trns_chunk) = reader_info.trns.to_owned() {
         encoder.set_trns(trns_chunk);
     }
 
