@@ -70,10 +70,7 @@ fn setup_http_client() -> reqwest::blocking::Client {
     };
 
     let mut headers = HeaderMap::new();
-    headers.insert(
-        USER_AGENT,
-        format!("{}/{}", PKG_NAME, VERSION).parse().unwrap(),
-    );
+    headers.insert(USER_AGENT, format!("{PKG_NAME}/{VERSION}").parse().unwrap());
 
     Client::builder().default_headers(headers).build().unwrap()
 }

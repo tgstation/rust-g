@@ -89,5 +89,5 @@ fn get_line_count(path: &str) -> Result<u32> {
 
 fn seek_line(path: &str, line: usize) -> Option<String> {
     let file = BufReader::new(File::open(path).ok()?);
-    file.lines().nth(line).and_then(|line| line.ok())
+    file.lines().nth(line).and_then(std::result::Result::ok)
 }

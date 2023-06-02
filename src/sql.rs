@@ -204,13 +204,12 @@ fn do_query(handle: &str, query: &str, params: &str) -> Result<serde_json::Value
                 mysql::Value::UInt(u) => serde_json::Value::Number(Number::from(*u)),
                 mysql::Value::Date(year, month, day, hour, minute, second, _ms) => {
                     serde_json::Value::String(format!(
-                        "{}-{:02}-{:02} {:02}:{:02}:{:02}",
-                        year, month, day, hour, minute, second
+                        "{year}-{month:02}-{day:02} {hour:02}:{minute:02}:{second:02}"
                     ))
                 }
                 _ => serde_json::Value::Null,
             };
-            json_row.push(converted)
+            json_row.push(converted);
         }
         rows.push(serde_json::Value::Array(json_row));
     }

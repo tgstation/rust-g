@@ -52,7 +52,7 @@ impl Jobs {
 }
 
 thread_local! {
-    static JOBS: RefCell<Jobs> = Default::default();
+    static JOBS: RefCell<Jobs> = RefCell::default();
 }
 
 pub fn start<F: FnOnce() -> Output + Send + 'static>(f: F) -> JobId {

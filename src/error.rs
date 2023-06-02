@@ -64,8 +64,8 @@ pub enum Error {
 }
 
 impl From<Utf8Error> for Error {
-    fn from(source: Utf8Error) -> Error {
-        Error::Utf8 {
+    fn from(source: Utf8Error) -> Self {
+        Self::Utf8 {
             source,
             position: source.valid_up_to(),
         }
@@ -73,13 +73,13 @@ impl From<Utf8Error> for Error {
 }
 
 impl From<Error> for String {
-    fn from(error: Error) -> String {
+    fn from(error: Error) -> Self {
         error.to_string()
     }
 }
 
 impl From<Error> for Vec<u8> {
-    fn from(error: Error) -> Vec<u8> {
+    fn from(error: Error) -> Self {
         error.to_string().into_bytes()
     }
 }

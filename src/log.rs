@@ -26,7 +26,7 @@ byond_fn!(fn log_write(path, data, ...rest) {
 
         if rest.first().map(|x| &**x) == Some("false") {
             // Write the data to the file with no accoutrements.
-            write!(file, "{}", data)?;
+            write!(file, "{data}")?;
         } else {
             // write first line, timestamped
             let mut iter = data.split('\n');
@@ -36,7 +36,7 @@ byond_fn!(fn log_write(path, data, ...rest) {
 
             // write remaining lines
             for line in iter {
-                writeln!(file, " - {}", line)?;
+                writeln!(file, " - {line}")?;
             }
         }
 
@@ -56,7 +56,7 @@ byond_fn!(
 
 fn open(path: &Path) -> Result<File> {
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?
+        fs::create_dir_all(parent)?;
     }
 
     Ok(OpenOptions::new().append(true).create(true).open(path)?)
