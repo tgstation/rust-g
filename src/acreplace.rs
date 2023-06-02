@@ -1,4 +1,4 @@
-use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind, StartKind};
 use serde::Deserialize;
 use std::{cell::RefCell, collections::hash_map::HashMap};
 
@@ -20,11 +20,15 @@ struct AhoCorasickOptions {
 impl AhoCorasickOptions {
     fn auto_configure_and_build(&self, patterns: &[String]) -> AhoCorasick {
         AhoCorasickBuilder::new()
-            .anchored(self.anchored)
+            .start_kind(if self.anchored {
+                StartKind::Anchored
+            } else {
+                StartKind::Unanchored
+            })
             .ascii_case_insensitive(self.ascii_case_insensitive)
             .match_kind(self.match_kind)
-            .auto_configure(patterns)
             .build(patterns)
+            .unwrap_or(AhoCorasickBuilder::new().build(patterns).unwrap())
     }
 }
 
@@ -56,7 +60,7 @@ thread_local! {
 byond_fn!(fn setup_acreplace(key, patterns_json, replacements_json) {
     let patterns: Vec<String> = serde_json::from_str(patterns_json).ok()?;
     let replacements: Vec<String> = serde_json::from_str(replacements_json).ok()?;
-    let ac = AhoCorasickBuilder::new().auto_configure(&patterns).build(&patterns);
+    let ac = AhoCorasickBuilder::new().build(patterns).unwrap(); // Recommends to just unwrap in the docs
     CREPLACE_MAP.with(|cell| {
         let mut map = cell.borrow_mut();
         map.insert(key.to_owned(), Replacements { automaton: ac, replacements });

@@ -54,6 +54,10 @@ fn write_png(
         encoder.set_palette(palette);
     }
 
+    if let Some(trns_chunk) = reader_info.trns.to_owned() {
+        encoder.set_trns(trns_chunk);
+    }
+
     let mut writer = encoder.write_header()?;
     // Handles zTxt chunk copying from the original image if we /don't/ want to strip it
     if !strip {
