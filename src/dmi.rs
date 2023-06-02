@@ -27,7 +27,7 @@ byond_fn!(fn dmi_resize_png(path, width, height, resizetype) {
 
 fn strip_metadata(path: &str) -> Result<()> {
     let (reader, frame_info, image) = read_png(path)?;
-    write_png(path, reader, frame_info, image, true)
+    write_png(path, &reader, &frame_info, &image, true)
 }
 
 fn read_png(path: &str) -> Result<(Reader<File>, OutputInfo, Vec<u8>)> {
@@ -40,9 +40,9 @@ fn read_png(path: &str) -> Result<(Reader<File>, OutputInfo, Vec<u8>)> {
 
 fn write_png(
     path: &str,
-    reader: Reader<File>,
-    info: OutputInfo,
-    image: Vec<u8>,
+    reader: &Reader<File>,
+    info: &OutputInfo,
+    image: &[u8],
     strip: bool,
 ) -> Result<()> {
     let mut encoder = Encoder::new(File::create(path)?, info.width, info.height);
@@ -50,11 +50,11 @@ fn write_png(
     encoder.set_depth(info.bit_depth);
 
     let reader_info = reader.info();
-    if let Some(palette) = reader_info.palette.to_owned() {
+    if let Some(palette) = reader_info.palette.clone() {
         encoder.set_palette(palette);
     }
 
-    if let Some(trns_chunk) = reader_info.trns.to_owned() {
+    if let Some(trns_chunk) = reader_info.trns.clone() {
         encoder.set_trns(trns_chunk);
     }
 
@@ -65,7 +65,7 @@ fn write_png(
             writer.write_text_chunk(chunk)?;
         }
     }
-    Ok(writer.write_image_data(&image)?)
+    Ok(writer.write_image_data(image)?)
 }
 
 fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {

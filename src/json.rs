@@ -13,7 +13,7 @@ byond_fn!(fn json_is_valid(text) {
 });
 
 /// Gets the recursion level of the given value
-/// If it is above VALID_JSON_MAX_RECURSION_DEPTH, returns Err(())
+/// If it is above `VALID_JSON_MAX_RECURSION_DEPTH`, returns Err(())
 fn get_recursion_level(value: &Value) -> Result<usize, ()> {
     let values: Vec<&Value> = match value {
         Value::Array(array) => array.iter().collect(),

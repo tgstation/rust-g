@@ -71,10 +71,10 @@ fn noise_gen(
     });
 
     //then we cut it
-    let map = (1..width + 1)
+    let map = (1..=width)
         .into_par_iter()
         .map(|x| {
-            (1..height + 1)
+            (1..=height)
                 .map(|y| filled_vec[x][y])
                 .collect::<Vec<bool>>()
         })
