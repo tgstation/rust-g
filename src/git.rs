@@ -18,7 +18,7 @@ byond_fn!(fn rg_git_commit_date(rev) {
         let repo = repo.as_ref().map_err(Error::code)?;
         let object = repo.revparse_single(rev).map_err(|e| e.code())?;
         let commit = object.as_commit().ok_or(ErrorCode::GenericError)?;
-        let datetime = Utc.timestamp(commit.time().seconds(), 0);
+        let datetime = Utc.timestamp_opt(commit.time().seconds(), 0).latest().unwrap();
         Ok(datetime.format("%F").to_string())
     }).ok()
 });
