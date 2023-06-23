@@ -1,10 +1,11 @@
 use crate::error::{Error, Result};
+use dmi::icon::Icon;
 use png::{Decoder, Encoder, OutputInfo, Reader};
 use std::{
     fs::{create_dir_all, File},
-    path::Path, io::BufReader,
+    io::BufReader,
+    path::Path,
 };
-use dmi::icon::Icon;
 
 byond_fn!(fn dmi_strip_metadata(path) {
     strip_metadata(path).err()
@@ -126,6 +127,11 @@ fn read_states(path: &str) -> Result<String> {
     if icon.is_none() {
         return Err(Error::InvalidPngData);
     }
-    let states: Vec<_> = icon.unwrap().states.iter().map(|s| s.name.clone()).collect();
+    let states: Vec<_> = icon
+        .unwrap()
+        .states
+        .iter()
+        .map(|s| s.name.clone())
+        .collect();
     Ok(serde_json::to_string(&states)?)
 }
