@@ -78,7 +78,7 @@ default = [
 # default features
 acreplace = ["aho-corasick"]
 cellularnoise = ["rand", "rayon"]
-dmi = ["png", "image", "dmi"]
+dmi = ["png", "image", "dep:dmi"]
 file = []
 git = ["git2", "chrono"]
 http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
