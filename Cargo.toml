@@ -56,15 +56,29 @@ rayon = { version = "1.7", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
 pathfinding = { version = "4.2.1", optional = true }
 num = { version = "0.4.0", optional = true }
-dmi = "0.2.0"
+dmi = { version = "0.2.0", optional = true }
 
 [features]
-default = ["acreplace", "cellularnoise", "dmi", "file", "git", "http", "json", "log", "noise", "sql", "time", "toml", "url"]
+default = [
+    "acreplace",
+    "cellularnoise",
+    "dmi",
+    "file",
+    "git",
+    "http",
+    "json",
+    "log",
+    "noise",
+    "sql",
+    "time",
+    "toml",
+    "url",
+]
 
 # default features
 acreplace = ["aho-corasick"]
 cellularnoise = ["rand", "rayon"]
-dmi = ["png", "image"]
+dmi = ["png", "image", "dmi"]
 file = []
 git = ["git2", "chrono"]
 http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
@@ -77,7 +91,17 @@ url = ["url-dep", "percent-encoding"]
 
 # additional features
 batchnoise = ["dbpnoise"]
-hash = ["base64", "const-random", "md-5", "hex", "sha-1", "sha2", "twox-hash", "serde", "serde_json"]
+hash = [
+    "base64",
+    "const-random",
+    "md-5",
+    "hex",
+    "sha-1",
+    "sha2",
+    "twox-hash",
+    "serde",
+    "serde_json",
+]
 pathfinder = ["num", "pathfinding", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
