@@ -38,12 +38,12 @@ byond_fn!(fn time_reset(instant_id) {
 
 byond_fn!(
     fn unix_timestamp() {
-        Some(
+        Some(format!(
+            "{:.6}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs_f64()
-                .to_string(),
-        )
+        ))
     }
 );
