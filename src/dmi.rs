@@ -119,8 +119,9 @@ fn resize_png<P: AsRef<Path>>(
     Ok(newimg.save_with_format(path.as_ref(), image::ImageFormat::Png)?)
 }
 
-/// output is a JSON string for reading within BYOND
-/// erroring at any point will produce an empty string
+/// Output is a JSON string for reading within BYOND
+///
+/// Erroring at any point will produce an empty string
 fn read_states(path: &str) -> Result<String> {
     let reader = BufReader::new(File::open(path)?);
     let icon = Icon::load(reader).ok();

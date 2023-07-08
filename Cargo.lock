@@ -601,9 +601,9 @@ dependencies = [
 
 [[package]]
 name = "dmi"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "564a4ad51980f25782945fe0f986bf97f3c55a340c093626f557ccbe7b2a3273"
+checksum = "de3df7937260ba09ec3ded02a7ce74e759f6beebd2e0b7fc403217a87b9c1e04"
 dependencies = [
  "deflate",
  "image",
