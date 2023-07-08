@@ -89,8 +89,8 @@ To get additional features, pass a list to `--features`, for example `--features
 The default features are:
 * acreplace: Aho-Corasick string matching and replacement.
 * cellularnoise: Function to generate cellular automata-based noise.
-* dmi: DMI manipulations which are impossible from within BYOND.
-  Used by the asset cache subsystem to improve load times.
+* dmi: DMI manipulations which are impossible or degraded from within BYOND.
+  Mostly used by the asset cache subsystem to improve load times.
 * file: Faster replacements for `file2text` and `text2file`, as well as reading or checking if files exist.
 * git: Functions for robustly checking the current git revision.
 * http: Asynchronous HTTP(s) client supporting most standard methods.

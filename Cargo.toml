@@ -56,6 +56,7 @@ rayon = { version = "1.7", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
 pathfinding = { version = "4.2.1", optional = true }
 num = { version = "0.4.0", optional = true }
+dmi = { version = "0.3.0", optional = true }
 
 [features]
 default = [
@@ -77,7 +78,7 @@ default = [
 # default features
 acreplace = ["aho-corasick"]
 cellularnoise = ["rand", "rayon"]
-dmi = ["png", "image"]
+dmi = ["png", "image", "dep:dmi"]
 file = []
 git = ["git2", "chrono"]
 http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]

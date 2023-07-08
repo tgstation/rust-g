@@ -1,7 +1,9 @@
 use crate::error::{Error, Result};
+use dmi::icon::Icon;
 use png::{Decoder, Encoder, OutputInfo, Reader};
 use std::{
     fs::{create_dir_all, File},
+    io::BufReader,
     path::Path,
 };
 
@@ -23,6 +25,10 @@ byond_fn!(fn dmi_resize_png(path, width, height, resizetype) {
         _ => image::imageops::Nearest,
     };
     resize_png(path, width, height, resizetype).err()
+});
+
+byond_fn!(fn dmi_icon_states(path) {
+    read_states(path).ok()
 });
 
 fn strip_metadata(path: &str) -> Result<()> {
@@ -111,4 +117,22 @@ fn resize_png<P: AsRef<Path>>(
     let newimg = img.resize(width, height, resizetype);
 
     Ok(newimg.save_with_format(path.as_ref(), image::ImageFormat::Png)?)
+}
+
+/// Output is a JSON string for reading within BYOND
+///
+/// Erroring at any point will produce an empty string
+fn read_states(path: &str) -> Result<String> {
+    let reader = BufReader::new(File::open(path)?);
+    let icon = Icon::load(reader).ok();
+    if icon.is_none() {
+        return Err(Error::InvalidPngData);
+    }
+    let states: Vec<_> = icon
+        .unwrap()
+        .states
+        .iter()
+        .map(|s| s.name.clone())
+        .collect();
+    Ok(serde_json::to_string(&states)?)
 }
