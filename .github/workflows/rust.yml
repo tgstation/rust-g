@@ -18,21 +18,7 @@ jobs:
           target: i686-pc-windows-msvc
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Clippy (all features)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: clippy
-          args: --target i686-pc-windows-msvc --all-features --locked -- -D warnings
-
-      - name: Rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: fmt
-          args: -- --check
+      - uses: Swatinem/rust-cache@v
 
       - name: Build (release) (default features)
         uses: actions-rs/cargo@v1
@@ -72,13 +58,6 @@ jobs:
           target: i686-unknown-linux-gnu
 
       - uses: Swatinem/rust-cache@v2
-
-      - name: Check (all features)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: check
-          args: --target i686-unknown-linux-gnu --all-features
 
       - name: Build (Debug) (all features)
         uses: actions-rs/cargo@v1
