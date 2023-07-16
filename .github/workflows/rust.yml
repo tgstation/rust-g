@@ -18,7 +18,7 @@ jobs:
           target: i686-pc-windows-msvc
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@v
+      - uses: Swatinem/rust-cache@v2
 
       - name: Build (release) (default features)
         uses: actions-rs/cargo@v1
