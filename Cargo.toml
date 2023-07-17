@@ -76,6 +76,30 @@ default = [
     "url",
 ]
 
+all = [
+    "acreplace",
+    "cellularnoise",
+    "dmi",
+    "file",
+    "git",
+    "http",
+    "json",
+    "log",
+    "noise",
+    "rustls_tls",
+    "sql",
+    "time",
+    "toml",
+    "url",
+    "batchnoise",
+    "hash",
+    "pathfinder",
+    "redis_pubsub",
+    "redis_reliablequeue",
+    "unzip",
+    "worleynoise"
+]
+
 # default features
 acreplace = ["aho-corasick"]
 cellularnoise = ["rand", "rayon"]
