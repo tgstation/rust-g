@@ -47,3 +47,15 @@ byond_fn!(
         )
     }
 );
+
+byond_fn!(
+    fn unix_timestamp_int() {
+        Some(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+                .to_string(),
+        )
+    }
+);

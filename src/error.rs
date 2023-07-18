@@ -61,6 +61,9 @@ pub enum Error {
     #[cfg(feature = "hash")]
     #[error("Unable to decode hex value.")]
     HexDecode,
+    #[cfg(feature = "influxdb2")]
+    #[error("Invalid metrics format")]
+    InvalidMetrics,
 }
 
 impl From<Utf8Error> for Error {

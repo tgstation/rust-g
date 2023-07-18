@@ -83,12 +83,12 @@ pub static HTTP_CLIENT: Lazy<reqwest::blocking::Client> = Lazy::new(setup_http_c
 // ----------------------------------------------------------------------------
 // Request construction and execution
 
-struct RequestPrep {
+pub struct RequestPrep {
     req: reqwest::blocking::RequestBuilder,
     output_filename: Option<String>,
 }
 
-fn construct_request(
+pub fn construct_request(
     method: &str,
     url: &str,
     body: &str,
@@ -130,7 +130,7 @@ fn construct_request(
     })
 }
 
-fn submit_request(prep: RequestPrep) -> Result<String> {
+pub fn submit_request(prep: RequestPrep) -> Result<String> {
     let mut response = prep.req.send()?;
 
     let body;

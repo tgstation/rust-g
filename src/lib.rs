@@ -1,5 +1,8 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+#[cfg(feature = "concat-string")]
+#[macro_use(concat_string)]
+extern crate concat_string;
 #[macro_use]
 mod byond;
 #[allow(dead_code)]
@@ -24,6 +27,8 @@ pub mod git;
 pub mod hash;
 #[cfg(feature = "http")]
 pub mod http;
+#[cfg(feature = "influxdb2")]
+pub mod influxdb2;
 #[cfg(feature = "json")]
 pub mod json;
 #[cfg(feature = "log")]

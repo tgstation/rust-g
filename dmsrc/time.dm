@@ -4,3 +4,6 @@
 
 /proc/rustg_unix_timestamp()
 	return text2num(RUSTG_CALL(RUST_G, "unix_timestamp")())
+
+/proc/rustg_unix_timestamp_int()
+	return RUSTG_CALL(RUST_G, "unix_timestamp_int")()
