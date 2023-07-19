@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::error::Error;
@@ -47,6 +48,57 @@ byond_fn!(
             }
 
             let req = match handle(data.as_str(), endpoint.as_str(), token.as_str()) {
+                Ok(r) => r,
+                Err(e) => return e.to_string()
+            };
+            match submit_request(req) {
+                Ok(r) => r,
+                Err(e) => e.to_string()
+            }
+        }))
+    }
+);
+
+#[derive(Serialize, Deserialize)]
+struct ProfileProcEntry {
+    name: String,
+    #[serde(rename = "self")]
+    self_: f32,
+    total: f32,
+    real: f32,
+    over: f32,
+    calls: f32,
+}
+byond_fn!(
+    fn influxdb2_publish_profile(data, endpoint, token, round_id) {
+        let data = data.to_owned();
+        let endpoint = endpoint.to_owned();
+        let token = token.to_owned();
+        let round_id = round_id.to_owned();
+        Some(jobs::start(move || {
+            fn handle(data: &str, endpoint: &str, token: &str, round_id: &str) -> Result<RequestPrep, Error> {
+                let mut lines = vec!();
+
+                let data: Vec<ProfileProcEntry> = serde_json::from_str(data)?;
+                let timestamp = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    .to_string();
+                for entry in data {
+                    lines.push(concat_string!("profile,proc=", entry.name, " self=", entry.self_.to_string(), ",total=", entry.total.to_string(), ",real=", entry.real.to_string(), ",over=", entry.over.to_string(), ",calls=", entry.calls.to_string(), ",round_id=", round_id.to_string(), " ", timestamp));
+                }
+
+                construct_request(
+                    "post",
+                    endpoint,
+                    lines.join("\n").as_str(),
+                    concat_string!("{\"Authorization\":\"Token ", token ,"\"}").as_str(),
+                    ""
+                )
+            }
+
+            let req = match handle(data.as_str(), endpoint.as_str(), token.as_str(), round_id.as_str()) {
                 Ok(r) => r,
                 Err(e) => return e.to_string()
             };
