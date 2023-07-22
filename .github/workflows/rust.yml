@@ -25,7 +25,7 @@ jobs:
         with:
           toolchain: stable
           command: clippy
-          args: --target i686-pc-windows-msvc --all-features --locked -- -D warnings
+          args: --target i686-pc-windows-msvc --features all --locked -- -D warnings
 
       - name: Rustfmt
         uses: actions-rs/cargo@v1
@@ -39,7 +39,7 @@ jobs:
         with:
           toolchain: stable
           command: build
-          args: --target i686-pc-windows-msvc --release
+          args: --target i686-pc-windows-msvc --locked --release
 
       - uses: actions/upload-artifact@v3
         with:
@@ -78,21 +78,21 @@ jobs:
         with:
           toolchain: stable
           command: check
-          args: --target i686-unknown-linux-gnu --all-features
+          args: --target i686-unknown-linux-gnu --locked --features all
 
       - name: Build (Debug) (all features)
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
           command: build
-          args: --target i686-unknown-linux-gnu --all-features
+          args: --target i686-unknown-linux-gnu --locked --features all
 
       - name: Run tests (all features)
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
           command: test
-          args: --target i686-unknown-linux-gnu --all-features
+          args: --target i686-unknown-linux-gnu --locked --features all
         env:
           BYOND_BIN: /home/runner/BYOND/byond/bin
 
@@ -101,7 +101,7 @@ jobs:
         with:
           toolchain: stable
           command: build
-          args: --target i686-unknown-linux-gnu --release
+          args: --target i686-unknown-linux-gnu --locked --release
 
       - uses: actions/upload-artifact@v3
         with:
