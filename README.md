@@ -51,7 +51,7 @@ System libraries:
     ```sh
     sudo dpkg --add-architecture i386
     sudo apt-get update
-    sudo apt-get install zlib1g-dev:i386 libssl-dev:i386
+    sudo apt-get install zlib1g-dev:i386
     ```
 
 * Other Linux distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
@@ -84,7 +84,8 @@ cargo build --release --target i686-pc-windows-msvc
 
 If you aren't sharing the binary with other people, consider compiling [targeting your native cpu](https://rust-lang.github.io/packed_simd/perf-guide/target-feature/rustflags.html#target-cpu) for potential performance improvements. You can do this by setting the `RUSTFLAGS` environment variable to `-C target-cpu=native`. For example, in Powershell you would use `$Env:RUSTFLAGS="-C target-cpu=native"`.
 
-To get additional features, pass a list to `--features`, for example `--features hash,url`. To get all features, pass `--all-features`. To disable the default features, pass `--no-default-features`.
+To get additional features, pass a list to `--features`, for example `--features hash,url`. To get all features, pass `--features all`. To disable the default features, pass `--no-default-features`.
+You can't use `--all-features` because of conflicting `native_tls` and `rustls_tls` features to select the mysql backend.
 
 The default features are:
 * acreplace: Aho-Corasick string matching and replacement.
@@ -139,16 +140,13 @@ sample output, but the most important thing is that nothing is listed as
 
 ```sh
 $ ldd librust_g.so  # Linux
-    linux-gate.so.1 (0xf7f45000)
-    libssl.so.1.1 => /usr/lib/i386-linux-gnu/libssl.so.1.1 (0xf6c79000)
-    libcrypto.so.1.1 => /usr/lib/i386-linux-gnu/libcrypto.so.1.1 (0xf69cd000)
-    libdl.so.2 => /lib/i386-linux-gnu/libdl.so.2 (0xf69c8000)
-    librt.so.1 => /lib/i386-linux-gnu/librt.so.1 (0xf69be000)
-    libpthread.so.0 => /lib/i386-linux-gnu/libpthread.so.0 (0xf699f000)
-    libgcc_s.so.1 => /lib/i386-linux-gnu/libgcc_s.so.1 (0xf6981000)
-    libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf67a5000)
-    /lib/ld-linux.so.2 (0xf7f47000)
-    libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf66a3000)
+    linux-gate.so.1 (0xf7f8b000)
+    libgcc_s.so.1 => /lib/i386-linux-gnu/libgcc_s.so.1 (0xf7957000)
+    libpthread.so.0 => /lib/i386-linux-gnu/libpthread.so.0 (0xf7935000)
+    libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf7831000)
+    libdl.so.2 => /lib/i386-linux-gnu/libdl.so.2 (0xf782b000)
+    libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf7643000)
+    /lib/ld-linux.so.2 (0xf7f8d000)
 ```
 
 If BYOND cannot find the shared library, ensure that the directory containing
