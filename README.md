@@ -51,7 +51,7 @@ System libraries:
     ```sh
     sudo dpkg --add-architecture i386
     sudo apt-get update
-    sudo apt-get install zlib1g-dev:i386 libssl-dev:i386
+    sudo apt-get install zlib1g-dev:i386
     ```
 
 * Other Linux distributions install the appropriate **32-bit development** and **32-bit runtime** packages.
@@ -140,16 +140,13 @@ sample output, but the most important thing is that nothing is listed as
 
 ```sh
 $ ldd librust_g.so  # Linux
-    linux-gate.so.1 (0xf7f45000)
-    libssl.so.1.1 => /usr/lib/i386-linux-gnu/libssl.so.1.1 (0xf6c79000)
-    libcrypto.so.1.1 => /usr/lib/i386-linux-gnu/libcrypto.so.1.1 (0xf69cd000)
-    libdl.so.2 => /lib/i386-linux-gnu/libdl.so.2 (0xf69c8000)
-    librt.so.1 => /lib/i386-linux-gnu/librt.so.1 (0xf69be000)
-    libpthread.so.0 => /lib/i386-linux-gnu/libpthread.so.0 (0xf699f000)
-    libgcc_s.so.1 => /lib/i386-linux-gnu/libgcc_s.so.1 (0xf6981000)
-    libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf67a5000)
-    /lib/ld-linux.so.2 (0xf7f47000)
-    libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf66a3000)
+    linux-gate.so.1 (0xf7f8b000)
+    libgcc_s.so.1 => /lib/i386-linux-gnu/libgcc_s.so.1 (0xf7957000)
+    libpthread.so.0 => /lib/i386-linux-gnu/libpthread.so.0 (0xf7935000)
+    libm.so.6 => /lib/i386-linux-gnu/libm.so.6 (0xf7831000)
+    libdl.so.2 => /lib/i386-linux-gnu/libdl.so.2 (0xf782b000)
+    libc.so.6 => /lib/i386-linux-gnu/libc.so.6 (0xf7643000)
+    /lib/ld-linux.so.2 (0xf7f8d000)
 ```
 
 If BYOND cannot find the shared library, ensure that the directory containing
