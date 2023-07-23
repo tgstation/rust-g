@@ -84,7 +84,8 @@ cargo build --release --target i686-pc-windows-msvc
 
 If you aren't sharing the binary with other people, consider compiling [targeting your native cpu](https://rust-lang.github.io/packed_simd/perf-guide/target-feature/rustflags.html#target-cpu) for potential performance improvements. You can do this by setting the `RUSTFLAGS` environment variable to `-C target-cpu=native`. For example, in Powershell you would use `$Env:RUSTFLAGS="-C target-cpu=native"`.
 
-To get additional features, pass a list to `--features`, for example `--features hash,url`. To get all features, pass `--all-features`. To disable the default features, pass `--no-default-features`.
+To get additional features, pass a list to `--features`, for example `--features hash,url`. To get all features, pass `--features all`. To disable the default features, pass `--no-default-features`.
+You can't use `--all-features` because of conflicting `native_tls` and `rustls_tls` features to select the mysql backend.
 
 The default features are:
 * acreplace: Aho-Corasick string matching and replacement.
