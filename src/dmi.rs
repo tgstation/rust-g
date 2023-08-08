@@ -1,9 +1,12 @@
 use crate::error::{Error, Result};
 use dmi::icon::Icon;
+use dmi2svg::dmi2svg;
 use png::{Decoder, Encoder, OutputInfo, Reader};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use std::{
-    fs::{create_dir_all, File},
-    io::BufReader,
+    collections::HashMap,
+    fs::{create_dir_all, File, OpenOptions},
+    io::{BufReader, Write},
     path::Path,
 };
 
@@ -29,6 +32,10 @@ byond_fn!(fn dmi_resize_png(path, width, height, resizetype) {
 
 byond_fn!(fn dmi_icon_states(path) {
     read_states(path).ok()
+});
+
+byond_fn!(fn dmi_convert_to_svg(path, output, name_map) {
+    convert_to_svg(path, output, name_map).err()
 });
 
 fn strip_metadata(path: &str) -> Result<()> {
@@ -135,4 +142,66 @@ fn read_states(path: &str) -> Result<String> {
         .map(|s| s.name.clone())
         .collect();
     Ok(serde_json::to_string(&states)?)
+}
+
+use base64::{engine::general_purpose, Engine as _};
+
+/// Output is a ready-to-ship CSS file
+fn convert_to_svg(path: &str, output: &str, name_map: &str) -> Result<()> {
+    let path = Path::new(path);
+
+    if !path.exists() {
+        return Err(Error::InvalidFilename);
+    }
+
+    let output_path = Path::new(output);
+
+    let filename = path
+        .file_stem()
+        .ok_or(Error::InvalidFilename)?
+        .to_string_lossy();
+
+    let lookup: Option<HashMap<String, String>> = serde_json::from_str(name_map)?;
+
+    let svgs = dmi2svg(path)?;
+    let string = svgs
+        .into_par_iter()
+        .map(|state| {
+            let name = {
+                if let Some(table) = &lookup {
+                    if let Some(name) = table.get(&state.name) {
+                        name.as_str()
+                    } else if state.name.is_empty() {
+                        "DEFAULT"
+                    } else {
+                        state.name.as_str()
+                    }
+                } else if state.name.is_empty() {
+                    "DEFAULT"
+                } else {
+                    state.name.as_str()
+                }
+            };
+            let svg_b64 = general_purpose::STANDARD_NO_PAD.encode(state.svg);
+            format!(
+                ".{}.{}{{background-image: url(\"data:image/svg+xml;base64,{}\")}}\n",
+                filename, name, svg_b64
+            )
+        })
+        .collect::<String>();
+
+    if let Some(fdir) = output_path.parent() {
+        if !fdir.is_dir() {
+            create_dir_all(fdir)?;
+        }
+    }
+
+    let mut output = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(output_path)?;
+
+    writeln!(output, "{}", string)?;
+
+    Ok(())
 }

@@ -46,6 +46,9 @@ pub enum Error {
     #[cfg(feature = "png")]
     #[error("Invalid png data.")]
     InvalidPngData,
+    #[cfg(feature = "png")]
+    #[error("SVG Conversion Failed.")]
+    SvgConversionFailed(#[from] dmi2svg::Error),
     #[cfg(feature = "http")]
     #[error(transparent)]
     Request(#[from] reqwest::Error),
