@@ -1,5 +1,5 @@
 use std::{
-    io,
+    fmt, io,
     num::{ParseFloatError, ParseIntError},
     result,
     str::Utf8Error,
@@ -26,6 +26,8 @@ pub enum Error {
     InvalidFilename,
     #[error(transparent)]
     Io(#[from] io::Error),
+    #[error(transparent)]
+    Fmt(#[from] fmt::Error),
     #[error("Invalid algorithm specified.")]
     InvalidAlgorithm,
     #[cfg(feature = "png")]
@@ -46,6 +48,9 @@ pub enum Error {
     #[cfg(feature = "png")]
     #[error("Invalid png data.")]
     InvalidPngData,
+    #[cfg(feature = "png")]
+    #[error("SVG Conversion Failed.")]
+    SvgConversionFailed(#[from] dmi2svg::Error),
     #[cfg(feature = "http")]
     #[error(transparent)]
     Request(#[from] reqwest::Error),
