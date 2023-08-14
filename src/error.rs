@@ -1,5 +1,5 @@
 use std::{
-    io,
+    fmt, io,
     num::{ParseFloatError, ParseIntError},
     result,
     str::Utf8Error,
@@ -26,6 +26,8 @@ pub enum Error {
     InvalidFilename,
     #[error(transparent)]
     Io(#[from] io::Error),
+    #[error(transparent)]
+    Fmt(#[from] fmt::Error),
     #[error("Invalid algorithm specified.")]
     InvalidAlgorithm,
     #[cfg(feature = "png")]

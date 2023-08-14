@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 use dmi::icon::Icon;
-use dmi2svg::dmi2svg;
+use dmi2svg::{dmi2svg, dmi2svg_symbol, dmi2svg_symbol_map};
 use png::{Decoder, Encoder, OutputInfo, Reader};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use std::{
@@ -34,8 +34,18 @@ byond_fn!(fn dmi_icon_states(path) {
     read_states(path).ok()
 });
 
-byond_fn!(fn dmi_convert_to_svg(path, output, name_map) {
-    convert_to_svg(path, output, name_map).err()
+byond_fn!(fn dmi_convert_to_svgcss(path, output, name_map) {
+    convert_to_svgcss(path, output, name_map).err()
+});
+
+byond_fn!(fn dmi_start_svg_symbols(path) {
+    start_svg_symbols(path).err()
+});
+byond_fn!(fn dmi_convert_to_svg_symbols(path, output, name_map) {
+    convert_to_svg_symbols(path, output, name_map).err()
+});
+byond_fn!(fn dmi_end_svg_symbols(path) {
+    end_svg_symbols(path).err()
 });
 
 fn strip_metadata(path: &str) -> Result<()> {
@@ -147,7 +157,7 @@ fn read_states(path: &str) -> Result<String> {
 use base64::{engine::general_purpose, Engine as _};
 
 /// Output is a ready-to-ship CSS file
-fn convert_to_svg(path: &str, output: &str, name_map: &str) -> Result<()> {
+fn convert_to_svgcss(path: &str, output: &str, name_map: &str) -> Result<()> {
     let path = Path::new(path);
 
     if !path.exists() {
@@ -202,6 +212,65 @@ fn convert_to_svg(path: &str, output: &str, name_map: &str) -> Result<()> {
         .open(output_path)?;
 
     writeln!(output, "{}", string)?;
+
+    Ok(())
+}
+
+fn start_svg_symbols(path: &str) -> Result<()> {
+    let path = Path::new(path);
+
+    if let Some(fdir) = path.parent() {
+        if !fdir.is_dir() {
+            create_dir_all(fdir)?;
+        }
+    }
+
+    std::fs::write(
+        path,
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="auto" height="auto" shape-rendering="crispEdges">"#,
+    )?;
+
+    Ok(())
+}
+
+/// Output is a file of raw svg <symbol>s split by newline
+fn convert_to_svg_symbols(path: &str, output: &str, name_map: &str) -> Result<()> {
+    let path = Path::new(path);
+
+    if !path.exists() {
+        return Err(Error::InvalidFilename);
+    }
+
+    let output_path = Path::new(output);
+
+    let lookup: Option<HashMap<String, String>> = serde_json::from_str(name_map)?;
+
+    let symbols = if let Some(lookup) = lookup {
+        dmi2svg_symbol_map(path, &lookup)?
+    } else {
+        dmi2svg_symbol(path)?
+    };
+
+    let mut output = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(output_path)?;
+
+    writeln!(output, "{}", symbols.join("\n"))?;
+
+    Ok(())
+}
+
+fn end_svg_symbols(path: &str) -> Result<()> {
+    let path = Path::new(path);
+
+    if !path.exists() {
+        return Err(Error::InvalidFilename);
+    }
+
+    let mut output = OpenOptions::new().create(true).append(true).open(path)?;
+
+    writeln!(output, "</svg>")?;
 
     Ok(())
 }
