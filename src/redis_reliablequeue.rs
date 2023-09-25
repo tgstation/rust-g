@@ -1,23 +1,28 @@
-use redis::{Client, Commands, RedisError};
+use redis::{Client, Commands, Connection, RedisError};
 use std::cell::RefCell;
 use std::num::NonZeroUsize;
 use std::time::Duration;
 
 thread_local! {
     static REDIS_CLIENT: RefCell<Option<Client>> = RefCell::new(None);
+    static REDIS_CONNECTION: RefCell<Option<Connection>> = RefCell::new(None);
 }
 
 fn connect(addr: &str) -> Result<(), RedisError> {
     let client = redis::Client::open(addr)?;
-    let _ = client.get_connection_with_timeout(Duration::from_secs(1))?;
+    let connection = client.get_connection_with_timeout(Duration::from_secs(1))?;
     REDIS_CLIENT.with(|cli| cli.replace(Some(client)));
+    REDIS_CONNECTION.with(|con| con.replace(Some(connection)));
     Ok(())
 }
 
 fn disconnect() {
-    // Drop the client
+    // Drop the client and connection
     REDIS_CLIENT.with(|client| {
         client.replace(None);
+    });
+    REDIS_CONNECTION.with(|connection| {
+        connection.replace(None);
     });
 }
 
