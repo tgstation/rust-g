@@ -2,15 +2,15 @@ name: rust-g
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -21,7 +21,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Clippy (all features)
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@v1 # TODO REPLACE SINCE OLD
         with:
           toolchain: stable
           command: clippy
@@ -49,7 +49,6 @@ jobs:
             target/i686-pc-windows-msvc/release/rust_g.pdb
             target/rust_g.dm
 
-
   build-linux:
     runs-on: ubuntu-latest
     env:
@@ -58,7 +57,7 @@ jobs:
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
 
       - run: |
           sudo dpkg --add-architecture i386
