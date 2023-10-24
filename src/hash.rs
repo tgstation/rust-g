@@ -18,6 +18,10 @@ byond_fn!(fn hash_string(algorithm, string) {
     string_hash(algorithm, string).ok()
 });
 
+byond_fn!(fn decode_base64(string) {
+    Some(base64::prelude::BASE64_STANDARD.decode(string).unwrap())
+});
+
 byond_fn!(fn hash_file(algorithm, string) {
     file_hash(algorithm, string).ok()
 });
