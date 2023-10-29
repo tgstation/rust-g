@@ -44,20 +44,17 @@ byond_fn!(fn log_write(path, data, ...rest) {
     }).err()
 });
 
-byond_fn!(
-    fn log_close_all() {
-        FILE_MAP.with(|cell| {
-            let mut map = cell.borrow_mut();
-            map.clear();
-        });
-        Some("")
-    }
-);
-
 fn open(path: &Path) -> Result<File> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
 
     Ok(OpenOptions::new().append(true).create(true).open(path)?)
+}
+
+pub fn close_all_logs() {
+    FILE_MAP.with(|cell| {
+        let mut map = cell.borrow_mut();
+        map.clear();
+    })
 }
