@@ -6,6 +6,8 @@ use std::{
     slice,
 };
 
+use crate::{jobs, log};
+
 static EMPTY_STRING: c_char = 0;
 thread_local! {
     static RETURN_STRING: RefCell<CString> = RefCell::new(CString::default());
@@ -82,5 +84,13 @@ macro_rules! byond_fn {
 byond_fn!(
     fn get_version() {
         Some(env!("CARGO_PKG_VERSION"))
+    }
+);
+
+byond_fn!(
+    fn shutdown_rustg() {
+        jobs::detach_all();
+        log::close_all_logs();
+        Some("1")
     }
 );

@@ -36,6 +36,10 @@ impl Jobs {
         id
     }
 
+    pub fn detach_all(&mut self) {
+        self.map.clear();
+    }
+
     fn check(&mut self, id: &str) -> Output {
         let entry = match self.map.entry(id.to_owned()) {
             Entry::Occupied(occupied) => occupied,
@@ -61,4 +65,8 @@ pub fn start<F: FnOnce() -> Output + Send + 'static>(f: F) -> JobId {
 
 pub fn check(id: &str) -> String {
     JOBS.with(|jobs| jobs.borrow_mut().check(id))
+}
+
+pub fn detach_all() {
+    JOBS.with(|jobs| jobs.borrow_mut().detach_all());
 }
