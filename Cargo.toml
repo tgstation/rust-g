@@ -58,7 +58,7 @@ aho-corasick = { version = "1.1", optional = true }
 rayon = { version = "1.8", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
 pathfinding = { version = "4.4", optional = true }
-num = { version = "0.4.1", optional = true }
+num-integer = { version = "0.1.45", optional = true }
 dmi = { version = "0.3.1", optional = true }
 
 [features]
@@ -130,7 +130,7 @@ hash = [
     "serde",
     "serde_json",
 ]
-pathfinder = ["num", "pathfinding", "serde", "serde_json"]
+pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]

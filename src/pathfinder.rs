@@ -1,4 +1,4 @@
-use num::integer::sqrt;
+use num_integer::sqrt;
 use pathfinding::prelude::astar;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
