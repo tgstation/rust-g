@@ -32,7 +32,7 @@ sha-1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
 hex = { version = "0.4", optional = true }
 percent-encoding = { version = "2.3", optional = true }
-url-dep = { version = "2.3", package = "url", optional = true }
+url-dep = { version = "2.5", package = "url", optional = true }
 png = { version = "0.17", optional = true }
 image = { version = "0.24", optional = true, default-features = false, features = [
     "png",
