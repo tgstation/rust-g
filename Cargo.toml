@@ -10,6 +10,7 @@ authors = [
 repository = "https://github.com/tgstation/rust-g"
 license = "MIT"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
+rust-version = "1.70"
 
 [lib]
 crate-type = ["cdylib"]
