@@ -38,7 +38,10 @@ png = { version = "0.17", optional = true }
 image = { version = "0.24", optional = true, default-features = false, features = [
     "png",
 ] }
-git2 = { version = "0.18.1", optional = true, default-features = false }
+gix = { version = "0.56", optional = true, default-features = false, features = [
+    "revision",
+    "max-performance-safe",
+] }
 noise = { version = "0.8", optional = true }
 redis = { version = "0.24", optional = true }
 reqwest = { version = "0.11", optional = true, default-features = false, features = [
@@ -108,7 +111,7 @@ acreplace = ["aho-corasick"]
 cellularnoise = ["rand", "rayon"]
 dmi = ["png", "image", "dep:dmi"]
 file = []
-git = ["git2", "chrono"]
+git = ["gix", "chrono"]
 http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
 json = ["serde", "serde_json"]
 log = ["chrono"]
