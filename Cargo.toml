@@ -63,6 +63,7 @@ dbpnoise = { version = "0.1.2", optional = true }
 pathfinding = { version = "4.4", optional = true }
 num-integer = { version = "0.1.45", optional = true }
 dmi = { version = "0.3.1", optional = true }
+tracy_full =  { version = "1.6.1", optional = true}
 
 [features]
 default = [
@@ -134,6 +135,7 @@ hash = [
     "serde_json",
 ]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
+iconforge = ["serde", "serde_json", "png", "image", "dep:dmi", "rayon", "tracy_full", "jobs", "once_cell"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
@@ -148,3 +150,16 @@ jobs = ["flume"]
 
 [dev-dependencies]
 regex = "1"
+
+# DEV ONLY. REMOVE THIS LATER
+[profile.dev.package.dmi]
+opt-level = 3
+
+[profile.dev.package.image]
+opt-level = 3
+
+[profile.dev.package.serde]
+opt-level = 3
+
+[profile.dev.package.serde_json]
+opt-level = 3

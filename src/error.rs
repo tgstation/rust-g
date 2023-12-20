@@ -61,6 +61,9 @@ pub enum Error {
     #[cfg(feature = "hash")]
     #[error("Unable to decode hex value.")]
     HexDecode,
+    #[cfg(feature = "iconforge")]
+    #[error("IconState error: {0}")]
+    IconState(String),
 }
 
 impl From<Utf8Error> for Error {
