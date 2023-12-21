@@ -5,9 +5,10 @@ use crate::error::Error;
 use std::{
     fs::File,
     io::BufReader,
+    num::ParseIntError,
 };
 use dmi::icon::{Icon, IconState};
-use image::{DynamicImage, GenericImage, GenericImageView};
+use image::{DynamicImage, GenericImage, GenericImageView, Pixel, Rgba};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 //use raster::Image;
 use serde::{Serialize, Deserialize};
@@ -81,10 +82,10 @@ enum Transform {
         height: u32,
     },
     CropTransform {
-        x1: u32,
-        y1: u32,
-        x2: u32,
-        y2: u32,
+        x1: i32,
+        y1: i32,
+        x2: i32,
+        y2: i32,
     }
 }
 
@@ -117,24 +118,36 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
     let sprites_objects: Arc<Mutex<HashMap<String, SpritesheetEntry>>> = Arc::new(Mutex::new(HashMap::new()));
 
     sprites_map.par_iter().for_each(|sprite_entry| {
-        zone!("sprite_to_icon");
+        zone!("sprite_to_icons");
         let (_, icon) = sprite_entry;
-        let icon_path = icon.icon_file.to_owned();
-        if icon_file_to_icon().lock().unwrap().contains_key(&icon_path) {
-            return;
-        }
-        let reader = BufReader::new(File::open(&icon_path).unwrap());
-        let icon: Option<Icon>;
-        {
-            zone!("load_icon");
-            icon = Icon::load(reader).ok();
-        }
-        if icon.is_none() {
-            error.lock().unwrap().push(format!("Invalid DMI: {}", icon_path));
-            return;
-        }
-        icon_file_to_icon().lock().unwrap().insert(icon_path, icon.unwrap().to_owned());
+        icon_to_icons(icon).par_iter().for_each(|icon| {
+            zone!("icon_to_dmi");
+            let icon_path = icon.icon_file.to_owned();
+            {
+                zone!("check_dmi_exists");
+                // scope-in so the lock does not persist during DMI read
+                if icon_file_to_icon().lock().unwrap().contains_key(&icon_path) {
+                    return;
+                }
+            }
+            let reader = BufReader::new(File::open(&icon_path).unwrap());
+            let dmi: Option<Icon>;
+            {
+                zone!("parse_dmi");
+                dmi = Icon::load(reader).ok();
+            }
+            if dmi.is_none() {
+                error.lock().unwrap().push(format!("Invalid DMI: {}", icon_path));
+                return;
+            }
+            {
+                zone!("insert_dmi");
+                icon_file_to_icon().lock().unwrap().insert(icon_path, dmi.unwrap().to_owned());
+            }
+        });
     });
+
+
 
     sprites_map.par_iter().for_each(|sprite_entry| {
         zone!("map_sprite");
@@ -174,8 +187,40 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
             icon_idx = (icon_idx + 1) * icon.frame - 1
         }
         let image: &DynamicImage = state.images.get(usize::try_from(icon_idx).unwrap()).unwrap();
-        let cloned_image: DynamicImage = image.clone();
+        let mut cloned_image: DynamicImage = image.clone();
         // apply transforms here
+
+        for transform in &icon.transform {
+            match transform {
+                Transform::BlendColorTransform { color, blend_mode } => {
+                    let mutator = mutate(*blend_mode);
+                    let color_parts = decode_hex(color).unwrap();
+                    for x in 0..cloned_image.width() {
+                        for y in 0..cloned_image.height() {
+                            let rgba = cloned_image.get_pixel(x, y).to_rgba();
+                            cloned_image.put_pixel(x, y, blend(rgba, [color_parts[0], color_parts[1], color_parts[2]], mutator))
+                        }
+                    }
+                },
+                Transform::BlendIconTransform { icon, blend_mode } => {
+                    let mutator = mutate(*blend_mode);
+                    let color_parts = decode_hex(color).unwrap();
+                    for x in 0..cloned_image.width() {
+                        for y in 0..cloned_image.height() {
+                            let rgba = cloned_image.get_pixel(x, y).to_rgba();
+                            cloned_image.put_pixel(x, y, blend(rgba, [color_parts[0], color_parts[1], color_parts[2]], mutator))
+                        }
+                    }
+                },
+                Transform::ScaleTransform { width, height } => {
+                    cloned_image.resize_exact(*width, *height, image::imageops::FilterType::Nearest);
+                }
+                Transform::CropTransform { x1, y1, x2, y2 } => {
+                    //cloned_image = cloned_image.crop_imm(x1, y1, x2 - x1, y2 - y1)
+                }
+            }
+        }
+
         let size_id = format!("{}x{}", cloned_image.width(), cloned_image.height());
         let mut size_map = size_to_images.lock().unwrap();
         let vec = (*size_map).entry(size_id.to_owned()).or_insert(Vec::new());
@@ -220,4 +265,57 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
         error: error.lock().unwrap().join("\n"),
     };
     Ok(serde_json::to_string::<Returned>(&returned).unwrap())
+}
+
+fn icon_to_icons(icon: &IconObject) -> Vec<IconObject> {
+    let mut icons: Vec<IconObject> = Vec::new();
+    icons.push(icon.to_owned());
+    for transform in &icon.transform {
+        match transform {
+            Transform::BlendIconTransform { icon, .. } => {
+                let nested = icon_to_icons(&icon);
+                icons.extend(nested.to_owned());
+            }
+            _ => {}
+        }
+    }
+    return icons;
+}
+
+fn mutate(blend_mode: u8) -> fn(u8, u8) -> u8 {
+    return match blend_mode {
+        0 => {|a: u8, b: u8| cap(a as u32 + b as u32)}
+        2 => {|a: u8, b: u8| cap(a as u32 * b as u32)}
+        3 => {|a: u8, b: u8| {
+            if a < 128 {
+                return cap(2 * a as u32 * b as u32);
+            } else {
+                return cap(255 - 510 * (255 - a as u32) * (255 - b as u32));
+            }
+        }}
+        _ => {|a: u8, _: u8| a}
+    };
+}
+
+fn blend(rgba_src: Rgba<u8>, rgba_dst: [u8; 3], mutator_rgb: fn(u8, u8) -> u8) -> Rgba<u8> {
+    let r = mutator_rgb(rgba_src.0[0], rgba_dst[0]);
+    let g = mutator_rgb(rgba_src.0[1], rgba_dst[1]);
+    let b = mutator_rgb(rgba_src.0[2], rgba_dst[2]);
+    let a = rgba_src.0[3];
+    return Rgba::<u8>( [r, g, b, a] )
+}
+
+fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
+    (1..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16))
+        .collect()
+}
+
+fn cap(val: u32) -> u8 {
+    if val > 255 {
+        return 255;
+    } else {
+        return u8::try_from(val).unwrap();
+    }
 }
