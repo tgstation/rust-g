@@ -76,11 +76,11 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
     }
 }
 
-fn string_hash(algorithm: &str, string: &str) -> Result<String> {
+pub fn string_hash(algorithm: &str, string: &str) -> Result<String> {
     hash_algorithm(algorithm, string)
 }
 
-fn file_hash(algorithm: &str, path: &str) -> Result<String> {
+pub fn file_hash(algorithm: &str, path: &str) -> Result<String> {
     let mut bytes: Vec<u8> = Vec::new();
     let mut file = BufReader::new(File::open(path)?);
     file.read_to_end(&mut bytes)?;
