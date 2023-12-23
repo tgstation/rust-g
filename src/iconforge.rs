@@ -364,7 +364,7 @@ fn transform_image(image_in: DynamicImage, icon: &IconObject, sprite_name: &Stri
                 }
                 let mut color2: [u8; 4] = [0, 0, 0, 255];
                 if let Err(err) = hex::decode_to_slice(hex, &mut color2) {
-                    error.push(format!("Decoding hex color {} failed: {}", color, err.to_string()));
+                    error.push(format!("Decoding hex color {} failed: {}", color, err));
                 }
                 for x in 0..image.width() {
                     for y in 0..image.height() {
