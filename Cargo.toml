@@ -133,18 +133,15 @@ hash = [
     "serde",
     "serde_json",
 ]
-# Use the native tls stack for the mysql db
-native_tls = ["mysql/default"]
-
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
-
-rustls_tls = ["mysql/default-rustls"]
-
 unzip = ["zip", "jobs"]
 worleynoise = ["rand", "rayon"]
 
+# Use the native tls stack for the mysql db
+native_tls = ["mysql/default"]
+rustls_tls = ["mysql/default-rustls"]
 
 # internal feature-like things
 jobs = ["flume"]
