@@ -4,26 +4,21 @@ use crate::jobs;
 use crate::hash::string_hash;
 use crate::error::Error;
 use std::{
-    fs::{File, OpenOptions},
-    io::{BufReader, Write},
-    cell::RefCell,
+    fs::File,
+    io::BufReader,
+    sync::{Arc, Mutex},
+    collections::HashMap,
 };
 use dmi::icon::{Icon, IconState};
 use image::{DynamicImage, GenericImage, GenericImageView, Pixel, ImageBuffer};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 //use raster::Image;
 use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 use dashmap::DashMap;
-use std::sync::{Arc, Mutex};
 use tracy_full::{zone, frame};
 use once_cell::sync::Lazy;
-use std::backtrace::Backtrace;
 static ICON_FILES: Lazy<DashMap<String, Arc<Icon>>> = Lazy::new(DashMap::new);
 static ICON_STATES: Lazy<DashMap<String, DynamicImage>> = Lazy::new(DashMap::new);
-thread_local! {
-	static LAST_BACKTRACE: RefCell<Option<Backtrace>> = RefCell::new(None);
-}
 
 const SOUTH: u8 = 2;
 const NORTH: u8 = 1;
@@ -124,21 +119,6 @@ enum Transform {
 }
 
 fn catch_panic(file_path: &str, spritesheet_name: &str, sprites: &str) -> std::result::Result<String, Error> {
-    std::panic::set_hook(Box::new(|panic_info| {
-        LAST_BACKTRACE.set(Option::Some(Backtrace::capture()));
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .create(true)
-            .open("iconforge-error.log")
-            .unwrap();
-        file.write_all(Backtrace::capture().to_string().as_bytes()).expect("Fail backtrace");
-        file.write_all(panic_info.payload().downcast_ref::<&'static str>()
-            .map(|payload| payload.to_string())
-            .or_else(|| {
-                panic_info.payload().downcast_ref::<String>().cloned()
-            }).unwrap().as_bytes()).expect("Fail payload");
-    }));
     let x = std::panic::catch_unwind(|| {
         let result = generate_spritesheet(file_path, spritesheet_name, sprites);
         frame!();
@@ -151,7 +131,7 @@ fn catch_panic(file_path: &str, spritesheet_name: &str, sprites: &str) -> std::r
             .or_else(|| {
                 err.downcast_ref::<String>().cloned()
             });
-        return Err(Error::IconState(format!("{}\n\nBACKTRACE:\n{}", message.unwrap().to_owned(), LAST_BACKTRACE.take().unwrap_or(Backtrace::capture()).to_string())))
+        return Err(Error::IconState(message.unwrap().to_owned()));
     }
     x.ok().unwrap()
 }

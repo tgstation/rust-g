@@ -4,8 +4,13 @@ use std::{
     ffi::{CStr, CString},
     os::raw::{c_char, c_int},
     slice,
+    sync::Once,
+    fs::OpenOptions,
+    io::Write,
+    backtrace::Backtrace,
 };
 
+static SET_HOOK: Once = Once::new();
 static EMPTY_STRING: c_char = 0;
 thread_local! {
     static RETURN_STRING: RefCell<CString> = RefCell::new(CString::default());
@@ -50,6 +55,7 @@ macro_rules! byond_fn {
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
+            $crate::byond::set_panic_hook();
             let closure = || ($body);
             $crate::byond::byond_return(closure().map(From::from))
         }
@@ -84,3 +90,21 @@ byond_fn!(
         Some(env!("CARGO_PKG_VERSION"))
     }
 );
+
+// Print any panics before exiting.
+pub fn set_panic_hook() {
+    SET_HOOK.call_once(|| std::panic::set_hook(Box::new(|panic_info| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open("rustg-panic.log")
+            .unwrap();
+        file.write_all(Backtrace::capture().to_string().as_bytes()).expect("Failed to extract error backtrace");
+        file.write_all(panic_info.payload().downcast_ref::<&'static str>()
+            .map(|payload| payload.to_string())
+            .or_else(|| {
+                panic_info.payload().downcast_ref::<String>().cloned()
+            }).unwrap().as_bytes()).expect("Failed to extract error payload");
+    })));
+}

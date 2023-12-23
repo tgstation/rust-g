@@ -146,7 +146,8 @@ iconforge = [
     "tracy_full",
     "jobs",
     "once_cell",
-    "dashmap"
+    "dashmap",
+    "hash",
 ]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
