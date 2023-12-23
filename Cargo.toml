@@ -91,6 +91,7 @@ all = [
     "file",
     "git",
     "http",
+    "iconforge",
     "json",
     "log",
     "noise",
@@ -135,7 +136,6 @@ hash = [
     "serde",
     "serde_json",
 ]
-pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 iconforge = [
     "serde",
     "serde_json",
@@ -149,6 +149,7 @@ iconforge = [
     "dashmap",
     "hash",
 ]
+pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
