@@ -686,13 +686,8 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
 name = "dunce"
 version = "1.0.4"
-=======
-name = "dtoa"
-version = "0.4.8"
->>>>>>> 47bfb12 (iconforge beta)
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56ce8c6da7551ec6c462cbaf3bfbc75131ebbfa1c944aeaa9dab51ca1c5f0c3b"
 
@@ -764,15 +759,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fdeflate"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64d6dafc854908ff5da46ff3f8f473c6984119a2876a383a860246dd7841a868"
-dependencies = [
- "simd-adler32",
-]
-
-[[package]]
 name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -786,7 +772,7 @@ checksum = "46303f565772937ffe1d394a4fac6f411c6013172fadde9dcdb1e147a086940e"
 dependencies = [
  "crc32fast",
  "libz-sys",
- "miniz_oxide 0.5.3",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -1710,22 +1696,8 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
 name = "indexmap"
 version = "2.1.0"
-=======
-name = "inflate"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cdb29978cc5797bd8dcc8e5bf7de604891df2a8dc576973d71a281e916db2ff"
-dependencies = [
- "adler32",
-]
-
-[[package]]
-name = "instant"
-version = "0.1.12"
->>>>>>> 47bfb12 (iconforge beta)
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
 dependencies = [
@@ -2007,16 +1979,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "miniz_oxide"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7810e0be55b428ada41041c41f32c9f1a42817901b4ccf45fa3d4b6561e74c7"
-dependencies = [
- "adler",
- "simd-adler32",
-]
 
 [[package]]
 name = "miniz_oxide"
@@ -2412,11 +2374,7 @@ dependencies = [
  "crc32fast",
  "fdeflate",
  "flate2",
-<<<<<<< HEAD
  "miniz_oxide",
-=======
- "miniz_oxide 0.7.1",
->>>>>>> 47bfb12 (iconforge beta)
 ]
 
 [[package]]
@@ -2809,6 +2767,7 @@ dependencies = [
  "gix",
  "hex",
  "image",
+ "lazy_static",
  "md-5",
  "mysql",
  "noise",
@@ -2827,12 +2786,8 @@ dependencies = [
  "sha-1",
  "sha2",
  "thiserror",
-<<<<<<< HEAD
  "toml 0.8.8",
-=======
- "toml",
  "tracy_full",
->>>>>>> 47bfb12 (iconforge beta)
  "twox-hash",
  "url",
  "zip",
@@ -2867,7 +2822,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
-<<<<<<< HEAD
+name = "rustc_version"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
+dependencies = [
+ "semver",
+]
+
+[[package]]
 name = "rustix"
 version = "0.38.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2878,14 +2841,6 @@ dependencies = [
  "libc",
  "linux-raw-sys",
  "windows-sys 0.52.0",
-=======
-name = "rustc_version"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
-dependencies = [
- "semver",
->>>>>>> 47bfb12 (iconforge beta)
 ]
 
 [[package]]
@@ -3118,12 +3073,6 @@ name = "simdutf8"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27f6278552951f1f2b8cf9da965d10969b2efdea95a6ec47987ab46edfe263a"
-
-[[package]]
-name = "simd-adler32"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
 
 [[package]]
 name = "slab"

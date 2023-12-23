@@ -1,4 +1,5 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
+#![feature(local_key_cell_methods)]
 
 #[macro_use]
 mod byond;

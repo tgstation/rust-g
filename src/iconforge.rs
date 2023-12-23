@@ -4,21 +4,26 @@ use crate::jobs;
 use crate::hash::string_hash;
 use crate::error::Error;
 use std::{
-    fs::File,
-    io::BufReader,
-    num::ParseIntError,
+    fs::{File, OpenOptions},
+    io::{BufReader, Write},
+    cell::RefCell,
 };
 use dmi::icon::{Icon, IconState};
-use image::{DynamicImage, GenericImage, GenericImageView, Pixel, Rgba};
+use image::{DynamicImage, GenericImage, GenericImageView, Pixel, ImageBuffer};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 //use raster::Image;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
+use dashmap::DashMap;
 use std::sync::{Arc, Mutex};
 use tracy_full::{zone, frame};
 use once_cell::sync::Lazy;
-static ICON_FILES: Lazy<Mutex<HashMap<String, Arc<Icon>>>> = Lazy::new(Mutex::default);
-static ICON_STATES: Lazy<Mutex<HashMap<String, DynamicImage>>> = Lazy::new(Mutex::default);
+use std::backtrace::Backtrace;
+static ICON_FILES: Lazy<DashMap<String, Arc<Icon>>> = Lazy::new(DashMap::new);
+static ICON_STATES: Lazy<DashMap<String, DynamicImage>> = Lazy::new(DashMap::new);
+thread_local! {
+	static LAST_BACKTRACE: RefCell<Option<Backtrace>> = RefCell::new(None);
+}
 
 const SOUTH: u8 = 2;
 const NORTH: u8 = 1;
@@ -29,16 +34,22 @@ const SOUTHEAST: u8 = SOUTH | EAST; // 6
 const SOUTHWEST: u8 = SOUTH | WEST; // 10
 const NORTHEAST: u8 = NORTH | EAST; // 5
 const NORTHWEST: u8 = NORTH | WEST; // 9
+// This is ordered by how DMIs internally place dirs into the PNG
 const EIGHT_DIRS: [u8; 8] = [SOUTH, NORTH, EAST, WEST, SOUTHEAST, SOUTHWEST, NORTHEAST, NORTHWEST];
 
-const DMI_ORDERING: [u8; 8] = EIGHT_DIRS;
-// This is an array mapping the DIR number from above to a position in DMIs, such that DIR_TO_INDEX[DIR] = DMI_ORDERING.indexof(DIR)
+// This is an array mapping the DIR number from above to a position in DMIs, such that DIR_TO_INDEX[DIR] = EIGHT_DIRS.indexof(DIR)
 // 255 is invalid.
 const DIR_TO_INDEX: [u8; 11] = [255, 1, 0, 255, 2, 6, 4, 255, 3, 7, 5];
 
 
 byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites) {
-    catch_panic(file_path, spritesheet_name, sprites).err()
+    let file_path = file_path.to_owned();
+    let spritesheet_name = spritesheet_name.to_owned();
+    let sprites = sprites.to_owned();
+    Some(match catch_panic(&file_path, &spritesheet_name, &sprites) {
+        Ok(o) => o.to_string(),
+        Err(e) => e.to_string()
+    })
 });
 
 
@@ -84,26 +95,27 @@ struct IconObject {
 
 impl IconObject {
     fn to_icostring(&self) -> Result<String, Error> {
-        return string_hash("xxh64", &serde_json::to_string(self).unwrap());
+        zone!("to_icostring");
+        string_hash("xxh64", &serde_json::to_string(self).unwrap())
     }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 enum Transform {
-    BlendColorTransform {
+    BlendColor {
         color: String,
         blend_mode: u8,
     },
-    BlendIconTransform {
+    BlendIcon {
         icon: IconObject,
         blend_mode: u8,
     },
-    ScaleTransform {
+    Scale {
         width: u32,
         height: u32,
     },
-    CropTransform {
+    Crop {
         x1: i32,
         y1: i32,
         x2: i32,
@@ -112,22 +124,36 @@ enum Transform {
 }
 
 fn catch_panic(file_path: &str, spritesheet_name: &str, sprites: &str) -> std::result::Result<String, Error> {
+    std::panic::set_hook(Box::new(|panic_info| {
+        LAST_BACKTRACE.set(Option::Some(Backtrace::capture()));
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open("iconforge-error.log")
+            .unwrap();
+        file.write_all(Backtrace::capture().to_string().as_bytes()).expect("Fail backtrace");
+        file.write_all(panic_info.payload().downcast_ref::<&'static str>()
+            .map(|payload| payload.to_string())
+            .or_else(|| {
+                panic_info.payload().downcast_ref::<String>().cloned()
+            }).unwrap().as_bytes()).expect("Fail payload");
+    }));
     let x = std::panic::catch_unwind(|| {
         let result = generate_spritesheet(file_path, spritesheet_name, sprites);
         frame!();
-        return result;
+        result
     });
-    if x.is_err() {
-        match x.unwrap_err().downcast_ref::<String>() {
-            Some(as_string) => {
-                return Err(Error::IconState(as_string.to_owned()))
-            }
-            None => {
-                return Err(Error::IconState("Failed to stringify panic".to_string()))
-            }
-        }
+    if let Err(err) = x {
+        let message: Option<String> = err
+            .downcast_ref::<&'static str>()
+            .map(|payload| payload.to_string())
+            .or_else(|| {
+                err.downcast_ref::<String>().cloned()
+            });
+        return Err(Error::IconState(format!("{}\n\nBACKTRACE:\n{}", message.unwrap().to_owned(), LAST_BACKTRACE.take().unwrap_or(Backtrace::capture()).to_string())))
     }
-    return x.ok().unwrap()
+    x.ok().unwrap()
 }
 
 fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) -> std::result::Result<String, Error> {
@@ -146,7 +172,6 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
         icon_to_icons(icon).par_iter().for_each(|icon| {
             if let Err(err) = icon_to_dmi(icon) {
                 error.lock().unwrap().push(err);
-                return;
             }
         });
     });
@@ -156,67 +181,37 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
         zone!("map_sprite");
         let (sprite_name, icon) = sprite_entry;
 
-        // get DynamicImage
+        // get DynamicImage, applying transforms as well
         let image_result = icon_to_image(icon, sprite_name);
-        if image_result.is_err() {
-            error.lock().unwrap().push(image_result.unwrap_err());
+        if let Err(err) = image_result {
+            error.lock().unwrap().push(err);
             return;
         }
+        let image = image_result.unwrap();
 
-        let mut image = image_result.unwrap();
+        {
+            zone!("create_game_metadata");
+            // Generate the metadata used by the game
+            let size_id = format!("{}x{}", image.width(), image.height());
+            return_image(image, icon);
+            let mut size_map = size_to_icon_objects.lock().unwrap();
+            let vec = (*size_map).entry(size_id.to_owned()).or_insert(Vec::new());
+            vec.push(icon);
 
-        // apply transforms here
-
-        for transform in &icon.transform {
-            match transform {
-                Transform::BlendColorTransform { color, blend_mode } => {
-                    let mutator = mutate(*blend_mode);
-                    let color_parts = decode_hex(color).unwrap();
-                    for x in 0..image.width() {
-                        for y in 0..image.height() {
-                            let rgba = image.get_pixel(x, y).to_rgba();
-                            image.put_pixel(x, y, blend(rgba, [color_parts[0], color_parts[1], color_parts[2]], mutator))
-                        }
-                    }
-                },
-                Transform::BlendIconTransform { icon, blend_mode } => {
-                    /*
-                    let mutator = mutate(*blend_mode);
-                    let color_parts = decode_hex(color).unwrap();
-                    for x in 0..image.width() {
-                        for y in 0..image.height() {
-                            let rgba = image.get_pixel(x, y).to_rgba();
-                            image.put_pixel(x, y, blend(rgba, [color_parts[0], color_parts[1], color_parts[2]], mutator))
-                        }
-                    }
-                    */
-                },
-                Transform::ScaleTransform { width, height } => {
-                    image = image.resize_exact(*width, *height, image::imageops::FilterType::Nearest);
-                }
-                Transform::CropTransform { x1, y1, x2, y2 } => {
-                    //*image = image.crop_imm(x1, y1, x2 - x1, y2 - y1)
-                }
-            }
+            sprites_objects.lock().unwrap().insert(sprite_name.to_owned(), SpritesheetEntry {
+                size_id: size_id.to_owned(),
+                position: u32::try_from(vec.len()).unwrap() - 1
+            });
         }
-
-        // Generate the metadata used by the game
-        let size_id = format!("{}x{}", image.width(), image.height());
-        return_image(image, icon);
-        let mut size_map = size_to_icon_objects.lock().unwrap();
-        let vec = (*size_map).entry(size_id.to_owned()).or_insert(Vec::new());
-        vec.push(icon);
-
-        sprites_objects.lock().unwrap().insert(sprite_name.to_owned(), SpritesheetEntry {
-            size_id: size_id.to_owned(),
-            position: u32::try_from(vec.len()).unwrap() - 1
-        });
     });
 
+    // all images have been returned now, so continue...
+
+    // Get all the sprites and spew them onto a spritesheet.
     size_to_icon_objects.lock().unwrap().par_iter().for_each(|(size_id, icon_objects)| {
         zone!("join_sprites");
         let file_path = format!("{}{}_{}.png", file_path, spritesheet_name, size_id);
-        let size_data: Vec<&str> = size_id.split("x").collect();
+        let size_data: Vec<&str> = size_id.split('x').collect();
         let base_width = size_data.first().unwrap().to_string().parse::<u32>().unwrap();
         let base_height = size_data.last().unwrap().to_string().parse::<u32>().unwrap();
 
@@ -227,8 +222,8 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
             zone!("join_sprite");
             let icon = icon_objects.get::<usize>(usize::try_from(idx).unwrap()).unwrap();
             let image_result = icon_to_image(icon, &"N/A, in final generation stage".to_string());
-            if image_result.is_err() {
-                error.lock().unwrap().push(image_result.unwrap_err());
+            if let Err(err) = image_result {
+                error.lock().unwrap().push(err);
                 continue;
             }
             let image = image_result.unwrap();
@@ -247,8 +242,9 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
 
     let sizes: Vec<String> = size_to_icon_objects.lock().unwrap().iter().map(|(k, _v)| k).cloned().collect();
 
+    // Collect the game metadata and any errors.
     let returned = Returned {
-        sizes: sizes,
+        sizes,
         sprites: sprites_objects.lock().unwrap().to_owned(),
         error: error.lock().unwrap().join("\n"),
     };
@@ -257,20 +253,18 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
 
 /// Takes in an icon and gives a list of nested icons. Also returns a reference to the provided icon in the list.
 fn icon_to_icons(icon: &IconObject) -> Vec<&IconObject> {
+    zone!("icon_to_icons");
     let mut icons: Vec<&IconObject> = Vec::new();
     icons.push(icon);
     for transform in &icon.transform {
-        match transform {
-            Transform::BlendIconTransform { icon, .. } => {
-                let nested = icon_to_icons(icon);
-                for icon in nested {
-                    icons.push(icon)
-                }
+        if let Transform::BlendIcon { icon, .. } = transform  {
+            let nested = icon_to_icons(icon);
+            for icon in nested {
+                icons.push(icon)
             }
-            _ => {}
         }
     }
-    return icons;
+    icons
 }
 
 /// Given an IconObject, returns a DMI Icon structure and caches it.
@@ -279,14 +273,17 @@ fn icon_to_dmi(icon: &IconObject) -> Result<Arc<Icon>, String> {
     let icon_path: &String = &icon.icon_file;
     {
         zone!("check_dmi_exists");
-        let map = ICON_FILES.lock().unwrap();
         // scope-in so the lock does not persist during DMI read
-        let found_icon = map.get(icon_path);
-        if found_icon.is_some() {
-            return Ok(found_icon.unwrap().clone());
+        let found_icon = ICON_FILES.get(icon_path);
+        if let Some(found) = found_icon {
+            return Ok(found.clone());
         }
     }
-    let reader = BufReader::new(File::open(icon_path).unwrap());
+    let icon_file = File::open(icon_path);
+    if icon_file.is_err() {
+        return Err(format!("No such DMI file: {}", icon_path))
+    }
+    let reader = BufReader::new(icon_file.unwrap());
     let dmi: Option<Icon>;
     {
         zone!("parse_dmi");
@@ -297,34 +294,34 @@ fn icon_to_dmi(icon: &IconObject) -> Result<Arc<Icon>, String> {
     }
     {
         zone!("insert_dmi");
+        let dmi_arc = Arc::new(dmi.unwrap());
+        let other_arc = dmi_arc.clone();
         // cache it for later.
         // Ownership is given to the hashmap
-        let dmi = ICON_FILES.lock().unwrap().insert(icon_path.to_owned(), Arc::new(dmi.unwrap()));
-        return Ok(dmi.unwrap().clone());
+        ICON_FILES.insert(icon_path.to_owned(), dmi_arc);
+        Ok(other_arc)
     }
 }
 
-/// Gives ownership over the image. Please return when you are done <3
+// Takes an IconObject, gets its DMI, then picks out a DynamicImage for the IconState, as well as transforms the DynamicImage.
+// Gives ownership over the image. Please return when you are done <3
 fn icon_to_image(icon: &IconObject, sprite_name: &String) -> Result<DynamicImage, String> {
+    zone!("icon_to_image");
     {
         zone!("check_dynamicimage_exists");
         // scope-in so the lock does not persist during DMI read
-        let found_icon = ICON_STATES.lock().unwrap().remove(&icon.to_icostring().unwrap());
-        if found_icon.is_some() {
-            return Ok(found_icon.unwrap())
+        let found_icon = ICON_STATES.remove(&icon.to_icostring().unwrap());
+        if let Some(found) = found_icon {
+            return Ok(found.1)
         }
     }
-    let result = icon_to_dmi(icon);
-    if result.is_err()  {
-        return Err(result.unwrap_err());
-    }
-    let dmi = result.unwrap();
+    let dmi = icon_to_dmi(icon)?;
     let mut matched_state: Option<&IconState> = Option::None;
     {
         zone!("match_icon_state");
         for icon_state in &dmi.states {
             if icon_state.name == icon.icon_state {
-                matched_state = Option::Some(&icon_state);
+                matched_state = Option::Some(icon_state);
                 break;
             }
         }
@@ -355,49 +352,218 @@ fn icon_to_image(icon: &IconObject, sprite_name: &String) -> Result<DynamicImage
         icon_idx = (icon_idx + 1) * icon.frame - 1
     }
     let image: DynamicImage = state.images.get(icon_idx as usize).unwrap().clone();
-    return Ok(image);
+    // Apply transforms
+    let (transformed_image, errors) = transform_image(image, icon, sprite_name);
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    Ok(transformed_image)
 }
 
-// Gives an image back to the cache, after it is done being altered.
+// Gives an image back to the cache, after it is done being used.
 fn return_image(image: DynamicImage, icon: &IconObject) {
     zone!("insert_dynamicimage");
-    ICON_STATES.lock().unwrap().insert(icon.to_icostring().unwrap(), image);
+    ICON_STATES.insert(icon.to_icostring().unwrap(), image);
 }
 
-fn mutate(blend_mode: u8) -> fn(u8, u8) -> u8 {
-    return match blend_mode {
-        0 => {|a: u8, b: u8| cap(a as u32 + b as u32)}
-        2 => {|a: u8, b: u8| cap(a as u32 * b as u32)}
-        3 => {|a: u8, b: u8| {
-            if a < 128 {
-                return cap(2 * a as u32 * b as u32);
-            } else {
-                return cap(255 - 510 * (255 - a as u32) * (255 - b as u32));
+// Applies transforms to a DynamicImage.
+fn transform_image(image_in: DynamicImage, icon: &IconObject, sprite_name: &String) -> (DynamicImage, String) {
+    zone!("transform_image");
+    let mut image = image_in;
+    let mut error: Vec<String> = Vec::new();
+    for transform in &icon.transform {
+        match transform {
+            Transform::BlendColor { color, blend_mode } => {
+                zone!("blend_color");
+                let mut hex: String = color.to_owned();
+                if hex.starts_with('#') {
+                    hex = hex[1..].to_string();
+                }
+                if hex.len() == 6 {
+                    hex = format!("{}ff", hex);
+                }
+                let mut color2: [u8; 4] = [0, 0, 0, 255];
+                hex::decode_to_slice(hex, &mut color2).expect(&format!("Decoding hex color {} failed", color));
+                for x in 0..image.width() {
+                    for y in 0..image.height() {
+                        let px = image.get_pixel(x, y);
+                        let pixel = px.channels();
+                        let blended = blend(pixel, &color2, *blend_mode);
+
+                        image.put_pixel(x, y,
+                            image::Rgba::<u8>(blended),
+                        );
+                    }
+                }
+            },
+            Transform::BlendIcon { icon, blend_mode } => {
+                zone!("blend_icon");
+                let image_result = icon_to_image(icon, &format!("Transform blend_icon of {}", sprite_name));
+                if let Err(err) = image_result {
+                    error.push(err);
+                    continue;
+                }
+
+                let other_image = image_result.unwrap();
+
+                for x in 0..image.width() {
+                    if x >= other_image.width() {
+                        break; // undefined behavior in DM :)
+                    }
+                    for y in 0..image.height() {
+                        if y >= other_image.height() {
+                            break; // undefined behavior in DM :)
+                        }
+                        let px1 = image.get_pixel(x, y);
+                        let px2 = other_image.get_pixel(x, y);
+                        let pixel_1 = px1.channels();
+                        let pixel_2 = px2.channels();
+
+                        let blended = blend(pixel_1, pixel_2, *blend_mode);
+
+                        image.put_pixel(x, y,
+                            image::Rgba::<u8>(blended),
+                        );
+                    }
+                }
+                return_image(other_image, icon);
+
+            },
+            Transform::Scale { width, height } => {
+                zone!("scale");
+                let x_ratio = image.width() as f32 / *width as f32;
+                let y_ratio = image.height() as f32 / *height as f32;
+                let mut new_image = DynamicImage::new_rgba8(*width, *height);
+                for x in 0..*width {
+                    for y in 0..*height {
+                        let old_x: u32 = ( x as f32 * x_ratio ).floor() as u32;
+                        let old_y: u32 = ( y as f32 * y_ratio ).floor() as u32;
+                        let pixel = image.get_pixel(old_x, old_y);
+                        new_image.put_pixel(x, y, pixel);
+                    }
+                }
+                image = new_image;
             }
-        }}
-        _ => {|a: u8, _: u8| a}
-    };
-}
+            Transform::Crop { x1, y1, x2, y2 } => {
+                zone!("crop");
+                let i_width = image.width();
+                let i_height = image.height();
+                let mut x1 = *x1;
+                let mut y1 = *y1;
+                let mut x2 = *x2;
+                let mut y2 = *y2;
+                if x2 <= x1 || y2 <= y1 {
+                    error.push(format!("Invalid bounds {} {} to {} {} from sprite {}", x1, y1, x2, y2, sprite_name));
+                    continue;
+                }
 
-fn blend(rgba_src: Rgba<u8>, rgba_dst: [u8; 3], mutator_rgb: fn(u8, u8) -> u8) -> Rgba<u8> {
-    let r = mutator_rgb(rgba_src.0[0], rgba_dst[0]);
-    let g = mutator_rgb(rgba_src.0[1], rgba_dst[1]);
-    let b = mutator_rgb(rgba_src.0[2], rgba_dst[2]);
-    let a = rgba_src.0[3];
-    return Rgba::<u8>( [r, g, b, a] )
-}
+                // convert from BYOND (0,0 is bottom left) to Rust (0,0 is top left)
+                let y2_old = y2;
+                y2 = i_height as i32 - y1;
+                y1 = i_height as i32 - y2_old;
 
-fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
-    (1..s.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16))
-        .collect()
-}
+                let mut width = x2 - x1;
+                let mut height = y2 - y1;
 
-fn cap(val: u32) -> u8 {
-    if val > 255 {
-        return 255;
-    } else {
-        return u8::try_from(val).unwrap();
+                if x1 < 0 || x2 > i_width as i32 || y1 < 0 || y2 > i_height as i32 {
+                    //continue;
+                    let mut blank_img = ImageBuffer::from_fn(width as u32, height as u32, |_x, _y| image::Rgba([0, 0, 0, 0]));
+                    image::imageops::overlay(
+                    &mut blank_img,
+                    &image,
+                    if x1 < 0 { (x1).abs() as i64 } else { 0 } - if x1 > i_width as i32 { (x1 - i_width as i32) as i64 } else { 0 },
+                    if y1 < 0 { (y1).abs() as i64 } else { 0 } - if x1 > i_width as i32 { (x1 - i_width as i32) as i64} else { 0 },
+                    );
+                    image = DynamicImage::new_rgba8(width as u32, height as u32);
+                    let error_i = image.copy_from(&blank_img, 0, 0);
+                    if let Err(err) = error_i {
+                        error.push(err.to_string());
+                        continue;
+                    }
+                    assert_eq!(image.width(), width as u32);
+                    assert_eq!(image.height(), height as u32);
+                    if x1 < 0 {
+                        x1 = 0;
+                    }
+                    if x2 > i_width as i32 {
+                        x2 = i_width as i32;
+                    }
+                    if y1 < 0 {
+                        y1 = 0;
+                    }
+                    if y2 > i_height as i32 {
+                        y2 = i_height as i32;
+                    }
+                    width = x2 - x1;
+                    height = y2 - y1;
+                }
+                image = image.crop_imm(x1 as u32, y1 as u32, width as u32, height as u32);
+            }
+        }
     }
+    (image, error.join("\n"))
+}
+
+// Blends two colors according to blend_mode. The numbers correspond to BYOND blend modes.
+fn blend(color: &[u8], color2: &[u8], blend_mode: u8) -> [u8; 4] {
+    match blend_mode {
+        0 => [
+            strict_f32_to_u8(color2[0] as f32 + color[0] as f32),
+            strict_f32_to_u8(color2[1] as f32 + color[1] as f32),
+            strict_f32_to_u8(color2[2] as f32 + color[2] as f32),
+            if color2[3] > color[3] {color[3]} else {color2[3]}
+        ],
+        1 => [
+            strict_f32_to_u8(color2[0] as f32 - color[0] as f32),
+            strict_f32_to_u8(color2[1] as f32 - color[1] as f32),
+            strict_f32_to_u8(color2[2] as f32 - color[2] as f32),
+            if color2[3] > color[3] {color[3]} else {color2[3]}
+        ],
+        2 => [
+            strict_f32_to_u8((color[0] as f32) * (color2[0] as f32) / 255.0f32),
+            strict_f32_to_u8((color[1] as f32) * (color2[1] as f32) / 255.0f32),
+            strict_f32_to_u8((color[2] as f32) * (color2[2] as f32) / 255.0f32),
+            strict_f32_to_u8((color[3] as f32) * (color2[3] as f32) / 255.0f32)
+        ],
+        3 => {
+            let mut high = color2[3];
+            let mut low = color[3];
+            if high < low {
+                high = color[3];
+                low = color2[3];
+            }
+            [
+                strict_f32_to_u8(color[0] as f32 + (color2[0] as f32 - color[0] as f32) * color2[3] as f32  / 255.0f32),
+                strict_f32_to_u8(color[1] as f32 + (color2[1] as f32 - color[1] as f32) * color2[3] as f32  / 255.0f32),
+                strict_f32_to_u8(color[2] as f32 + (color2[2] as f32 - color[2] as f32) * color2[3] as f32 / 255.0f32),
+                strict_f32_to_u8(high as f32 + (high as f32 * low as f32 / 255.0))
+            ]
+        },
+        6 => {
+            let mut high = color[3];
+            let mut low = color2[3];
+            if high < low {
+                high = color2[3];
+                low = color[3];
+            }
+            [
+                strict_f32_to_u8(color2[0] as f32 + (color[0] as f32 - color2[0] as f32) * color[3] as f32 / 255.0f32),
+                strict_f32_to_u8(color2[1] as f32 + (color[1] as f32 - color2[1] as f32) * color[3] as f32 / 255.0f32),
+                strict_f32_to_u8(color2[2] as f32 + (color[2] as f32 - color2[2] as f32) * color[3] as f32 / 255.0f32),
+                strict_f32_to_u8(high as f32 + (high as f32 * low as f32 / 255.0f32))
+            ]
+        },
+        _ => [color[0], color[1], color[2], color[3]],
+    }
+}
+
+// caps an f32 into u8 ranges, rounds it to the nearest integer, then truncates to a u8.
+fn strict_f32_to_u8(x: f32) -> u8 {
+    if x < u8::MIN as f32 {
+        return 0;
+    }
+    if x > u8::MAX as f32 {
+        return u8::MAX;
+    }
+    x.round().trunc() as u8
 }
