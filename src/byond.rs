@@ -1,13 +1,13 @@
 use std::{
+    backtrace::Backtrace,
     borrow::Cow,
     cell::RefCell,
     ffi::{CStr, CString},
+    fs::OpenOptions,
+    io::Write,
     os::raw::{c_char, c_int},
     slice,
     sync::Once,
-    fs::OpenOptions,
-    io::Write,
-    backtrace::Backtrace,
 };
 
 static SET_HOOK: Once = Once::new();
@@ -93,18 +93,26 @@ byond_fn!(
 
 // Print any panics before exiting.
 pub fn set_panic_hook() {
-    SET_HOOK.call_once(|| std::panic::set_hook(Box::new(|panic_info| {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .create(true)
-            .open("rustg-panic.log")
-            .unwrap();
-        file.write_all(Backtrace::capture().to_string().as_bytes()).expect("Failed to extract error backtrace");
-        file.write_all(panic_info.payload().downcast_ref::<&'static str>()
-            .map(|payload| payload.to_string())
-            .or_else(|| {
-                panic_info.payload().downcast_ref::<String>().cloned()
-            }).unwrap().as_bytes()).expect("Failed to extract error payload");
-    })));
+    SET_HOOK.call_once(|| {
+        std::panic::set_hook(Box::new(|panic_info| {
+            let mut file = OpenOptions::new()
+                .write(true)
+                .append(true)
+                .create(true)
+                .open("rustg-panic.log")
+                .unwrap();
+            file.write_all(Backtrace::capture().to_string().as_bytes())
+                .expect("Failed to extract error backtrace");
+            file.write_all(
+                panic_info
+                    .payload()
+                    .downcast_ref::<&'static str>()
+                    .map(|payload| payload.to_string())
+                    .or_else(|| panic_info.payload().downcast_ref::<String>().cloned())
+                    .unwrap()
+                    .as_bytes(),
+            )
+            .expect("Failed to extract error payload");
+        }))
+    });
 }
