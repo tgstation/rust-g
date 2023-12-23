@@ -175,7 +175,7 @@ fn generate_spritesheet(file_path: &str, spritesheet_name: &str, sprites: &str) 
             let size_id = format!("{}x{}", image.width(), image.height());
             return_image(image, icon);
             let mut size_map = size_to_icon_objects.lock().unwrap();
-            let vec = (*size_map).entry(size_id.to_owned()).or_insert(Vec::new());
+            let vec = (*size_map).entry(size_id.to_owned()).or_default();
             vec.push(icon);
 
             sprites_objects.lock().unwrap().insert(sprite_name.to_owned(), SpritesheetEntry {
@@ -363,7 +363,9 @@ fn transform_image(image_in: DynamicImage, icon: &IconObject, sprite_name: &Stri
                     hex = format!("{}ff", hex);
                 }
                 let mut color2: [u8; 4] = [0, 0, 0, 255];
-                hex::decode_to_slice(hex, &mut color2).expect(&format!("Decoding hex color {} failed", color));
+                if let Err(err) = hex::decode_to_slice(hex, &mut color2) {
+                    error.push(format!("Decoding hex color {} failed: {}", color, err.to_string()));
+                }
                 for x in 0..image.width() {
                     for y in 0..image.height() {
                         let px = image.get_pixel(x, y);
