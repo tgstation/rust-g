@@ -131,14 +131,11 @@ fn generate_spritesheet(
 ) -> std::result::Result<String, Error> {
     zone!("generate_spritesheet");
 
-    let error: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    let error = Arc::new(Mutex::new(Vec::<String>::new()));
 
-    let size_to_icon_objects: Arc<Mutex<HashMap<String, Vec<&IconObject>>>> =
-        Arc::new(Mutex::new(HashMap::new()));
-    let sprites_map: HashMap<String, IconObject> =
-        serde_json::from_str::<HashMap<String, IconObject>>(sprites)?;
-    let sprites_objects: Arc<Mutex<HashMap<String, SpritesheetEntry>>> =
-        Arc::new(Mutex::new(HashMap::new()));
+    let size_to_icon_objects = Arc::new(Mutex::new(HashMap::<String, Vec<&IconObject>>::new()));
+    let sprites_map = serde_json::from_str::<HashMap<String, IconObject>>(sprites)?;
+    let sprites_objects = Arc::new(Mutex::new(HashMap::<String, SpritesheetEntry>::new()));
 
     // Pre-load all the DMIs now.
     sprites_map.par_iter().for_each(|sprite_entry| {
@@ -177,7 +174,7 @@ fn generate_spritesheet(
                 sprite_name.to_owned(),
                 SpritesheetEntry {
                     size_id: size_id.to_owned(),
-                    position: u32::try_from(vec.len()).unwrap() - 1,
+                    position: vec.len() as u32 - 1,
                 },
             );
         }
@@ -207,14 +204,12 @@ fn generate_spritesheet(
                 .parse::<u32>()
                 .unwrap();
 
-            let image_count: u32 = u32::try_from(icon_objects.len()).unwrap();
+            let image_count = icon_objects.len() as u32;
             let mut final_image = DynamicImage::new_rgba8(base_width * image_count, base_height);
 
             for idx in 0..image_count {
                 zone!("join_sprite");
-                let icon = icon_objects
-                    .get::<usize>(usize::try_from(idx).unwrap())
-                    .unwrap();
+                let icon = icon_objects.get::<usize>(idx as usize).unwrap();
                 let image_result =
                     icon_to_image(icon, &"N/A, in final generation stage".to_string());
                 if let Err(err) = image_result {
@@ -407,7 +402,7 @@ fn transform_image(
                     for y in 0..image.height() {
                         let px = image.get_pixel(x, y);
                         let pixel = px.channels();
-                        let blended = blend(pixel, &color2, *blend_mode);
+                        let blended = blend_u8(pixel, &color2, *blend_mode);
 
                         image.put_pixel(x, y, image::Rgba::<u8>(blended));
                     }
@@ -437,7 +432,7 @@ fn transform_image(
                         let pixel_1 = px1.channels();
                         let pixel_2 = px2.channels();
 
-                        let blended = blend(pixel_1, pixel_2, *blend_mode);
+                        let blended = blend_u8(pixel_1, pixel_2, *blend_mode);
 
                         image.put_pixel(x, y, image::Rgba::<u8>(blended));
                     }
@@ -484,7 +479,6 @@ fn transform_image(
                 let mut height = y2 - y1;
 
                 if x1 < 0 || x2 > i_width as i32 || y1 < 0 || y2 > i_height as i32 {
-                    //continue;
                     let mut blank_img =
                         ImageBuffer::from_fn(width as u32, height as u32, |_x, _y| {
                             image::Rgba([0, 0, 0, 0])
@@ -506,25 +500,14 @@ fn transform_image(
                             },
                     );
                     image = DynamicImage::new_rgba8(width as u32, height as u32);
-                    let error_i = image.copy_from(&blank_img, 0, 0);
-                    if let Err(err) = error_i {
+                    if let Err(err) = image.copy_from(&blank_img, 0, 0) {
                         error.push(err.to_string());
                         continue;
                     }
-                    assert_eq!(image.width(), width as u32);
-                    assert_eq!(image.height(), height as u32);
-                    if x1 < 0 {
-                        x1 = 0;
-                    }
-                    if x2 > i_width as i32 {
-                        x2 = i_width as i32;
-                    }
-                    if y1 < 0 {
-                        y1 = 0;
-                    }
-                    if y2 > i_height as i32 {
-                        y2 = i_height as i32;
-                    }
+                    x1 = std::cmp::max(0, x1);
+                    x2 = std::cmp::min(i_width as i32, x2);
+                    y1 = std::cmp::max(0, y1);
+                    y2 = std::cmp::min(i_height as i32, y2);
                     width = x2 - x1;
                     height = y2 - y1;
                 }
@@ -535,82 +518,99 @@ fn transform_image(
     (image, error.join("\n"))
 }
 
+struct Rgba {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
+
+impl Rgba {
+    fn into_array(self) -> [u8; 4] {
+        [
+            strict_f32_to_u8(self.r),
+            strict_f32_to_u8(self.g),
+            strict_f32_to_u8(self.b),
+            strict_f32_to_u8(self.a),
+        ]
+    }
+
+    fn from_array(rgba: &[u8]) -> Rgba {
+        Rgba {
+            r: rgba[0] as f32,
+            g: rgba[1] as f32,
+            b: rgba[2] as f32,
+            a: rgba[3] as f32,
+        }
+    }
+
+    fn map_each(
+        color: Rgba,
+        color2: Rgba,
+        rgb_fn: &dyn Fn(f32, f32) -> f32,
+        a_fn: &dyn Fn(f32, f32) -> f32,
+    ) -> Rgba {
+        Rgba {
+            r: rgb_fn(color.r, color2.r),
+            g: rgb_fn(color.g, color2.g),
+            b: rgb_fn(color.b, color2.b),
+            a: a_fn(color.a, color2.a),
+        }
+    }
+
+    fn map_each_a(
+        color: Rgba,
+        color2: Rgba,
+        rgb_fn: &dyn Fn(f32, f32, f32, f32) -> f32,
+        a_fn: &dyn Fn(f32, f32) -> f32,
+    ) -> Rgba {
+        Rgba {
+            r: rgb_fn(color.r, color2.r, color.a, color2.a),
+            g: rgb_fn(color.g, color2.g, color.a, color2.a),
+            b: rgb_fn(color.b, color2.b, color.a, color2.a),
+            a: a_fn(color.a, color2.a),
+        }
+    }
+}
+
+fn blend_u8(color: &[u8], color2: &[u8], blend_mode: u8) -> [u8; 4] {
+    blend(
+        Rgba::from_array(color),
+        Rgba::from_array(color2),
+        blend_mode,
+    )
+    .into_array()
+}
+
 /// Blends two colors according to blend_mode. The numbers correspond to BYOND blend modes.
-fn blend(color: &[u8], color2: &[u8], blend_mode: u8) -> [u8; 4] {
+fn blend(color: Rgba, color2: Rgba, blend_mode: u8) -> Rgba {
     match blend_mode {
-        0 => [
-            strict_f32_to_u8(color2[0] as f32 + color[0] as f32),
-            strict_f32_to_u8(color2[1] as f32 + color[1] as f32),
-            strict_f32_to_u8(color2[2] as f32 + color[2] as f32),
-            if color2[3] > color[3] {
-                color[3]
-            } else {
-                color2[3]
+        0 => Rgba::map_each(color, color2, &|c1, c2| c1 + c2, &f32::min),
+        1 => Rgba::map_each(color, color2, &|c1, c2| c2 - c1, &f32::min),
+        2 => Rgba::map_each(color, color2, &|c1, c2| c1 * c2 / 255.0, &|a1, a2| {
+            a1 * a2 / 255.0
+        }),
+        3 => Rgba::map_each_a(
+            color,
+            color2,
+            &|c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a,
+            &|a1, a2| {
+                let high = f32::max(a1, a2);
+                let low = f32::min(a1, a2);
+                high + (high * low / 255.0)
             },
-        ],
-        1 => [
-            strict_f32_to_u8(color2[0] as f32 - color[0] as f32),
-            strict_f32_to_u8(color2[1] as f32 - color[1] as f32),
-            strict_f32_to_u8(color2[2] as f32 - color[2] as f32),
-            if color2[3] > color[3] {
-                color[3]
-            } else {
-                color2[3]
+        ),
+        6 => Rgba::map_each_a(
+            color2,
+            color,
+            &|c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a,
+            &|a1, a2| {
+                let high = f32::max(a1, a2);
+                let low = f32::min(a1, a2);
+                high + (high * low / 255.0)
             },
-        ],
-        2 => [
-            strict_f32_to_u8((color[0] as f32) * (color2[0] as f32) / 255.0f32),
-            strict_f32_to_u8((color[1] as f32) * (color2[1] as f32) / 255.0f32),
-            strict_f32_to_u8((color[2] as f32) * (color2[2] as f32) / 255.0f32),
-            strict_f32_to_u8((color[3] as f32) * (color2[3] as f32) / 255.0f32),
-        ],
-        3 => {
-            let mut high = color2[3];
-            let mut low = color[3];
-            if high < low {
-                high = color[3];
-                low = color2[3];
-            }
-            [
-                strict_f32_to_u8(
-                    color[0] as f32
-                        + (color2[0] as f32 - color[0] as f32) * color2[3] as f32 / 255.0f32,
-                ),
-                strict_f32_to_u8(
-                    color[1] as f32
-                        + (color2[1] as f32 - color[1] as f32) * color2[3] as f32 / 255.0f32,
-                ),
-                strict_f32_to_u8(
-                    color[2] as f32
-                        + (color2[2] as f32 - color[2] as f32) * color2[3] as f32 / 255.0f32,
-                ),
-                strict_f32_to_u8(high as f32 + (high as f32 * low as f32 / 255.0)),
-            ]
-        }
-        6 => {
-            let mut high = color[3];
-            let mut low = color2[3];
-            if high < low {
-                high = color2[3];
-                low = color[3];
-            }
-            [
-                strict_f32_to_u8(
-                    color2[0] as f32
-                        + (color[0] as f32 - color2[0] as f32) * color[3] as f32 / 255.0f32,
-                ),
-                strict_f32_to_u8(
-                    color2[1] as f32
-                        + (color[1] as f32 - color2[1] as f32) * color[3] as f32 / 255.0f32,
-                ),
-                strict_f32_to_u8(
-                    color2[2] as f32
-                        + (color[2] as f32 - color2[2] as f32) * color[3] as f32 / 255.0f32,
-                ),
-                strict_f32_to_u8(high as f32 + (high as f32 * low as f32 / 255.0f32)),
-            ]
-        }
-        _ => [color[0], color[1], color[2], color[3]],
+        ),
+        _ => color,
     }
 }
 
