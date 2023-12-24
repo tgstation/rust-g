@@ -640,7 +640,7 @@ fn blend(color: Rgba, color2: Rgba, blend_mode: u8) -> Rgba {
         3 => Rgba::map_each_a(
             color,
             color2,
-            &|c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a,
+            &|c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a / 255.0,
             &|a1, a2| {
                 let high = f32::max(a1, a2);
                 let low = f32::min(a1, a2);
@@ -650,7 +650,7 @@ fn blend(color: Rgba, color2: Rgba, blend_mode: u8) -> Rgba {
         6 => Rgba::map_each_a(
             color2,
             color,
-            &|c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a,
+            &|c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a / 255.0,
             &|a1, a2| {
                 let high = f32::max(a1, a2);
                 let low = f32::min(a1, a2);
