@@ -4,7 +4,10 @@ use crate::error::Error;
 use crate::hash::string_hash;
 use crate::jobs;
 use dashmap::DashMap;
-use dmi::icon::{Icon, IconState};
+use dmi::{
+    icon::{Icon, IconState},
+    dirs::Dirs,
+};
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel};
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -19,22 +22,7 @@ use tracy_full::{frame, zone};
 static ICON_FILES: Lazy<DashMap<String, Arc<Icon>>> = Lazy::new(DashMap::new);
 static ICON_STATES: Lazy<DashMap<String, DynamicImage>> = Lazy::new(DashMap::new);
 
-const SOUTH: u8 = 2;
-const NORTH: u8 = 1;
-const EAST: u8 = 4;
-const WEST: u8 = 8;
-const FOUR_DIRS: [u8; 4] = [SOUTH, NORTH, EAST, WEST];
-const SOUTHEAST: u8 = SOUTH | EAST; // 6
-const SOUTHWEST: u8 = SOUTH | WEST; // 10
-const NORTHEAST: u8 = NORTH | EAST; // 5
-const NORTHWEST: u8 = NORTH | WEST; // 9
-
-/// This is ordered by how DMIs internally place dirs into the PNG
-const EIGHT_DIRS: [u8; 8] = [
-    SOUTH, NORTH, EAST, WEST, SOUTHEAST, SOUTHWEST, NORTHEAST, NORTHWEST,
-];
-
-/// This is an array mapping the DIR number from above to a position in DMIs, such that DIR_TO_INDEX[DIR] = EIGHT_DIRS.indexof(DIR)
+/// This is an array mapping the DIR number from above to a position in DMIs, such that DIR_TO_INDEX[DIR] = dmi::dirs::DIR_ORDERING.indexof(DIR)
 /// 255 is invalid.
 const DIR_TO_INDEX: [u8; 11] = [255, 1, 0, 255, 2, 6, 4, 255, 3, 7, 5];
 
@@ -364,9 +352,18 @@ fn icon_to_image(icon: &IconObject, sprite_name: &String) -> Result<DynamicImage
                 icon.frame, sprite_name, icon.icon_state, state.dirs, state.frames
             ));
         }
-        if (state.dirs == 1 && icon.dir != SOUTH)
-            || (state.dirs == 4 && !FOUR_DIRS.contains(&icon.dir))
-            || (state.dirs == 8 && !EIGHT_DIRS.contains(&icon.dir))
+        let dir = match dmi::dirs::Dirs::from_bits(icon.dir) {
+            Some(dir) => dir,
+            None => {
+                return Err(format!(
+                    "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
+                    icon.dir, state.dirs, icon.icon_file, icon.icon_state, sprite_name
+                ));
+            }
+        };
+        if (state.dirs == 1 && dir != Dirs::SOUTH)
+            || (state.dirs == 4 && !dmi::dirs::ORDINAL_DIRS.contains(&dir))
+            || (state.dirs == 8 && !dmi::dirs::ALL_DIRS.contains(&dir))
         {
             return Err(format!(
                 "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
