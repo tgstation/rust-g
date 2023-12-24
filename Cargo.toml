@@ -1,7 +1,7 @@
 [package]
 name = "rust-g"
 edition = "2021"
-version = "2.1.0"
+version = "2.2.0"
 authors = [
     "Bjorn Neergaard <bjorn@neersighted.com>",
     "Tad Hardesty <tad@platymuus.com>",
@@ -34,7 +34,9 @@ hex = { version = "0.4", optional = true }
 percent-encoding = { version = "2.2", optional = true }
 url-dep = { version = "2.3", package = "url", optional = true }
 png = { version = "0.17", optional = true }
-image = { version = "0.24", optional = true, default-features = false, features = ["png"] }
+image = { version = "0.24", optional = true, default-features = false, features = [
+    "png",
+] }
 git2 = { version = "0.17.1", optional = true, default-features = false }
 noise = { version = "0.8", optional = true }
 redis = { version = "0.23", optional = true }
