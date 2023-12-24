@@ -575,10 +575,10 @@ struct Rgba {
 impl Rgba {
     fn into_array(self) -> [u8; 4] {
         [
-            strict_f32_to_u8(self.r),
-            strict_f32_to_u8(self.g),
-            strict_f32_to_u8(self.b),
-            strict_f32_to_u8(self.a),
+            self.r.round() as u8,
+            self.g.round() as u8,
+            self.b.round() as u8,
+            self.a.round() as u8,
         ]
     }
 
@@ -659,15 +659,4 @@ fn blend(color: Rgba, color2: Rgba, blend_mode: u8) -> Rgba {
         ),
         _ => color,
     }
-}
-
-/// caps an f32 into u8 ranges, rounds it to the nearest integer, then truncates to a u8.
-fn strict_f32_to_u8(x: f32) -> u8 {
-    if x < u8::MIN as f32 {
-        return 0;
-    }
-    if x > u8::MAX as f32 {
-        return u8::MAX;
-    }
-    x.round().trunc() as u8
 }
