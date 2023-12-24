@@ -62,8 +62,8 @@ pub enum Error {
     #[error("Unable to decode hex value.")]
     HexDecode,
     #[cfg(feature = "iconforge")]
-    #[error("IconState error: {0}")]
-    IconState(String),
+    #[error("IconForge error: {0}")]
+    IconForge(String),
 }
 
 impl From<Utf8Error> for Error {

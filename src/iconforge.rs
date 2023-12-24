@@ -42,7 +42,7 @@ byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites) {
     let file_path = file_path.to_owned();
     let spritesheet_name = spritesheet_name.to_owned();
     let sprites = sprites.to_owned();
-    Some(match catch_panic(&file_path, &spritesheet_name, &sprites) {
+    Some(match generate_spritesheet_safe(&file_path, &spritesheet_name, &sprites) {
         Ok(o) => o.to_string(),
         Err(e) => e.to_string()
     })
@@ -54,7 +54,7 @@ byond_fn!(fn iconforge_generate_async(file_path, spritesheet_name, sprites) {
     let spritesheet_name = spritesheet_name.to_owned();
     let sprites = sprites.to_owned();
     Some(jobs::start(move || {
-        match catch_panic(&file_path, &spritesheet_name, &sprites) {
+        match generate_spritesheet_safe(&file_path, &spritesheet_name, &sprites) {
             Ok(o) => o.to_string(),
             Err(e) => e.to_string()
         }
@@ -66,7 +66,7 @@ byond_fn!(fn iconforge_check(id) {
 });
 
 #[derive(Serialize)]
-struct Returned {
+struct SpritesheetResult {
     sizes: Vec<String>,
     sprites: HashMap<String, SpritesheetEntry>,
     error: String,
@@ -91,7 +91,7 @@ struct IconObject {
 impl IconObject {
     fn to_icostring(&self) -> Result<String, Error> {
         zone!("to_icostring");
-        string_hash("xxh64", &serde_json::to_string(self).unwrap())
+        string_hash("xxh64", &serde_json::to_string(self)?)
     }
 }
 
@@ -104,24 +104,29 @@ enum Transform {
     Crop { x1: i32, y1: i32, x2: i32, y2: i32 },
 }
 
-fn catch_panic(
+fn generate_spritesheet_safe(
     file_path: &str,
     spritesheet_name: &str,
     sprites: &str,
 ) -> std::result::Result<String, Error> {
-    let x = std::panic::catch_unwind(|| {
+    match std::panic::catch_unwind(|| {
         let result = generate_spritesheet(file_path, spritesheet_name, sprites);
         frame!();
         result
-    });
-    if let Err(err) = x {
-        let message: Option<String> = err
-            .downcast_ref::<&'static str>()
-            .map(|payload| payload.to_string())
-            .or_else(|| err.downcast_ref::<String>().cloned());
-        return Err(Error::IconState(message.unwrap().to_owned()));
+    }) {
+        Ok(o) => o,
+        Err(e) => {
+            let message: Option<String> = e
+                .downcast_ref::<&'static str>()
+                .map(|payload| payload.to_string())
+                .or_else(|| e.downcast_ref::<String>().cloned());
+            Err(Error::IconForge(
+                message
+                    .unwrap_or("Failed to stringify panic! Check rustg-panic.log".to_string())
+                    .to_owned(),
+            ))
+        }
     }
-    x.ok().unwrap()
 }
 
 fn generate_spritesheet(
@@ -138,6 +143,7 @@ fn generate_spritesheet(
     let sprites_objects = Arc::new(Mutex::new(HashMap::<String, SpritesheetEntry>::new()));
 
     // Pre-load all the DMIs now.
+    // This is much faster than doing it as we go (tested!), because sometimes multiple parallel iterators need the DMI.
     sprites_map.par_iter().for_each(|sprite_entry| {
         zone!("sprite_to_icons");
         let (_, icon) = sprite_entry;
@@ -148,39 +154,54 @@ fn generate_spritesheet(
         });
     });
 
-    // Pick the specific icon states out of the DMI
+    // Pick the specific icon states out of the DMI, also generating their transforms, build the spritesheet metadata.
     sprites_map.par_iter().for_each(|sprite_entry| {
         zone!("map_sprite");
         let (sprite_name, icon) = sprite_entry;
 
         // get DynamicImage, applying transforms as well
-        let image_result = icon_to_image(icon, sprite_name);
-        if let Err(err) = image_result {
-            error.lock().unwrap().push(err);
-            return;
-        }
-        let image = image_result.unwrap();
+        let image = match icon_to_image(icon, sprite_name) {
+            Ok(image) => image,
+            Err(err) => {
+                error.lock().unwrap().push(err);
+                return;
+            }
+        };
 
         {
             zone!("create_game_metadata");
             // Generate the metadata used by the game
             let size_id = format!("{}x{}", image.width(), image.height());
-            return_image(image, icon);
-            let mut size_map = size_to_icon_objects.lock().unwrap();
-            let vec = (*size_map).entry(size_id.to_owned()).or_default();
-            vec.push(icon);
+            if let Err(err) = return_image(image, icon) {
+                error.lock().unwrap().push(err.to_string());
+            }
+            let icon_position;
+            {
+                zone!("insert_into_size_map");
+                // This scope releases the lock on size_to_icon_objects
+                let mut size_map = size_to_icon_objects.lock().unwrap();
+                let vec = (*size_map).entry(size_id.to_owned()).or_default();
+                icon_position = vec.len() as u32;
+                vec.push(icon);
+            }
 
-            sprites_objects.lock().unwrap().insert(
-                sprite_name.to_owned(),
-                SpritesheetEntry {
-                    size_id: size_id.to_owned(),
-                    position: vec.len() as u32 - 1,
-                },
-            );
+            {
+                zone!("insert_into_sprite_objects");
+                sprites_objects.lock().unwrap().insert(
+                    sprite_name.to_owned(),
+                    SpritesheetEntry {
+                        size_id: size_id.to_owned(),
+                        position: icon_position,
+                    },
+                );
+            }
         }
     });
 
     // all images have been returned now, so continue...
+
+    // cache this here so we don't generate the same string 5000 times
+    let sprite_name = "N/A, in final generation stage".to_string();
 
     // Get all the sprites and spew them onto a spritesheet.
     size_to_icon_objects
@@ -204,20 +225,19 @@ fn generate_spritesheet(
                 .parse::<u32>()
                 .unwrap();
 
-            let image_count = icon_objects.len() as u32;
-            let mut final_image = DynamicImage::new_rgba8(base_width * image_count, base_height);
+            let mut final_image =
+                DynamicImage::new_rgba8(base_width * icon_objects.len() as u32, base_height);
 
-            for idx in 0..image_count {
+            for (idx, icon) in icon_objects.iter().enumerate() {
                 zone!("join_sprite");
-                let icon = icon_objects.get::<usize>(idx as usize).unwrap();
-                let image_result =
-                    icon_to_image(icon, &"N/A, in final generation stage".to_string());
-                if let Err(err) = image_result {
-                    error.lock().unwrap().push(err);
-                    continue;
-                }
-                let image = image_result.unwrap();
-                let base_x: u32 = base_width * idx;
+                let image = match icon_to_image(icon, &sprite_name) {
+                    Ok(image) => image,
+                    Err(err) => {
+                        error.lock().unwrap().push(err);
+                        return;
+                    }
+                };
+                let base_x: u32 = base_width * idx as u32;
                 for x in 0..image.width() {
                     for y in 0..image.height() {
                         final_image.put_pixel(base_x + x, y, image.get_pixel(x, y))
@@ -239,12 +259,12 @@ fn generate_spritesheet(
         .collect();
 
     // Collect the game metadata and any errors.
-    let returned = Returned {
+    let returned = SpritesheetResult {
         sizes,
         sprites: sprites_objects.lock().unwrap().to_owned(),
         error: error.lock().unwrap().join("\n"),
     };
-    Ok(serde_json::to_string::<Returned>(&returned).unwrap())
+    Ok(serde_json::to_string::<SpritesheetResult>(&returned)?)
 }
 
 /// Takes in an icon and gives a list of nested icons. Also returns a reference to the provided icon in the list.
@@ -266,69 +286,76 @@ fn icon_to_icons(icon: &IconObject) -> Vec<&IconObject> {
 /// Given an IconObject, returns a DMI Icon structure and caches it.
 fn icon_to_dmi(icon: &IconObject) -> Result<Arc<Icon>, String> {
     zone!("icon_to_dmi");
-    let icon_path: &String = &icon.icon_file;
+    let icon_path = &icon.icon_file;
     {
         zone!("check_dmi_exists");
-        // scope-in so the lock does not persist during DMI read
-        let found_icon = ICON_FILES.get(icon_path);
-        if let Some(found) = found_icon {
+        if let Some(found) = ICON_FILES.get(icon_path) {
             return Ok(found.clone());
         }
     }
-    let icon_file = File::open(icon_path);
-    if icon_file.is_err() {
-        return Err(format!("No such DMI file: {}", icon_path));
-    }
-    let reader = BufReader::new(icon_file.unwrap());
-    let dmi: Option<Icon>;
+    let icon_file = match File::open(icon_path) {
+        Ok(icon_file) => icon_file,
+        Err(_) => {
+            return Err(format!("No such DMI file: {}", icon_path));
+        }
+    };
+    let reader = BufReader::new(icon_file);
+    let dmi: Icon;
     {
         zone!("parse_dmi");
-        dmi = Icon::load(reader).ok();
-    }
-    if dmi.is_none() {
-        return Err(format!("Invalid DMI: {}", icon_path));
+        dmi = match Icon::load(reader) {
+            Ok(dmi) => dmi,
+            Err(_) => {
+                return Err(format!("Invalid DMI: {}", icon_path));
+            }
+        };
     }
     {
         zone!("insert_dmi");
-        let dmi_arc = Arc::new(dmi.unwrap());
+        let dmi_arc = Arc::new(dmi);
         let other_arc = dmi_arc.clone();
-        // cache it for later.
-        // Ownership is given to the hashmap
+        // Cache it for later, saving future DMI parsing operations, which are very slow.
         ICON_FILES.insert(icon_path.to_owned(), dmi_arc);
         Ok(other_arc)
     }
 }
 
 /// Takes an IconObject, gets its DMI, then picks out a DynamicImage for the IconState, as well as transforms the DynamicImage.
-/// Gives ownership over the image. Please return when you are done <3
+/// Gives ownership over the image. Please return when you are done <3 (via return_image)
 fn icon_to_image(icon: &IconObject, sprite_name: &String) -> Result<DynamicImage, String> {
     zone!("icon_to_image");
     {
         zone!("check_dynamicimage_exists");
-        // scope-in so the lock does not persist during DMI read
-        let found_icon = ICON_STATES.remove(&icon.to_icostring().unwrap());
-        if let Some(found) = found_icon {
-            return Ok(found.1);
+        let ico_string = match icon.to_icostring() {
+            Ok(ico_string) => ico_string,
+            Err(err) => {
+                return Err(err.to_string());
+            }
+        };
+        if let Some((_key, value)) = ICON_STATES.remove(&ico_string) {
+            return Ok(value);
         }
     }
     let dmi = icon_to_dmi(icon)?;
-    let mut matched_state: Option<&IconState> = Option::None;
+    let mut matched_state: Option<&IconState> = None;
     {
         zone!("match_icon_state");
         for icon_state in &dmi.states {
             if icon_state.name == icon.icon_state {
-                matched_state = Option::Some(icon_state);
+                matched_state = Some(icon_state);
                 break;
             }
         }
     }
-    if matched_state.is_none() {
-        return Err(format!(
-            "Could not find associated icon state {} for {}",
-            icon.icon_state, sprite_name
-        ));
-    }
-    let state = matched_state.unwrap();
+    let state = match matched_state {
+        Some(state) => state,
+        None => {
+            return Err(format!(
+                "Could not find associated icon state {} for {}",
+                icon.icon_state, sprite_name
+            ));
+        }
+    };
     {
         zone!("determine_icon_state_validity");
         if state.frames < icon.frame {
@@ -347,19 +374,34 @@ fn icon_to_image(icon: &IconObject, sprite_name: &String) -> Result<DynamicImage
             ));
         }
     }
-    let icon_index = DIR_TO_INDEX.get(icon.dir as usize);
-    if icon_index.is_none() || *icon_index.unwrap() == 255 {
-        return Err(format!(
-            "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
-            icon.dir, state.dirs, icon.icon_file, icon.icon_state, sprite_name
-        ));
-    }
-    let mut icon_idx: u32 = *icon_index.unwrap() as u32;
+    let mut icon_idx = match DIR_TO_INDEX.get(icon.dir as usize) {
+        Some(idx) if *idx == 255 => {
+            return Err(format!(
+                "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
+                icon.dir, state.dirs, icon.icon_file, icon.icon_state, sprite_name
+            ));
+        }
+        Some(idx) => *idx as u32,
+        None => {
+            return Err(format!(
+                "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
+                icon.dir, state.dirs, icon.icon_file, icon.icon_state, sprite_name
+            ));
+        }
+    };
     if icon.frame > 1 {
         // Add one so zero scales properly
         icon_idx = (icon_idx + 1) * icon.frame - 1
     }
-    let image: DynamicImage = state.images.get(icon_idx as usize).unwrap().clone();
+    let image = match state.images.get(icon_idx as usize) {
+        Some(image) => image.clone(),
+        None => {
+            return Err(
+                format!("Out of bounds index {} in icon_state {} for sprite {} - Maximum index: {} (frames: {}, dirs: {})",
+                icon_idx, icon.icon_state, sprite_name, state.images.len(), state.dirs, state.frames
+            ));
+        }
+    };
     // Apply transforms
     let (transformed_image, errors) = transform_image(image, icon, sprite_name);
     if !errors.is_empty() {
@@ -369,9 +411,10 @@ fn icon_to_image(icon: &IconObject, sprite_name: &String) -> Result<DynamicImage
 }
 
 /// Gives an image back to the cache, after it is done being used.
-fn return_image(image: DynamicImage, icon: &IconObject) {
+fn return_image(image: DynamicImage, icon: &IconObject) -> Result<(), Error> {
     zone!("insert_dynamicimage");
-    ICON_STATES.insert(icon.to_icostring().unwrap(), image);
+    ICON_STATES.insert(icon.to_icostring()?, image);
+    Ok(())
 }
 
 /// Applies transforms to a DynamicImage.
@@ -410,14 +453,16 @@ fn transform_image(
             }
             Transform::BlendIcon { icon, blend_mode } => {
                 zone!("blend_icon");
-                let image_result =
-                    icon_to_image(icon, &format!("Transform blend_icon of {}", sprite_name));
-                if let Err(err) = image_result {
-                    error.push(err);
-                    continue;
-                }
-
-                let other_image = image_result.unwrap();
+                let other_image = match icon_to_image(
+                    icon,
+                    &format!("Transform blend_icon of {}", sprite_name),
+                ) {
+                    Ok(other_image) => other_image,
+                    Err(err) => {
+                        error.push(err);
+                        continue;
+                    }
+                };
 
                 for x in 0..image.width() {
                     if x >= other_image.width() {
@@ -437,7 +482,9 @@ fn transform_image(
                         image.put_pixel(x, y, image::Rgba::<u8>(blended));
                     }
                 }
-                return_image(other_image, icon);
+                if let Err(err) = return_image(other_image, icon) {
+                    error.push(err.to_string());
+                }
             }
             Transform::Scale { width, height } => {
                 zone!("scale");
