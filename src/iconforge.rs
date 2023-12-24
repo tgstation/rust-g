@@ -11,7 +11,7 @@ use dmi::{
 use image::{Pixel, RgbaImage};
 use once_cell::sync::Lazy;
 use rayon::iter::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
+    IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 use serde::{Deserialize, Serialize};
 use std::{
