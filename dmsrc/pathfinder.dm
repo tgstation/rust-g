@@ -24,9 +24,9 @@
 /**
  * Remove every link to the node with unique_id. Replace that node by null
  */
-#define rustg_remove_node_astar(unique_id) RUSTG_CALL(RUST_G, "remove_node_astar")(unique_id)
+#define rustg_remove_node_astar(unique_id) RUSTG_CALL(RUST_G, "remove_node_astar")("[unique_id]")
 
 /**
  * Compute the shortest path between start_node and goal_node using A*. Heuristic used is simple geometric distance
  */
-#define rustg_generate_path_astar(start_node_id, goal_node_id) RUSTG_CALL(RUST_G, "generate_path_astar")(start_node_id, goal_node_id)
+#define rustg_generate_path_astar(start_node_id, goal_node_id) RUSTG_CALL(RUST_G, "generate_path_astar")("[start_node_id]", "[goal_node_id]")
