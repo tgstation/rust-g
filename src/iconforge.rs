@@ -5,8 +5,8 @@ use crate::hash::string_hash;
 use crate::jobs;
 use dashmap::DashMap;
 use dmi::{
-    icon::{Icon, IconState},
     dirs::Dirs,
+    icon::{Icon, IconState},
 };
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel};
 use once_cell::sync::Lazy;
