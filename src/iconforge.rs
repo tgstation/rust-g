@@ -1,7 +1,6 @@
 // DMI spritesheet generator
 // Developed by itsmeow
 use crate::error::Error;
-use crate::hash::string_hash;
 use crate::jobs;
 use dashmap::DashMap;
 use dmi::{
@@ -10,19 +9,21 @@ use dmi::{
 };
 use image::{Pixel, RgbaImage};
 use once_cell::sync::Lazy;
-use rayon::iter::{
-    IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
-};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs::File,
+    hash::BuildHasherDefault,
     io::BufReader,
     sync::{Arc, Mutex},
 };
 use tracy_full::{frame, zone};
-static ICON_FILES: Lazy<DashMap<String, Arc<Icon>>> = Lazy::new(DashMap::new);
-static ICON_STATES: Lazy<DashMap<String, RgbaImage>> = Lazy::new(DashMap::new);
+use twox_hash::XxHash64;
+static ICON_FILES: Lazy<DashMap<String, Arc<Icon>, BuildHasherDefault<XxHash64>>> =
+    Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
+static ICON_STATES: Lazy<DashMap<String, RgbaImage, BuildHasherDefault<XxHash64>>> =
+    Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
 
 /// This is an array mapping the DIR number from above to a position in DMIs, such that DIR_TO_INDEX[DIR] = dmi::dirs::DIR_ORDERING.indexof(DIR)
 /// 255 is invalid.
@@ -66,7 +67,7 @@ byond_fn!(
 #[derive(Serialize)]
 struct SpritesheetResult {
     sizes: Vec<String>,
-    sprites: DashMap<String, SpritesheetEntry>,
+    sprites: DashMap<String, SpritesheetEntry, BuildHasherDefault<XxHash64>>,
     error: String,
 }
 
@@ -83,7 +84,8 @@ struct IconObject {
     dir: u8,
     frame: u32,
     transform: Vec<Transform>,
-    icostring: String,
+    transform_hash_input: String,
+    icon_hash_input: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -108,27 +110,27 @@ impl std::fmt::Display for IconObject {
 impl IconObject {
     fn to_base(&self) -> Result<String, Error> {
         zone!("to_base");
-        string_hash(
-            "xxh64",
-            &format!(
-                "{}.{}.{}.{}",
-                self.icon_file, self.icon_state, self.dir, self.frame
-            ),
-        )
+        // This is a micro-op that ends up saving a lot of time. format!() is quite slow when you get down to microseconds.
+        let mut str_buf = String::with_capacity(self.icon_file.len() + self.icon_state.len() + 4);
+        str_buf.push_str(&self.icon_file);
+        str_buf.push_str(&self.icon_state);
+        str_buf.push_str(&self.dir.to_string());
+        str_buf.push_str(&self.frame.to_string());
+        Ok(str_buf)
     }
 
-    fn gen_icostring_input(&self, transform: &[Transform]) -> Result<String, Error> {
-        zone!("gen_icostring_input");
-        Ok(format!(
-            "{}-{}",
-            self.to_base()?,
-            serde_json::to_string(transform)?
-        ))
-    }
-
-    fn gen_icostring(&mut self) -> Result<(), Error> {
-        zone!("gen_icostring");
-        self.icostring = string_hash("xxh64", &self.gen_icostring_input(&self.transform)?)?;
+    fn gen_icon_hash_input(&mut self) -> Result<(), Error> {
+        zone!("gen_icon_hash_input");
+        let base = self.to_base()?;
+        {
+            zone!("transform_to_json");
+            let transform_str = serde_json::to_string(&self.transform)?;
+            self.transform_hash_input = transform_str;
+        }
+        let mut str_buf = String::with_capacity(base.len() + self.transform_hash_input.len());
+        str_buf.push_str(&base);
+        str_buf.push_str(&self.transform_hash_input);
+        self.icon_hash_input = str_buf;
         Ok(())
     }
 }
@@ -185,11 +187,18 @@ fn generate_spritesheet(
     let error = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let size_to_icon_objects = Arc::new(Mutex::new(HashMap::<String, Vec<&IconObject>>::new()));
-    let sprites_objects = DashMap::<String, SpritesheetEntry>::new();
+    let sprites_objects =
+        DashMap::<String, SpritesheetEntry, BuildHasherDefault<XxHash64>>::with_hasher(
+            BuildHasherDefault::<XxHash64>::default(),
+        );
 
-    let tree_bases = Arc::new(Mutex::new(
-        HashMap::<String, Vec<(&String, &IconObject)>>::new(),
-    ));
+    let tree_bases = Arc::new(Mutex::new(HashMap::<
+        String,
+        Vec<(&String, &IconObject)>,
+        BuildHasherDefault<XxHash64>,
+    >::with_hasher(
+        BuildHasherDefault::<XxHash64>::default()
+    )));
     let input;
     {
         zone!("from_json");
@@ -268,10 +277,11 @@ fn generate_spritesheet(
             {
                 zone!("map_unique");
                 icons.iter().for_each(|(_, icon)| {
-                    // This will ensure we only map unique transform sets. This also means each IconObject is guaranteed a unique IcoString
+                    // This will ensure we only map unique transform sets. This also means each IconObject is guaranteed a unique icon_hash
                     // Since all icons share the same 'base'.
                     // Also check to see if the icon is already cached. If so, we can ignore this transform chain.
-                    if !ICON_STATES.contains_key(&icon.icostring) {
+                    if !ICON_STATES.contains_key(&icon.icon_hash_input) {
+                        // TODO, try to make a faster hash for this. Can probably generate a unique hash for transforms during the IO conversion step.
                         unique_icons.insert(icon.transform.clone(), icon);
                     }
                 });
@@ -476,7 +486,7 @@ fn transform_leaves(icons: &Vec<&IconObject>, image: RgbaImage, depth: u8) -> Re
     Ok(())
 }
 
-/// Converts an IO icon to one with icostrings
+/// Converts an IO icon to one with icon_hash_input
 fn icon_from_io(icon_in: IconObjectIO) -> IconObject {
     zone!("icon_from_io");
     let mut result = IconObject {
@@ -499,9 +509,10 @@ fn icon_from_io(icon_in: IconObjectIO) -> IconObject {
                 TransformIO::Scale { width, height } => Transform::Scale { width, height },
             })
             .collect(),
-        icostring: String::new(),
+        transform_hash_input: String::new(),
+        icon_hash_input: String::new(),
     };
-    result.gen_icostring().unwrap(); // unsafe but idc
+    result.gen_icon_hash_input().unwrap(); // unsafe but idc
     result
 }
 
@@ -570,13 +581,13 @@ fn icon_to_image(
     zone!("icon_to_image");
     if cached {
         zone!("check_rgba_image_exists");
-        if icon.icostring.is_empty() {
+        if icon.icon_hash_input.is_empty() {
             return Err(format!(
-                "No icostring generated for {} {}",
+                "No icon_hash generated for {} {}",
                 icon, sprite_name
             ));
         }
-        if let Some(entry) = ICON_STATES.get(&icon.icostring) {
+        if let Some(entry) = ICON_STATES.get(&icon.icon_hash_input) {
             return Ok((entry.value().clone(), true));
         }
         if must_be_cached {
@@ -662,14 +673,14 @@ fn icon_to_image(
 
 /// Gives an image back to the cache, after it is done being used.
 fn return_image(image: RgbaImage, icon: &IconObject) -> Result<(), Error> {
-    zone!("insert_rgbaimage");
-    if icon.icostring.is_empty() {
+    zone!("insert_rgba_image");
+    if icon.icon_hash_input.is_empty() {
         return Err(Error::IconForge(format!(
-            "No icostring generated for {}",
+            "No icon_hash_input generated for {}",
             icon
         )));
     }
-    ICON_STATES.insert(icon.icostring.to_owned(), image);
+    ICON_STATES.insert(icon.icon_hash_input.to_owned(), image);
     Ok(())
 }
 
