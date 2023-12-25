@@ -273,7 +273,8 @@ fn generate_spritesheet(
                     return;
                 }
             };
-            let unique_icons = DashMap::<Vec<Transform>, &IconObject>::new();
+            let mut no_transforms = Option::<&IconObject>::None;
+            let unique_icons = DashMap::<String, &IconObject>::new();
             {
                 zone!("map_unique");
                 icons.iter().for_each(|(_, icon)| {
@@ -281,13 +282,15 @@ fn generate_spritesheet(
                     // Since all icons share the same 'base'.
                     // Also check to see if the icon is already cached. If so, we can ignore this transform chain.
                     if !ICON_STATES.contains_key(&icon.icon_hash_input) {
-                        // TODO, try to make a faster hash for this. Can probably generate a unique hash for transforms during the IO conversion step.
-                        unique_icons.insert(icon.transform.clone(), icon);
+                        unique_icons.insert(icon.icon_hash_input.clone(), icon);
+                    }
+                    if icon.transform.is_empty() {
+                        no_transforms = Some(icon);
                     }
                 });
             }
-            if let Some(entry) = unique_icons.get(&Vec::new()) {
-                if let Err(err) = return_image(base_image.clone(), entry.value()) {
+            if let Some(entry) = no_transforms {
+                if let Err(err) = return_image(base_image.clone(), entry) {
                     error.lock().unwrap().push(err.to_string());
                 }
             }
