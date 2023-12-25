@@ -24,4 +24,4 @@
 #define rustg_iconforge_check(job_id) RUSTG_CALL(RUST_G, "iconforge_check")("[job_id]")
 /// Clears all cached DMIs and images, freeing up memory.
 /// This should be used after spritesheets are done being generated.
-#define rustg_iconforge_cleanup() RUSTG_CALL(RUST_G, "iconforge_cleanup")()
+#define rustg_iconforge_cleanup RUSTG_CALL(RUST_G, "iconforge_cleanup")
