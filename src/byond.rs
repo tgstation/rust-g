@@ -1,3 +1,4 @@
+use crate::error::Error;
 use std::{
     backtrace::Backtrace,
     borrow::Cow,
@@ -115,4 +116,28 @@ pub fn set_panic_hook() {
                 .expect("Failed to extract error backtrace");
         }))
     });
+}
+
+/// Utility for BYOND functions to catch panic unwinds safely and return a Result<String, Error>, as expected.
+/// Usage: catch_panic(|| internal_safe_function(arguments))
+pub fn catch_panic<F>(f: F) -> Result<String, Error>
+where
+    F: FnOnce() -> Result<String, Error> + std::panic::UnwindSafe,
+{
+    match std::panic::catch_unwind(|| f()) {
+        Ok(o) => o,
+        Err(e) => {
+            let message: Option<String> = e
+                .downcast_ref::<&'static str>()
+                .map(|payload| payload.to_string())
+                .or_else(|| e.downcast_ref::<String>().cloned());
+            Err(Error::Panic(
+                message
+                    .unwrap_or(String::from(
+                        "Failed to stringify panic! Check rustg-panic.log!",
+                    ))
+                    .to_owned(),
+            ))
+        }
+    }
 }

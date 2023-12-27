@@ -1,9 +1,10 @@
 // DMI spritesheet generator
 // Developed by itsmeow
-use crate::jobs;
 use crate::{
+    byond::catch_panic,
     error::Error,
     hash::{file_hash, string_hash},
+    jobs,
 };
 use dashmap::DashMap;
 use dmi::{
@@ -26,7 +27,7 @@ use std::{
 use tracy_full::{frame, zone};
 use twox_hash::XxHash64;
 type SpriteJsonMap = HashMap<String, HashMap<String, IconObjectIO>, BuildHasherDefault<XxHash64>>;
-/// This is used to save time decoding 'sprites' between the cache step and the generate step.
+/// This is used to save time decoding 'sprites' a second time between the cache step and the generate step.
 static SPRITES_TO_JSON: Lazy<Arc<Mutex<SpriteJsonMap>>> = Lazy::new(|| {
     Arc::new(Mutex::new(HashMap::with_hasher(BuildHasherDefault::<
         XxHash64,
@@ -44,23 +45,26 @@ byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites, hash_icons
     let spritesheet_name = spritesheet_name.to_owned();
     let sprites = sprites.to_owned();
     let hash_icons = hash_icons.to_owned();
-    Some(match generate_spritesheet_safe(&file_path, &spritesheet_name, &sprites, &hash_icons) {
+    let result = Some(match catch_panic(|| generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons)) {
         Ok(o) => o.to_string(),
         Err(e) => e.to_string()
-    })
+    });
+    frame!();
+    result
 });
 
 byond_fn!(fn iconforge_generate_async(file_path, spritesheet_name, sprites, hash_icons) {
-    // Take ownership before passing
     let file_path = file_path.to_owned();
     let spritesheet_name = spritesheet_name.to_owned();
     let sprites = sprites.to_owned();
     let hash_icons = hash_icons.to_owned();
     Some(jobs::start(move || {
-        match generate_spritesheet_safe(&file_path, &spritesheet_name, &sprites, &hash_icons) {
+        let result = match catch_panic(|| generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons)) {
             Ok(o) => o.to_string(),
             Err(e) => e.to_string()
-        }
+        };
+        frame!();
+        result
     }))
 });
 
@@ -80,22 +84,26 @@ byond_fn!(fn iconforge_cache_valid(input_hash, dmi_hashes, sprites) {
     let input_hash = input_hash.to_owned();
     let dmi_hashes = dmi_hashes.to_owned();
     let sprites = sprites.to_owned();
-    Some(match cache_valid_safe(&input_hash, &dmi_hashes, &sprites) {
+    let result = Some(match catch_panic(|| cache_valid(&input_hash, &dmi_hashes, &sprites)) {
         Ok(o) => o.to_string(),
         Err(e) => e.to_string()
-    })
+    });
+    frame!();
+    result
 });
 
 byond_fn!(fn iconforge_cache_valid_async(input_hash, dmi_hashes, sprites) {
     let input_hash = input_hash.to_owned();
     let dmi_hashes = dmi_hashes.to_owned();
     let sprites = sprites.to_owned();
-    Some(jobs::start(move || {
-        match cache_valid_safe(&input_hash, &dmi_hashes, &sprites) {
+    let result = Some(jobs::start(move || {
+        match catch_panic(|| cache_valid(&input_hash, &dmi_hashes, &sprites)) {
             Ok(o) => o.to_string(),
             Err(e) => e.to_string()
         }
-    }))
+    }));
+    frame!();
+    result
 });
 
 #[derive(Serialize)]
@@ -186,33 +194,6 @@ enum Transform {
     BlendIcon { icon: IconObject, blend_mode: u8 },
     Scale { width: u32, height: u32 },
     Crop { x1: i32, y1: i32, x2: i32, y2: i32 },
-}
-
-fn cache_valid_safe(
-    input_hash: &str,
-    dmi_hashes: &str,
-    sprites: &str,
-) -> std::result::Result<String, Error> {
-    match std::panic::catch_unwind(|| {
-        let result = cache_valid(input_hash, dmi_hashes, sprites);
-        frame!();
-        result
-    }) {
-        Ok(o) => o,
-        Err(e) => {
-            let message: Option<String> = e
-                .downcast_ref::<&'static str>()
-                .map(|payload| payload.to_string())
-                .or_else(|| e.downcast_ref::<String>().cloned());
-            Err(Error::IconForge(
-                message
-                    .unwrap_or(String::from(
-                        "Failed to stringify panic! Check rustg-panic.log",
-                    ))
-                    .to_owned(),
-            ))
-        }
-    }
 }
 
 #[derive(Serialize)]
@@ -322,34 +303,6 @@ fn cache_valid(input_hash: &str, dmi_hashes_in: &str, sprites_in: &str) -> Resul
         result: String::from("1"),
         fail_reason: String::from(""),
     })?)
-}
-
-fn generate_spritesheet_safe(
-    file_path: &str,
-    spritesheet_name: &str,
-    sprites: &str,
-    hash_icons: &str,
-) -> std::result::Result<String, Error> {
-    match std::panic::catch_unwind(|| {
-        let result = generate_spritesheet(file_path, spritesheet_name, sprites, hash_icons);
-        frame!();
-        result
-    }) {
-        Ok(o) => o,
-        Err(e) => {
-            let message: Option<String> = e
-                .downcast_ref::<&'static str>()
-                .map(|payload| payload.to_string())
-                .or_else(|| e.downcast_ref::<String>().cloned());
-            Err(Error::IconForge(
-                message
-                    .unwrap_or(String::from(
-                        "Failed to stringify panic! Check rustg-panic.log",
-                    ))
-                    .to_owned(),
-            ))
-        }
-    }
 }
 
 fn generate_spritesheet(
