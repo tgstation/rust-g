@@ -124,7 +124,7 @@ pub fn catch_panic<F>(f: F) -> Result<String, Error>
 where
     F: FnOnce() -> Result<String, Error> + std::panic::UnwindSafe,
 {
-    match std::panic::catch_unwind(|| f()) {
+    match std::panic::catch_unwind(f) {
         Ok(o) => o,
         Err(e) => {
             let message: Option<String> = e

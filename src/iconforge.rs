@@ -280,7 +280,7 @@ fn cache_valid(input_hash: &str, dmi_hashes_in: &str, sprites_in: &str) -> Resul
                             if fail_reason.read().unwrap().is_some() {
                                 return;
                             }
-                            *fail_reason.write().unwrap() = Some(format!("ERROR: Error while hashing dmi_path '{}': {}", dmi_path, err.to_string()));
+                            *fail_reason.write().unwrap() = Some(format!("ERROR: Error while hashing dmi_path '{}': {}", dmi_path, err));
                         }
                     }
                 }
