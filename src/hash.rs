@@ -70,7 +70,7 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
             let mut hasher = XxHash64::with_seed(XXHASH_SEED);
             hasher.write(bytes.as_ref());
             Ok(format!("{:x}", hasher.finish()))
-        },
+        }
         "xxh64_fixed" => {
             let mut hasher = XxHash64::with_seed(17479268743136991876);
             hasher.write(bytes.as_ref());

@@ -206,7 +206,9 @@ fn cache_valid_safe(
                 .or_else(|| e.downcast_ref::<String>().cloned());
             Err(Error::IconForge(
                 message
-                    .unwrap_or( String::from("Failed to stringify panic! Check rustg-panic.log"))
+                    .unwrap_or(String::from(
+                        "Failed to stringify panic! Check rustg-panic.log",
+                    ))
                     .to_owned(),
             ))
         }
@@ -341,7 +343,9 @@ fn generate_spritesheet_safe(
                 .or_else(|| e.downcast_ref::<String>().cloned());
             Err(Error::IconForge(
                 message
-                    .unwrap_or( String::from("Failed to stringify panic! Check rustg-panic.log"))
+                    .unwrap_or(String::from(
+                        "Failed to stringify panic! Check rustg-panic.log",
+                    ))
                     .to_owned(),
             ))
         }
@@ -456,7 +460,7 @@ fn generate_spritesheet(
                     error
                         .lock()
                         .unwrap()
-                        .push( String::from("Somehow found no icon for a tree."));
+                        .push(String::from("Somehow found no icon for a tree."));
                     return;
                 }
             };
@@ -547,7 +551,7 @@ fn generate_spritesheet(
     // all images have been returned now, so continue...
 
     // cache this here so we don't generate the same string 5000 times
-    let sprite_name =  String::from("N/A, in final generation stage");
+    let sprite_name = String::from("N/A, in final generation stage");
 
     // Get all the sprites and spew them onto a spritesheet.
     size_to_icon_objects
@@ -623,9 +627,9 @@ fn generate_spritesheet(
 fn transform_leaves(icons: &Vec<&IconObject>, image: RgbaImage, depth: u8) -> Result<(), String> {
     zone!("transform_leaf");
     if depth > 128 {
-        return Err(
-             String::from("Transform depth exceeded 128. https://www.youtube.com/watch?v=CUjrySBwi5Q"),
-        );
+        return Err(String::from(
+            "Transform depth exceeded 128. https://www.youtube.com/watch?v=CUjrySBwi5Q",
+        ));
     }
     let next_transforms = DashMap::<Transform, Vec<&IconObject>>::new();
     let errors = Mutex::new(Vec::<String>::new());
@@ -809,7 +813,7 @@ fn icon_to_image(
             return Ok((entry.value().clone(), true));
         }
         if must_be_cached {
-            return Err( String::from("Image not found in cache!"));
+            return Err(String::from("Image not found in cache!"));
         }
     }
     let dmi = icon_to_dmi(icon)?;
@@ -836,7 +840,10 @@ fn icon_to_image(
     let dir = match Dirs::from_bits(icon.dir) {
         Some(dir) => dir,
         None => {
-            return Err(format!("Invalid dir number {} for {}", icon.dir, sprite_name));
+            return Err(format!(
+                "Invalid dir number {} for {}",
+                icon.dir, sprite_name
+            ));
         }
     };
     Ok(match state.get_image(&dir, icon.frame) {
@@ -898,7 +905,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
                 for y in 0..image.height() {
                     let px = image.get_pixel_mut(x, y);
                     let pixel = px.channels();
-                    let blended = blend_u8(pixel, &color2, *blend_mode);
+                    let blended = Rgba::blend_u8(pixel, &color2, *blend_mode);
 
                     *px = image::Rgba::<u8>(blended);
                 }
@@ -919,7 +926,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
                     let pixel_1 = px1.channels();
                     let pixel_2 = px2.channels();
 
-                    let blended = blend_u8(pixel_1, pixel_2, *blend_mode);
+                    let blended = Rgba::blend_u8(pixel_1, pixel_2, *blend_mode);
 
                     *px1 = image::Rgba::<u8>(blended);
                 }
@@ -1004,6 +1011,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
     Ok(())
 }
 
+#[derive(Clone)]
 struct Rgba {
     r: f32,
     g: f32,
@@ -1022,7 +1030,7 @@ impl Rgba {
     }
 
     fn from_array(rgba: &[u8]) -> Rgba {
-        Rgba {
+        Self {
             r: rgba[0] as f32,
             g: rgba[1] as f32,
             b: rgba[2] as f32,
@@ -1030,12 +1038,11 @@ impl Rgba {
         }
     }
 
-    fn map_each(
-        color: Rgba,
-        color2: Rgba,
-        rgb_fn: &dyn Fn(f32, f32) -> f32,
-        a_fn: &dyn Fn(f32, f32) -> f32,
-    ) -> Rgba {
+    fn map_each<F, T>(color: &Rgba, color2: &Rgba, rgb_fn: F, a_fn: T) -> Rgba
+    where
+        F: Fn(f32, f32) -> f32,
+        T: Fn(f32, f32) -> f32,
+    {
         Rgba {
             r: rgb_fn(color.r, color2.r),
             g: rgb_fn(color.g, color2.g),
@@ -1044,12 +1051,11 @@ impl Rgba {
         }
     }
 
-    fn map_each_a(
-        color: Rgba,
-        color2: Rgba,
-        rgb_fn: &dyn Fn(f32, f32, f32, f32) -> f32,
-        a_fn: &dyn Fn(f32, f32) -> f32,
-    ) -> Rgba {
+    fn map_each_a<F, T>(color: &Rgba, color2: &Rgba, rgb_fn: F, a_fn: T) -> Rgba
+    where
+        F: Fn(f32, f32, f32, f32) -> f32,
+        T: Fn(f32, f32) -> f32,
+    {
         Rgba {
             r: rgb_fn(color.r, color2.r, color.a, color2.a),
             g: rgb_fn(color.g, color2.g, color.a, color2.a),
@@ -1057,45 +1063,46 @@ impl Rgba {
             a: a_fn(color.a, color2.a),
         }
     }
-}
 
-fn blend_u8(color: &[u8], color2: &[u8], blend_mode: u8) -> [u8; 4] {
-    blend(
-        Rgba::from_array(color),
-        Rgba::from_array(color2),
-        blend_mode,
-    )
-    .into_array()
-}
+    /// Takes two [u8; 4]s, converts them to Rgba structs, then blends them according to blend_mode by calling blend().
+    fn blend_u8(color: &[u8], other_color: &[u8], blend_mode: u8) -> [u8; 4] {
+        Rgba::from_array(color)
+            .blend(&Rgba::from_array(other_color), blend_mode)
+            .into_array()
+    }
 
-/// Blends two colors according to blend_mode. The numbers correspond to BYOND blend modes.
-fn blend(color: Rgba, color2: Rgba, blend_mode: u8) -> Rgba {
-    match blend_mode {
-        0 => Rgba::map_each(color, color2, &|c1, c2| c1 + c2, &f32::min),
-        1 => Rgba::map_each(color, color2, &|c1, c2| c2 - c1, &f32::min),
-        2 => Rgba::map_each(color, color2, &|c1, c2| c1 * c2 / 255.0, &|a1, a2| {
-            a1 * a2 / 255.0
-        }),
-        3 => Rgba::map_each_a(
-            color,
-            color2,
-            &|c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a / 255.0,
-            &|a1, a2| {
-                let high = f32::max(a1, a2);
-                let low = f32::min(a1, a2);
-                high + (high * low / 255.0)
-            },
-        ),
-        6 => Rgba::map_each_a(
-            color2,
-            color,
-            &|c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a / 255.0,
-            &|a1, a2| {
-                let high = f32::max(a1, a2);
-                let low = f32::min(a1, a2);
-                high + (high * low / 255.0)
-            },
-        ),
-        _ => color,
+    /// Blends two colors according to blend_mode. The numbers correspond to BYOND blend modes.
+    fn blend(&self, other_color: &Rgba, blend_mode: u8) -> Rgba {
+        match blend_mode {
+            0 => Rgba::map_each(self, other_color, |c1, c2| c1 + c2, f32::min),
+            1 => Rgba::map_each(self, other_color, |c1, c2| c2 - c1, f32::min),
+            2 => Rgba::map_each(
+                self,
+                other_color,
+                |c1, c2| c1 * c2 / 255.0,
+                |a1: f32, a2: f32| a1 * a2 / 255.0,
+            ),
+            3 => Rgba::map_each_a(
+                self,
+                other_color,
+                |c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a / 255.0,
+                |a1, a2| {
+                    let high = f32::max(a1, a2);
+                    let low = f32::min(a1, a2);
+                    high + (high * low / 255.0)
+                },
+            ),
+            6 => Rgba::map_each_a(
+                other_color,
+                self,
+                |c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a / 255.0,
+                |a1, a2| {
+                    let high = f32::max(a1, a2);
+                    let low = f32::min(a1, a2);
+                    high + (high * low / 255.0)
+                },
+            ),
+            _ => self.clone(),
+        }
     }
 }

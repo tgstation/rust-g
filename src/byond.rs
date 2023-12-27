@@ -112,7 +112,7 @@ pub fn set_panic_hook() {
             )
             .expect("Failed to extract error payload");
             file.write_all(Backtrace::capture().to_string().as_bytes())
-                    .expect("Failed to extract error backtrace");
+                .expect("Failed to extract error backtrace");
         }))
     });
 }
