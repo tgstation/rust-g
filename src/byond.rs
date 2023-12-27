@@ -91,7 +91,7 @@ byond_fn!(
     }
 );
 
-// Print any panics before exiting.
+/// Print any panics before exiting.
 pub fn set_panic_hook() {
     SET_HOOK.call_once(|| {
         std::panic::set_hook(Box::new(|panic_info| {
@@ -101,8 +101,6 @@ pub fn set_panic_hook() {
                 .create(true)
                 .open("rustg-panic.log")
                 .unwrap();
-            file.write_all(Backtrace::capture().to_string().as_bytes())
-                .expect("Failed to extract error backtrace");
             file.write_all(
                 panic_info
                     .payload()
@@ -113,6 +111,8 @@ pub fn set_panic_hook() {
                     .as_bytes(),
             )
             .expect("Failed to extract error payload");
+            file.write_all(Backtrace::capture().to_string().as_bytes())
+                    .expect("Failed to extract error backtrace");
         }))
     });
 }

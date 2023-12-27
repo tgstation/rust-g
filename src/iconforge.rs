@@ -1,7 +1,10 @@
 // DMI spritesheet generator
 // Developed by itsmeow
-use crate::error::Error;
 use crate::jobs;
+use crate::{
+    error::Error,
+    hash::{file_hash, string_hash},
+};
 use dashmap::DashMap;
 use dmi::{
     dirs::Dirs,
@@ -11,6 +14,8 @@ use image::{Pixel, RgbaImage};
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use std::sync::RwLock;
 use std::{
     collections::HashMap,
     fs::File,
@@ -20,32 +25,39 @@ use std::{
 };
 use tracy_full::{frame, zone};
 use twox_hash::XxHash64;
+type SpriteJsonMap = HashMap<String, HashMap<String, IconObjectIO>, BuildHasherDefault<XxHash64>>;
+/// This is used to save time decoding 'sprites' between the cache step and the generate step.
+static SPRITES_TO_JSON: Lazy<Arc<Mutex<SpriteJsonMap>>> = Lazy::new(|| {
+    Arc::new(Mutex::new(HashMap::with_hasher(BuildHasherDefault::<
+        XxHash64,
+    >::default())))
+});
+/// A cache of DMI filepath -> Icon objects.
 static ICON_FILES: Lazy<DashMap<String, Arc<Icon>, BuildHasherDefault<XxHash64>>> =
     Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
+/// A cache of icon_hash_input to RgbaImage (with transforms applied! This can only contain COMPLETED sprites).
 static ICON_STATES: Lazy<DashMap<String, RgbaImage, BuildHasherDefault<XxHash64>>> =
     Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
 
-/// This is an array mapping the DIR number from above to a position in DMIs, such that DIR_TO_INDEX[DIR] = dmi::dirs::DIR_ORDERING.indexof(DIR)
-/// 255 is invalid.
-const DIR_TO_INDEX: [u8; 11] = [255, 1, 0, 255, 2, 6, 4, 255, 3, 7, 5];
-
-byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites) {
+byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites, hash_icons) {
     let file_path = file_path.to_owned();
     let spritesheet_name = spritesheet_name.to_owned();
     let sprites = sprites.to_owned();
-    Some(match generate_spritesheet_safe(&file_path, &spritesheet_name, &sprites) {
+    let hash_icons = hash_icons.to_owned();
+    Some(match generate_spritesheet_safe(&file_path, &spritesheet_name, &sprites, &hash_icons) {
         Ok(o) => o.to_string(),
         Err(e) => e.to_string()
     })
 });
 
-byond_fn!(fn iconforge_generate_async(file_path, spritesheet_name, sprites) {
+byond_fn!(fn iconforge_generate_async(file_path, spritesheet_name, sprites, hash_icons) {
     // Take ownership before passing
     let file_path = file_path.to_owned();
     let spritesheet_name = spritesheet_name.to_owned();
     let sprites = sprites.to_owned();
+    let hash_icons = hash_icons.to_owned();
     Some(jobs::start(move || {
-        match generate_spritesheet_safe(&file_path, &spritesheet_name, &sprites) {
+        match generate_spritesheet_safe(&file_path, &spritesheet_name, &sprites, &hash_icons) {
             Ok(o) => o.to_string(),
             Err(e) => e.to_string()
         }
@@ -64,10 +76,34 @@ byond_fn!(
     }
 );
 
+byond_fn!(fn iconforge_cache_valid(input_hash, dmi_hashes, sprites) {
+    let input_hash = input_hash.to_owned();
+    let dmi_hashes = dmi_hashes.to_owned();
+    let sprites = sprites.to_owned();
+    Some(match cache_valid_safe(&input_hash, &dmi_hashes, &sprites) {
+        Ok(o) => o.to_string(),
+        Err(e) => e.to_string()
+    })
+});
+
+byond_fn!(fn iconforge_cache_valid_async(input_hash, dmi_hashes, sprites) {
+    let input_hash = input_hash.to_owned();
+    let dmi_hashes = dmi_hashes.to_owned();
+    let sprites = sprites.to_owned();
+    Some(jobs::start(move || {
+        match cache_valid_safe(&input_hash, &dmi_hashes, &sprites) {
+            Ok(o) => o.to_string(),
+            Err(e) => e.to_string()
+        }
+    }))
+});
+
 #[derive(Serialize)]
 struct SpritesheetResult {
     sizes: Vec<String>,
     sprites: DashMap<String, SpritesheetEntry, BuildHasherDefault<XxHash64>>,
+    dmi_hashes: DashMap<String, String>,
+    sprites_hash: String,
     error: String,
 }
 
@@ -88,7 +124,7 @@ struct IconObject {
     icon_hash_input: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct IconObjectIO {
     icon_file: String,
     icon_state: String,
@@ -135,7 +171,7 @@ impl IconObject {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 enum TransformIO {
     BlendColor { color: String, blend_mode: u8 },
@@ -152,13 +188,13 @@ enum Transform {
     Crop { x1: i32, y1: i32, x2: i32, y2: i32 },
 }
 
-fn generate_spritesheet_safe(
-    file_path: &str,
-    spritesheet_name: &str,
+fn cache_valid_safe(
+    input_hash: &str,
+    dmi_hashes: &str,
     sprites: &str,
 ) -> std::result::Result<String, Error> {
     match std::panic::catch_unwind(|| {
-        let result = generate_spritesheet(file_path, spritesheet_name, sprites);
+        let result = cache_valid(input_hash, dmi_hashes, sprites);
         frame!();
         result
     }) {
@@ -170,7 +206,142 @@ fn generate_spritesheet_safe(
                 .or_else(|| e.downcast_ref::<String>().cloned());
             Err(Error::IconForge(
                 message
-                    .unwrap_or("Failed to stringify panic! Check rustg-panic.log".to_string())
+                    .unwrap_or( String::from("Failed to stringify panic! Check rustg-panic.log"))
+                    .to_owned(),
+            ))
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct CacheResult {
+    result: String,
+    fail_reason: String,
+}
+
+fn cache_valid(input_hash: &str, dmi_hashes_in: &str, sprites_in: &str) -> Result<String, Error> {
+    zone!("cache_valid");
+    let sprites_hash = string_hash("xxh64_fixed", sprites_in)?;
+    if sprites_hash != input_hash {
+        return Ok(serde_json::to_string::<CacheResult>(&CacheResult {
+            result: String::from("0"),
+            fail_reason: String::from("Input hash did not match."),
+        })?);
+    }
+    let dmi_hashes: DashMap<String, String>;
+    {
+        zone!("from_json_hashes");
+        dmi_hashes = serde_json::from_str::<DashMap<String, String>>(dmi_hashes_in)?;
+    }
+    let mut sprites_json = SPRITES_TO_JSON.lock().unwrap();
+    let sprites = match sprites_json.get(&sprites_hash) {
+        Some(sprites) => sprites,
+        None => {
+            zone!("from_json_sprites");
+            {
+                sprites_json.insert(
+                    sprites_hash.clone(),
+                    serde_json::from_str::<HashMap<String, IconObjectIO>>(sprites_in)?,
+                );
+            }
+            sprites_json.get(&sprites_hash).unwrap()
+        }
+    };
+
+    let dmis: HashSet<String>;
+
+    {
+        zone!("collect_dmis");
+        dmis = sprites
+            .par_iter()
+            .flat_map(|(_, icon)| {
+                icon_to_icons_io(icon)
+                    .into_iter()
+                    .map(|icon| icon.icon_file.clone())
+                    .collect::<HashSet<String>>()
+            })
+            .collect();
+    }
+
+    drop(sprites_json);
+
+    if dmis.len() > dmi_hashes.len() {
+        return Ok(serde_json::to_string::<CacheResult>(&CacheResult {
+            result: String::from("0"),
+            fail_reason: format!("Input hash matched, but more DMIs exist than DMI hashes provided ({} DMIs, {} DMI hashes).", dmis.len(), dmi_hashes.len()),
+        })?);
+    }
+
+    let fail_reason: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
+    {
+        zone!("check_dmis");
+        dmis.into_par_iter().for_each(|dmi_path| {
+            zone!("check_dmi");
+            if fail_reason.read().unwrap().is_some() {
+                return;
+            }
+            match dmi_hashes.get(&dmi_path) {
+                Some(hash) => {
+                    zone!("hash_dmi");
+                    match file_hash("xxh64_fixed", &dmi_path) {
+                        Ok(new_hash) => {
+                            zone!("check_match");
+                            if new_hash != *hash {
+                                if fail_reason.read().unwrap().is_some() {
+                                    return;
+                                }
+                                *fail_reason.write().unwrap() = Some(format!("Input hash matched, but dmi_hash was invalid DMI: '{}' (stored hash: {}, new hash: {})", dmi_path, hash.clone(), new_hash));
+                            }
+                        },
+                        Err(err) => {
+                            if fail_reason.read().unwrap().is_some() {
+                                return;
+                            }
+                            *fail_reason.write().unwrap() = Some(format!("ERROR: Error while hashing dmi_path '{}': {}", dmi_path, err.to_string()));
+                        }
+                    }
+                }
+                None => {
+                    if fail_reason.read().unwrap().is_some() {
+                        return;
+                    }
+                    *fail_reason.write().unwrap() = Some(format!("Input hash matched, but no dmi_hash existed for DMI: '{}'", dmi_path));
+                }
+            }
+        });
+    }
+    if let Some(err) = fail_reason.read().unwrap().clone() {
+        return Ok(serde_json::to_string::<CacheResult>(&CacheResult {
+            result: String::from("0"),
+            fail_reason: err,
+        })?);
+    }
+    Ok(serde_json::to_string::<CacheResult>(&CacheResult {
+        result: String::from("1"),
+        fail_reason: String::from(""),
+    })?)
+}
+
+fn generate_spritesheet_safe(
+    file_path: &str,
+    spritesheet_name: &str,
+    sprites: &str,
+    hash_icons: &str,
+) -> std::result::Result<String, Error> {
+    match std::panic::catch_unwind(|| {
+        let result = generate_spritesheet(file_path, spritesheet_name, sprites, hash_icons);
+        frame!();
+        result
+    }) {
+        Ok(o) => o,
+        Err(e) => {
+            let message: Option<String> = e
+                .downcast_ref::<&'static str>()
+                .map(|payload| payload.to_string())
+                .or_else(|| e.downcast_ref::<String>().cloned());
+            Err(Error::IconForge(
+                message
+                    .unwrap_or( String::from("Failed to stringify panic! Check rustg-panic.log"))
                     .to_owned(),
             ))
         }
@@ -181,10 +352,12 @@ fn generate_spritesheet(
     file_path: &str,
     spritesheet_name: &str,
     sprites: &str,
+    hash_icons: &str,
 ) -> std::result::Result<String, Error> {
     zone!("generate_spritesheet");
-
+    let hash_icons: bool = hash_icons == "1";
     let error = Arc::new(Mutex::new(Vec::<String>::new()));
+    let dmi_hashes = DashMap::<String, String>::new();
 
     let size_to_icon_objects = Arc::new(Mutex::new(HashMap::<String, Vec<&IconObject>>::new()));
     let sprites_objects =
@@ -199,11 +372,18 @@ fn generate_spritesheet(
     >::with_hasher(
         BuildHasherDefault::<XxHash64>::default()
     )));
-    let input;
+    let sprites_hash;
     {
-        zone!("from_json");
-        input = serde_json::from_str::<HashMap<String, IconObjectIO>>(sprites)?;
+        zone!("compute_sprites_hash");
+        sprites_hash = string_hash("xxh64_fixed", sprites)?;
     }
+    let input = match SPRITES_TO_JSON.lock().unwrap().get(&sprites_hash) {
+        Some(sprites) => sprites.clone(),
+        None => {
+            zone!("from_json_sprites"); // byondapi, save us
+            serde_json::from_str::<HashMap<String, IconObjectIO>>(sprites)?
+        }
+    };
     let mut sprites_map = HashMap::<String, IconObject>::new();
     {
         zone!("io_to_mem");
@@ -220,11 +400,25 @@ fn generate_spritesheet(
     sprites_map.par_iter().for_each(|(sprite_name, icon)| {
         zone!("sprite_to_icons");
 
-        icon_to_icons(icon).into_par_iter().for_each(|icon| {
-            if let Err(err) = icon_to_dmi(icon) {
-                error.lock().unwrap().push(err);
-            }
-        });
+        icon_to_icons(icon)
+            .into_par_iter()
+            .for_each(|icon| match icon_to_dmi(icon) {
+                Ok(_) => {
+                    if hash_icons {
+                        zone!("hash_dmi");
+                        match file_hash("xxh64_fixed", &icon.icon_file) {
+                            Ok(hash) => {
+                                zone!("insert_dmi_hash");
+                                dmi_hashes.insert(icon.icon_file.clone(), hash);
+                            }
+                            Err(err) => {
+                                error.lock().unwrap().push(err.to_string());
+                            }
+                        };
+                    }
+                }
+                Err(err) => error.lock().unwrap().push(err),
+            });
 
         {
             zone!("map_to_base");
@@ -245,7 +439,7 @@ fn generate_spritesheet(
     });
 
     // cache this here so we don't generate the same string 5000 times
-    let sprite_name = "N/A, in tree generation stage".to_string();
+    let sprite_name = String::from("N/A, in tree generation stage");
 
     // Map duplicate transform sets into a tree.
     // This is beneficial in the case where we have the same base image, and the same set of transforms, but change 1 or 2 things at the end.
@@ -262,7 +456,7 @@ fn generate_spritesheet(
                     error
                         .lock()
                         .unwrap()
-                        .push("Somehow found no icon for a tree.".to_string());
+                        .push( String::from("Somehow found no icon for a tree."));
                     return;
                 }
             };
@@ -353,7 +547,7 @@ fn generate_spritesheet(
     // all images have been returned now, so continue...
 
     // cache this here so we don't generate the same string 5000 times
-    let sprite_name = "N/A, in final generation stage".to_string();
+    let sprite_name =  String::from("N/A, in final generation stage");
 
     // Get all the sprites and spew them onto a spritesheet.
     size_to_icon_objects
@@ -417,6 +611,8 @@ fn generate_spritesheet(
     let returned = SpritesheetResult {
         sizes,
         sprites: sprites_objects,
+        dmi_hashes,
+        sprites_hash,
         error: error.lock().unwrap().join("\n"),
     };
     Ok(serde_json::to_string::<SpritesheetResult>(&returned)?)
@@ -428,7 +624,7 @@ fn transform_leaves(icons: &Vec<&IconObject>, image: RgbaImage, depth: u8) -> Re
     zone!("transform_leaf");
     if depth > 128 {
         return Err(
-            "Transform depth exceeded 128. https://www.youtube.com/watch?v=CUjrySBwi5Q".to_string(),
+             String::from("Transform depth exceeded 128. https://www.youtube.com/watch?v=CUjrySBwi5Q"),
         );
     }
     let next_transforms = DashMap::<Transform, Vec<&IconObject>>::new();
@@ -492,6 +688,9 @@ fn transform_leaves(icons: &Vec<&IconObject>, image: RgbaImage, depth: u8) -> Re
 /// Converts an IO icon to one with icon_hash_input
 fn icon_from_io(icon_in: IconObjectIO) -> IconObject {
     zone!("icon_from_io");
+    // TODO: can probably convert this function to just lazily attaching icostring to a RefCell<> or something
+    // This alternative type system is too verbose and wasteful of processing time.
+    // https://doc.rust-lang.org/reference/interior-mutability.html
     let mut result = IconObject {
         icon_file: icon_in.icon_file,
         icon_state: icon_in.icon_state,
@@ -527,6 +726,22 @@ fn icon_to_icons(icon_in: &IconObject) -> Vec<&IconObject> {
     for transform in &icon_in.transform {
         if let Transform::BlendIcon { icon, .. } = transform {
             let nested = icon_to_icons(icon);
+            for icon in nested {
+                icons.push(icon)
+            }
+        }
+    }
+    icons
+}
+
+/// icon_to_icons but for IO icons.
+fn icon_to_icons_io(icon_in: &IconObjectIO) -> Vec<&IconObjectIO> {
+    zone!("icon_to_icons_io");
+    let mut icons: Vec<&IconObjectIO> = Vec::new();
+    icons.push(icon_in);
+    for transform in &icon_in.transform {
+        if let TransformIO::BlendIcon { icon, .. } = transform {
+            let nested = icon_to_icons_io(icon);
             for icon in nested {
                 icons.push(icon)
             }
@@ -594,7 +809,7 @@ fn icon_to_image(
             return Ok((entry.value().clone(), true));
         }
         if must_be_cached {
-            return Err("Image not found in cache!".to_string());
+            return Err( String::from("Image not found in cache!"));
         }
     }
     let dmi = icon_to_dmi(icon)?;
@@ -617,59 +832,17 @@ fn icon_to_image(
             ));
         }
     };
-    {
-        zone!("determine_icon_state_validity");
-        if state.frames < icon.frame {
-            return Err(format!(
-                "Could not find associated frame: {} in {} icon_state {} - dirs: {} frames: {}",
-                icon.frame, sprite_name, icon.icon_state, state.dirs, state.frames
-            ));
-        }
-        let dir = match dmi::dirs::Dirs::from_bits(icon.dir) {
-            Some(dir) => dir,
-            None => {
-                return Err(format!(
-                    "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
-                    icon.dir, state.dirs, icon.icon_file, icon.icon_state, sprite_name
-                ));
-            }
-        };
-        if (state.dirs == 1 && dir != Dirs::SOUTH)
-            || (state.dirs == 4 && !dmi::dirs::CARDINAL_DIRS.contains(&dir))
-            || (state.dirs == 8 && !dmi::dirs::ALL_DIRS.contains(&dir))
-        {
-            return Err(format!(
-                "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
-                icon.dir, state.dirs, icon.icon_file, icon.icon_state, sprite_name
-            ));
-        }
-    }
-    let mut icon_idx = match DIR_TO_INDEX.get(icon.dir as usize) {
-        Some(idx) if *idx == 255 => {
-            return Err(format!(
-                "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
-                icon.dir, state.dirs, icon.icon_file, icon.icon_state, sprite_name
-            ));
-        }
-        Some(idx) => *idx as u32,
+
+    let dir = match Dirs::from_bits(icon.dir) {
+        Some(dir) => dir,
         None => {
-            return Err(format!(
-                "Invalid dir {} or size of dirs {} in {} state: {} for sprite {}",
-                icon.dir, state.dirs, icon.icon_file, icon.icon_state, sprite_name
-            ));
+            return Err(format!("Invalid dir number {} for {}", icon.dir, sprite_name));
         }
     };
-    if icon.frame > 1 {
-        // Add one so zero scales properly
-        icon_idx = (icon_idx + 1) * icon.frame - 1
-    }
-    Ok(match state.images.get(icon_idx as usize) {
-        Some(image) => (image.to_rgba8(), false),
-        None => {
-            return Err(
-                format!("Out of bounds index {} in icon_state {} for sprite {} - Maximum index: {} (frames: {}, dirs: {})",
-                icon_idx, icon.icon_state, sprite_name, state.images.len(), state.dirs, state.frames
-            ));
+    Ok(match state.get_image(&dir, icon.frame) {
+        Ok(image) => (image.to_rgba8(), false),
+        Err(err) => {
+            return Err(format!("Error getting image for {}: {}", sprite_name, err));
         }
     })
 }

@@ -663,9 +663,9 @@ dependencies = [
 
 [[package]]
 name = "dmi"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "754c4784da61ad948b8bc868b3f639b102f798567576044fe67f5b7c70044c8f"
+checksum = "a99b0d2dae3ac6a37fe16dae423852e78b4d3279f86fe0958bd0549540952ffc"
 dependencies = [
  "bitflags 2.4.1",
  "deflate",

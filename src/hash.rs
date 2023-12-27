@@ -70,17 +70,22 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
             let mut hasher = XxHash64::with_seed(XXHASH_SEED);
             hasher.write(bytes.as_ref());
             Ok(format!("{:x}", hasher.finish()))
+        },
+        "xxh64_fixed" => {
+            let mut hasher = XxHash64::with_seed(17479268743136991876);
+            hasher.write(bytes.as_ref());
+            Ok(format!("{:x}", hasher.finish()))
         }
         "base64" => Ok(base64::prelude::BASE64_STANDARD.encode(bytes.as_ref())),
         _ => Err(Error::InvalidAlgorithm),
     }
 }
 
-fn string_hash(algorithm: &str, string: &str) -> Result<String> {
+pub fn string_hash(algorithm: &str, string: &str) -> Result<String> {
     hash_algorithm(algorithm, string)
 }
 
-fn file_hash(algorithm: &str, path: &str) -> Result<String> {
+pub fn file_hash(algorithm: &str, path: &str) -> Result<String> {
     let mut bytes: Vec<u8> = Vec::new();
     let mut file = BufReader::new(File::open(path)?);
     file.read_to_end(&mut bytes)?;
