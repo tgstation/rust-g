@@ -906,12 +906,17 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
         }
         Transform::Crop { x1, y1, x2, y2 } => {
             zone!("crop");
+
             let i_width = image.width();
             let i_height = image.height();
             let mut x1 = *x1;
             let mut y1 = *y1;
             let mut x2 = *x2;
             let mut y2 = *y2;
+            // BYOND indexes from 1,1! how silly of them. We'll just fix this here.
+            // Crop(1,1,1,1) is a valid statement. Save us.
+            y1 -= 1;
+            x1 -= 1;
             if x2 <= x1 || y2 <= y1 {
                 return Err(format!(
                     "Invalid bounds {} {} to {} {} in crop transform",
@@ -919,46 +924,58 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
                 ));
             }
 
-            // convert from BYOND (0,0 is bottom left) to Rust (0,0 is top left)
+            // Convert from BYOND (0,0 is bottom left) to Rust (0,0 is top left)
+            // BYOND also includes the upper bound
             let y2_old = y2;
             y2 = i_height as i32 - y1;
             y1 = i_height as i32 - y2_old;
 
-            let mut width = x2 - x1;
-            let mut height = y2 - y1;
-
+            // Check for silly expansion crops and add transparency in the gaps.
             if x1 < 0 || x2 > i_width as i32 || y1 < 0 || y2 > i_height as i32 {
+                // The amount the blank icon's size should increase by.
+                let mut width_inc: u32 = (x2 - i_width as i32).max(0) as u32;
+                let mut height_inc: u32 = (y2 - i_height as i32).max(0) as u32;
+                // Where to position the icon within our blank space.
+                let mut x_offset: u32 = 0;
+                let mut y_offset: u32 = 0;
+                // Make room to place the image further in, and change our bounds to match.
+                if x1 < 0 {
+                    x2 += x1.abs();
+                    x_offset += x1.unsigned_abs();
+                    width_inc += x1.unsigned_abs();
+                    x1 = 0;
+                }
+                if y1 < 0 {
+                    y2 += y1.abs();
+                    y_offset += y1.unsigned_abs();
+                    height_inc += y1.unsigned_abs();
+                    y1 = 0;
+                }
                 let mut blank_img: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
-                    RgbaImage::from_fn(width as u32, height as u32, |_x, _y| {
+                    RgbaImage::from_fn(i_width + width_inc, i_height + height_inc, |_x, _y| {
                         image::Rgba([0, 0, 0, 0])
                     });
-                image::imageops::overlay(
-                    &mut blank_img,
+
+                image::imageops::overlay(&mut blank_img, image, x_offset as i64, y_offset as i64);
+                *image = image::imageops::crop_imm(
+                    &blank_img,
+                    x1 as u32,
+                    y1 as u32,
+                    (x2 - x1) as u32,
+                    (y2 - y1) as u32,
+                )
+                .to_image();
+            } else {
+                // Normal bounds crop. Hooray!
+                *image = image::imageops::crop_imm(
                     image,
-                    if x1 < 0 { (x1).abs() as i64 } else { 0 }
-                        - if x1 > i_width as i32 {
-                            (x1 - i_width as i32) as i64
-                        } else {
-                            0
-                        },
-                    if y1 < 0 { (y1).abs() as i64 } else { 0 }
-                        - if x1 > i_width as i32 {
-                            (x1 - i_width as i32) as i64
-                        } else {
-                            0
-                        },
-                );
-                *image = blank_img;
-                x1 = std::cmp::max(0, x1);
-                x2 = std::cmp::min(i_width as i32, x2);
-                y1 = std::cmp::max(0, y1);
-                y2 = std::cmp::min(i_height as i32, y2);
-                width = x2 - x1;
-                height = y2 - y1;
+                    x1 as u32,
+                    y1 as u32,
+                    (x2 - x1) as u32,
+                    (y2 - y1) as u32,
+                )
+                .to_image();
             }
-            *image =
-                image::imageops::crop_imm(image, x1 as u32, y1 as u32, width as u32, height as u32)
-                    .to_image();
         }
     }
     Ok(())
