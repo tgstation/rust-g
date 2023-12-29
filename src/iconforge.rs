@@ -956,7 +956,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
                         image::Rgba([0, 0, 0, 0])
                     });
 
-                image::imageops::overlay(&mut blank_img, image, x_offset as i64, y_offset as i64);
+                image::imageops::replace(&mut blank_img, image, x_offset as i64, y_offset as i64);
                 *image = image::imageops::crop_imm(
                     &blank_img,
                     x1 as u32,
@@ -1055,7 +1055,12 @@ impl Rgba {
             3 => Rgba::map_each_a(
                 self,
                 other_color,
-                |c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a / 255.0,
+                |c1, c2, c1_a, c2_a| {
+                    if c1_a == 0.0 {
+                        return c2;
+                    }
+                    c1 + (c2 - c1) * c2_a / 255.0
+                },
                 |a1, a2| {
                     let high = f32::max(a1, a2);
                     let low = f32::min(a1, a2);
@@ -1065,7 +1070,12 @@ impl Rgba {
             6 => Rgba::map_each_a(
                 other_color,
                 self,
-                |c1, c2, _c1_a, c2_a| c1 + (c2 - c1) * c2_a / 255.0,
+                |c1, c2, c1_a, c2_a| {
+                    if c1_a == 0.0 {
+                        return c2;
+                    }
+                    c1 + (c2 - c1) * c2_a / 255.0
+                },
                 |a1, a2| {
                     let high = f32::max(a1, a2);
                     let low = f32::min(a1, a2);
