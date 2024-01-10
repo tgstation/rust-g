@@ -361,7 +361,7 @@ fn generate_spritesheet(
             .into_par_iter()
             .for_each(|icon| match icon_to_dmi(icon) {
                 Ok(_) => {
-                    if hash_icons {
+                    if hash_icons && !dmi_hashes.contains_key(&icon.icon_file) {
                         zone!("hash_dmi");
                         match file_hash("xxh64_fixed", &icon.icon_file) {
                             Ok(hash) => {
