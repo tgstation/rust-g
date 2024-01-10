@@ -1045,7 +1045,7 @@ impl Rgba {
     fn blend(&self, other_color: &Rgba, blend_mode: u8) -> Rgba {
         match blend_mode {
             0 => Rgba::map_each(self, other_color, |c1, c2| c1 + c2, f32::min),
-            1 => Rgba::map_each(self, other_color, |c1, c2| c2 - c1, f32::min),
+            1 => Rgba::map_each(self, other_color, |c1, c2| c1 - c2, f32::min),
             2 => Rgba::map_each(
                 self,
                 other_color,
