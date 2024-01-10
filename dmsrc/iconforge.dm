@@ -63,8 +63,9 @@
 /// Returns "OK" if successful, otherwise, returns a string containing the error.
 #define rustg_iconforge_gags(config_path, colors, output_dmi_path) RUSTG_CALL(RUST_G, "iconforge_gags")("[config_path]", colors, output_dmi_path)
 /// Returns a job_id for use with rustg_iconforge_check()
-#define rustg_iconforge_gags_async(config_path, colors, output_dmi_path) RUSTG_CALL(RUST_G, "iconforge_gags")("[config_path]", colors, output_dmi_path)
-
+#define rustg_iconforge_load_gags_config_async(config_path, config_json, config_icon_path) RUSTG_CALL(RUST_G, "iconforge_load_gags_config_async")("[config_path]", config_json, config_icon_path)
+/// Returns a job_id for use with rustg_iconforge_check()
+#define rustg_iconforge_gags_async(config_path, colors, output_dmi_path) RUSTG_CALL(RUST_G, "iconforge_gags_async")("[config_path]", colors, output_dmi_path)
 
 #define RUSTG_ICONFORGE_BLEND_COLOR "BlendColor"
 #define RUSTG_ICONFORGE_BLEND_ICON "BlendIcon"
