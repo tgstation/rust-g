@@ -9,9 +9,9 @@ use crate::{
 use dashmap::DashMap;
 use dmi::{
     dirs::Dirs,
-    icon::{Icon, IconState, DmiVersion},
+    icon::{DmiVersion, Icon, IconState},
 };
-use image::{Pixel, RgbaImage, DynamicImage};
+use image::{DynamicImage, Pixel, RgbaImage};
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -409,9 +409,8 @@ fn generate_spritesheet(
     sprites_map.par_iter().for_each(|(sprite_name, icon)| {
         zone!("sprite_to_icons");
 
-        icon_to_icons(icon)
-            .into_par_iter()
-            .for_each(|icon| match filepath_to_dmi(&icon.icon_file) {
+        icon_to_icons(icon).into_par_iter().for_each(|icon| {
+            match filepath_to_dmi(&icon.icon_file) {
                 Ok(_) => {
                     if hash_icons && !dmi_hashes.contains_key(&icon.icon_file) {
                         zone!("hash_dmi");
@@ -427,7 +426,8 @@ fn generate_spritesheet(
                     }
                 }
                 Err(err) => error.lock().unwrap().push(err),
-            });
+            }
+        });
 
         {
             zone!("map_to_base");
@@ -915,7 +915,11 @@ fn blend_color(image: &mut RgbaImage, color: &String, blend_mode: &u8) -> Result
     Ok(())
 }
 
-fn blend_icon(image: &mut RgbaImage, other_image: &RgbaImage, blend_mode: &u8) -> Result<(), String> {
+fn blend_icon(
+    image: &mut RgbaImage,
+    other_image: &RgbaImage,
+    blend_mode: &u8,
+) -> Result<(), String> {
     zone!("blend_icon");
     for x in 0..std::cmp::min(image.width(), other_image.width()) {
         for y in 0..std::cmp::min(image.width(), other_image.width()) {
@@ -1086,15 +1090,27 @@ enum GAGSLayer {
     ColorMatrix {
         blend_mode: String,
         color_matrix: [[f32; 4]; 5],
-    }
+    },
 }
 
 impl GAGSLayer {
     fn get_blendmode(&self) -> String {
         match self {
-            GAGSLayer::IconState { icon_state: _, blend_mode, color_ids: _ } => blend_mode.to_owned(),
-            GAGSLayer::Reference { reference_type: _, icon_state: _, blend_mode, color_ids: _ } => blend_mode.to_owned(),
-            GAGSLayer::ColorMatrix { blend_mode, color_matrix: _ } => blend_mode.to_owned(),
+            GAGSLayer::IconState {
+                icon_state: _,
+                blend_mode,
+                color_ids: _,
+            } => blend_mode.to_owned(),
+            GAGSLayer::Reference {
+                reference_type: _,
+                icon_state: _,
+                blend_mode,
+                color_ids: _,
+            } => blend_mode.to_owned(),
+            GAGSLayer::ColorMatrix {
+                blend_mode,
+                color_matrix: _,
+            } => blend_mode.to_owned(),
         }
     }
 }
@@ -1107,11 +1123,14 @@ struct GAGSData {
     config_icon: Arc<Icon>,
 }
 
-static GAGS_CACHE: Lazy<DashMap<String, GAGSData>> =
-    Lazy::new(DashMap::new);
+static GAGS_CACHE: Lazy<DashMap<String, GAGSData>> = Lazy::new(DashMap::new);
 
 /// Loads a GAGS config and the requested DMIs into memory for use by iconforge_gags()
-fn load_gags_config(config_path: &str, config_json: &str, config_icon_path: &str) -> Result<String, Error> {
+fn load_gags_config(
+    config_path: &str,
+    config_json: &str,
+    config_icon_path: &str,
+) -> Result<String, Error> {
     zone!("load_gags_config");
     let gags_config: GAGSConfig;
     {
@@ -1126,11 +1145,14 @@ fn load_gags_config(config_path: &str, config_json: &str, config_icon_path: &str
     };
     {
         zone!("gags_insert_config");
-        GAGS_CACHE.insert(config_path.to_owned(), GAGSData {
-            config: gags_config,
-            config_path: config_path.to_owned(),
-            config_icon: icon_data,
-        });
+        GAGS_CACHE.insert(
+            config_path.to_owned(),
+            GAGSData {
+                config: gags_config,
+                config_path: config_path.to_owned(),
+                config_icon: icon_data,
+            },
+        );
     }
     Ok(String::from("OK"))
 }
@@ -1141,11 +1163,18 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
     let gags_data = match GAGS_CACHE.get(config_path) {
         Some(config) => config,
         None => {
-            return Err(Error::IconForge(format!("Provided config_path {} has not been loaded by iconforge_load_gags_config!", config_path)));
+            return Err(Error::IconForge(format!(
+                "Provided config_path {} has not been loaded by iconforge_load_gags_config!",
+                config_path
+            )));
         }
     };
 
-    let colors_vec = colors.split("#").map(|x| String::from("#") + x).filter(|x| x != "#").collect::<Vec<String>>();
+    let colors_vec = colors
+        .split("#")
+        .map(|x| String::from("#") + x)
+        .filter(|x| x != "#")
+        .collect::<Vec<String>>();
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let output_states = Arc::new(Mutex::new(Vec::<IconState>::new()));
@@ -1200,8 +1229,13 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
             width: gags_data.config_icon.width,
             height: gags_data.config_icon.height,
             states: output_states.lock().unwrap().to_owned(),
-        }.save(&mut output_file)) {
-            return Err(Error::IconForge(format!("Error during icon saving: {}", err.to_string())));
+        }
+        .save(&mut output_file))
+        {
+            return Err(Error::IconForge(format!(
+                "Error during icon saving: {}",
+                err.to_string()
+            )));
         }
     }
 
@@ -1209,7 +1243,13 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
 }
 
 /// Version of gags() for use by the reference layer type that acts in memory
-fn gags_internal(config_path: &str, colors_vec: &Vec<String>, icon_state: &String, last_external_images: Option<Vec<DynamicImage>>, first_matched_state: &mut Option<IconState>) -> Result<Vec<DynamicImage>, String> {
+fn gags_internal(
+    config_path: &str,
+    colors_vec: &Vec<String>,
+    icon_state: &String,
+    last_external_images: Option<Vec<DynamicImage>>,
+    first_matched_state: &mut Option<IconState>,
+) -> Result<Vec<DynamicImage>, String> {
     zone!("gags_internal");
     let gags_data = match GAGS_CACHE.get(config_path) {
         Some(config) => config,
@@ -1227,7 +1267,14 @@ fn gags_internal(config_path: &str, colors_vec: &Vec<String>, icon_state: &Strin
     {
         zone!("gags_create_icon_state");
         let mut first_matched_state_internal: Option<IconState> = None;
-        let transformed_images = match generate_layer_groups_for_iconstate(icon_state, colors_vec, layer_groups, &gags_data, last_external_images, &mut first_matched_state_internal) {
+        let transformed_images = match generate_layer_groups_for_iconstate(
+            icon_state,
+            colors_vec,
+            layer_groups,
+            &gags_data,
+            last_external_images,
+            &mut first_matched_state_internal,
+        ) {
             Ok(images) => images,
             Err(err) => {
                 return Err(err);
@@ -1244,47 +1291,96 @@ fn gags_internal(config_path: &str, colors_vec: &Vec<String>, icon_state: &Strin
 }
 
 /// Recursive function that parses out GAGS configs into layer groups.
-fn generate_layer_groups_for_iconstate(state_name: &str, colors: &Vec<String>, layer_groups: &Vec<GAGSLayerGroupOption>, gags_data: &GAGSData, last_external_images: Option<Vec<DynamicImage>>, first_matched_state: &mut Option<IconState>) -> Result<Vec<DynamicImage>, String> {
+fn generate_layer_groups_for_iconstate(
+    state_name: &str,
+    colors: &Vec<String>,
+    layer_groups: &Vec<GAGSLayerGroupOption>,
+    gags_data: &GAGSData,
+    last_external_images: Option<Vec<DynamicImage>>,
+    first_matched_state: &mut Option<IconState>,
+) -> Result<Vec<DynamicImage>, String> {
     zone!("generate_layer_groups_for_iconstate");
     let mut new_images: Option<Vec<DynamicImage>> = None;
     for option in layer_groups {
         zone!("process_gags_layergroup_option");
         let (layer_images, blend_mode) = match option {
-            GAGSLayerGroupOption::GAGSLayer(layer) => (generate_layer_for_iconstate(state_name, colors, layer, gags_data, new_images.clone().or(last_external_images.clone()), first_matched_state)?, layer.get_blendmode()),
+            GAGSLayerGroupOption::GAGSLayer(layer) => (
+                generate_layer_for_iconstate(
+                    state_name,
+                    colors,
+                    layer,
+                    gags_data,
+                    new_images.clone().or(last_external_images.clone()),
+                    first_matched_state,
+                )?,
+                layer.get_blendmode(),
+            ),
             GAGSLayerGroupOption::GAGSLayerGroup(layers) => {
                 if layers.is_empty() {
-                    return Err(format!("Empty layer group provided to GAGS state {} for GAGS config {} !", state_name, gags_data.config_path));
+                    return Err(format!(
+                        "Empty layer group provided to GAGS state {} for GAGS config {} !",
+                        state_name, gags_data.config_path
+                    ));
                 }
-                (generate_layer_groups_for_iconstate(state_name, colors, layers, gags_data, new_images.clone().or(last_external_images.clone()), first_matched_state)?, match layers.first().unwrap() {
-                    GAGSLayerGroupOption::GAGSLayer(layer) => layer.get_blendmode(),
-                    GAGSLayerGroupOption::GAGSLayerGroup(_) => {
-                        return Err(format!("Layer group began with another layer group in GAGS state {} for GAGS config {} !", state_name, gags_data.config_path));
-                    }
-                })
+                (
+                    generate_layer_groups_for_iconstate(
+                        state_name,
+                        colors,
+                        layers,
+                        gags_data,
+                        new_images.clone().or(last_external_images.clone()),
+                        first_matched_state,
+                    )?,
+                    match layers.first().unwrap() {
+                        GAGSLayerGroupOption::GAGSLayer(layer) => layer.get_blendmode(),
+                        GAGSLayerGroupOption::GAGSLayerGroup(_) => {
+                            return Err(format!("Layer group began with another layer group in GAGS state {} for GAGS config {} !", state_name, gags_data.config_path));
+                        }
+                    },
+                )
             }
         };
 
         new_images = match new_images {
             Some(images) => Some(blend_images_other(images, layer_images, &blend_mode)?),
-            None => Some(layer_images)
+            None => Some(layer_images),
         }
     }
     match new_images {
         Some(images) => Ok(images),
-        None => Err(format!("No image found for GAGS state {}", state_name))
+        None => Err(format!("No image found for GAGS state {}", state_name)),
     }
 }
 
 /// Generates a specific layer.
-fn generate_layer_for_iconstate(state_name: &str, colors: &Vec<String>, layer: &GAGSLayer, gags_data: &GAGSData, new_images: Option<Vec<DynamicImage>>, first_matched_state: &mut Option<IconState>) -> Result<Vec<DynamicImage>, String> {
+fn generate_layer_for_iconstate(
+    state_name: &str,
+    colors: &Vec<String>,
+    layer: &GAGSLayer,
+    gags_data: &GAGSData,
+    new_images: Option<Vec<DynamicImage>>,
+    first_matched_state: &mut Option<IconState>,
+) -> Result<Vec<DynamicImage>, String> {
     zone!("generate_layer_for_iconstate");
     let images_result: Option<Vec<DynamicImage>> = match layer {
-        GAGSLayer::IconState { icon_state, blend_mode: _, color_ids } => {
+        GAGSLayer::IconState {
+            icon_state,
+            blend_mode: _,
+            color_ids,
+        } => {
             zone!("gags_layer_type_icon_state");
-            let icon_state: &IconState = match gags_data.config_icon.states.iter().find(|state| state.name == *icon_state) {
+            let icon_state: &IconState = match gags_data
+                .config_icon
+                .states
+                .iter()
+                .find(|state| state.name == *icon_state)
+            {
                 Some(state) => state,
                 None => {
-                    return Err(format!("Invalid icon_state {} in layer provided for GAGS config {}", state_name, gags_data.config_path));
+                    return Err(format!(
+                        "Invalid icon_state {} in layer provided for GAGS config {}",
+                        state_name, gags_data.config_path
+                    ));
                 }
             };
 
@@ -1299,53 +1395,93 @@ fn generate_layer_for_iconstate(state_name: &str, colors: &Vec<String>, layer: &
                     GAGSColorID::GAGSColorIndex(idx) => colors.get(*idx as usize - 1).unwrap(),
                     GAGSColorID::GAGSColorStatic(color) => color,
                 };
-                return Ok(blend_images_color(images, actual_color, &String::from("multiply"))?);
+                return Ok(blend_images_color(
+                    images,
+                    actual_color,
+                    &String::from("multiply"),
+                )?);
             } else {
                 return Ok(images); // this will get blended by the layergroup.
             }
-        },
-        GAGSLayer::Reference { reference_type, icon_state, blend_mode: _, color_ids } => {
+        }
+        GAGSLayer::Reference {
+            reference_type,
+            icon_state,
+            blend_mode: _,
+            color_ids,
+        } => {
             zone!("gags_layer_type_reference");
             let mut colors_in: Vec<String> = colors.clone();
             if !color_ids.is_empty() {
-                colors_in = color_ids.iter().map(|color| match color {
-                    GAGSColorID::GAGSColorIndex(idx) => colors.get(*idx as usize - 1).unwrap().clone(),
-                    GAGSColorID::GAGSColorStatic(color) => color.clone(),
-                }).collect();
+                colors_in = color_ids
+                    .iter()
+                    .map(|color| match color {
+                        GAGSColorID::GAGSColorIndex(idx) => {
+                            colors.get(*idx as usize - 1).unwrap().clone()
+                        }
+                        GAGSColorID::GAGSColorStatic(color) => color.clone(),
+                    })
+                    .collect();
             }
-            Some(gags_internal(reference_type, &colors_in, icon_state, new_images, first_matched_state)?)
-        },
-        GAGSLayer::ColorMatrix { blend_mode: _, color_matrix: _ } => new_images, // unsupported! TROLLED!
+            Some(gags_internal(
+                reference_type,
+                &colors_in,
+                icon_state,
+                new_images,
+                first_matched_state,
+            )?)
+        }
+        GAGSLayer::ColorMatrix {
+            blend_mode: _,
+            color_matrix: _,
+        } => new_images, // unsupported! TROLLED!
     };
 
     match images_result {
         Some(images) => Ok(images),
-        None => Err(format!("No images found for GAGS state {} for GAGS config {} !", state_name, gags_data.config_path))
+        None => Err(format!(
+            "No images found for GAGS state {} for GAGS config {} !",
+            state_name, gags_data.config_path
+        )),
     }
 }
 
 /// Blends a set of images with a color.
-fn blend_images_color(images: Vec<DynamicImage>, color: &String, blend_mode: &String) -> Result<Vec<DynamicImage>, Error> {
+fn blend_images_color(
+    images: Vec<DynamicImage>,
+    color: &String,
+    blend_mode: &String,
+) -> Result<Vec<DynamicImage>, Error> {
     zone!("blend_images_color");
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
-    let images_out = images.into_par_iter().map(|image| {
-        zone!("blend_image_color");
-        let mut new_image = image.clone().into_rgba8();
-        if let Err(err) = blend_color(&mut new_image, color, &match blend_mode.as_str() {
-            "add" => 0,
-            "subtract" => 1,
-            "multiply" => 2,
-            "overlay" => 3,
-            "underlay" => 6,
-            _ => {
-                errors.lock().unwrap().push(format!("blend_mode '{}' is not supported!", blend_mode));
-                3
+    let images_out = images
+        .into_par_iter()
+        .map(|image| {
+            zone!("blend_image_color");
+            let mut new_image = image.clone().into_rgba8();
+            if let Err(err) = blend_color(
+                &mut new_image,
+                color,
+                &match blend_mode.as_str() {
+                    "add" => 0,
+                    "subtract" => 1,
+                    "multiply" => 2,
+                    "overlay" => 3,
+                    "underlay" => 6,
+                    _ => {
+                        errors
+                            .lock()
+                            .unwrap()
+                            .push(format!("blend_mode '{}' is not supported!", blend_mode));
+                        3
+                    }
+                },
+            ) {
+                errors.lock().unwrap().push(err);
             }
-        }) {
-            errors.lock().unwrap().push(err);
-        }
-        DynamicImage::ImageRgba8(new_image)
-    }).collect();
+            DynamicImage::ImageRgba8(new_image)
+        })
+        .collect();
     let errors_unlock = errors.lock().unwrap();
     if !errors_unlock.is_empty() {
         return Err(Error::IconForge(errors_unlock.join("\n")));
@@ -1354,55 +1490,80 @@ fn blend_images_color(images: Vec<DynamicImage>, color: &String, blend_mode: &St
 }
 
 /// Blends a set of images with another set of images.
-fn blend_images_other(images: Vec<DynamicImage>, mut images_other: Vec<DynamicImage>, blend_mode: &String) -> Result<Vec<DynamicImage>, Error> {
+fn blend_images_other(
+    images: Vec<DynamicImage>,
+    mut images_other: Vec<DynamicImage>,
+    blend_mode: &String,
+) -> Result<Vec<DynamicImage>, Error> {
     zone!("blend_images_other");
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
     let images_out: Vec<DynamicImage>;
-    if images_other.len() == 1 { // This is useful in the case where the something with 4+ dirs blends with 1dir
+    if images_other.len() == 1 {
+        // This is useful in the case where the something with 4+ dirs blends with 1dir
         let first_image = images_other.remove(0).into_rgba8();
-        images_out = images.into_par_iter().map(|image| {
-            zone!("blend_image_other_simple");
-            let mut new_image = image.clone().into_rgba8();
-            match blend_icon(&mut new_image, &first_image, &match blend_mode.as_str() {
-                "add" => 0,
-                "subtract" => 1,
-                "multiply" => 2,
-                "overlay" => 3,
-                "underlay" => 6,
-                _ => {
-                    errors.lock().unwrap().push(format!("blend_mode '{}' is not supported!", blend_mode));
-                    3
-                }
-            }) {
-                Ok(_) => (),
-                Err(error) => {
-                    errors.lock().unwrap().push(error);
-                }
-            };
-            DynamicImage::ImageRgba8(new_image)
-        }).collect();
+        images_out = images
+            .into_par_iter()
+            .map(|image| {
+                zone!("blend_image_other_simple");
+                let mut new_image = image.clone().into_rgba8();
+                match blend_icon(
+                    &mut new_image,
+                    &first_image,
+                    &match blend_mode.as_str() {
+                        "add" => 0,
+                        "subtract" => 1,
+                        "multiply" => 2,
+                        "overlay" => 3,
+                        "underlay" => 6,
+                        _ => {
+                            errors
+                                .lock()
+                                .unwrap()
+                                .push(format!("blend_mode '{}' is not supported!", blend_mode));
+                            3
+                        }
+                    },
+                ) {
+                    Ok(_) => (),
+                    Err(error) => {
+                        errors.lock().unwrap().push(error);
+                    }
+                };
+                DynamicImage::ImageRgba8(new_image)
+            })
+            .collect();
     } else {
-        images_out = (images, images_other).into_par_iter().map(|(image, image2)| {
-            zone!("blend_image_other");
-            let mut new_image = image.clone().into_rgba8();
-            match blend_icon(&mut new_image, &image2.into_rgba8(), &match blend_mode.as_str() {
-                "add" => 0,
-                "subtract" => 1,
-                "multiply" => 2,
-                "overlay" => 3,
-                "underlay" => 6,
-                _ => {
-                    errors.lock().unwrap().push(format!("blend_mode '{}' is not supported!", blend_mode));
-                    3
-                }
-            }) {
-                Ok(_) => (),
-                Err(error) => {
-                    errors.lock().unwrap().push(error);
-                }
-            };
-            DynamicImage::ImageRgba8(new_image)
-        }).collect();
+        images_out = (images, images_other)
+            .into_par_iter()
+            .map(|(image, image2)| {
+                zone!("blend_image_other");
+                let mut new_image = image.clone().into_rgba8();
+                match blend_icon(
+                    &mut new_image,
+                    &image2.into_rgba8(),
+                    &match blend_mode.as_str() {
+                        "add" => 0,
+                        "subtract" => 1,
+                        "multiply" => 2,
+                        "overlay" => 3,
+                        "underlay" => 6,
+                        _ => {
+                            errors
+                                .lock()
+                                .unwrap()
+                                .push(format!("blend_mode '{}' is not supported!", blend_mode));
+                            3
+                        }
+                    },
+                ) {
+                    Ok(_) => (),
+                    Err(error) => {
+                        errors.lock().unwrap().push(error);
+                    }
+                };
+                DynamicImage::ImageRgba8(new_image)
+            })
+            .collect();
     }
     let errors_unlock = errors.lock().unwrap();
     if !errors_unlock.is_empty() {
