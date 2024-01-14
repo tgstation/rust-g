@@ -97,7 +97,7 @@ fn totp_generate_tolerance(
 ) -> Result<String> {
     let mut results: Vec<String> = Vec::new();
     for i in -tolerance..(tolerance + 1) {
-        let result = totp_generate(hex_seed, i.try_into().unwrap(), time_override)?;
+        let result = totp_generate(hex_seed, i.into(), time_override)?;
         results.push(result)
     }
     Ok(serde_json::to_string(&results)?)
