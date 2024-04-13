@@ -8,7 +8,7 @@ use std::rc::Rc;
 use thiserror::Error;
 
 thread_local! {
-static NODES: RefCell<Vec<Option<Rc<Node>>>> = RefCell::new(Vec::new());
+static NODES: RefCell<Vec<Option<Rc<Node>>>> = const { RefCell::new(Vec::new()) };
 }
 
 fn get_nodes_len() -> usize {

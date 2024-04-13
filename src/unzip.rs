@@ -48,6 +48,7 @@ fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
         let file = fs::OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(true)
             .open(&file_path)?;
 
         let mut writer = std::io::BufWriter::new(file);

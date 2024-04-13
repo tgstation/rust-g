@@ -1,4 +1,4 @@
-#![forbid(unsafe_op_in_unsafe_fn)]
+// #![forbid(unsafe_op_in_unsafe_fn)] - see github.com/rust-lang/rust/issues/121483
 
 #[macro_use]
 mod byond;
