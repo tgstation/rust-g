@@ -21,7 +21,6 @@ fn replacetext(text: &str, prob_as_str: &str, replacement_str: &str) -> Result<S
         } else {
             string_return.push(character);
         }
-
     }
     Ok(string_return)
 }
