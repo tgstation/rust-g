@@ -1,5 +1,5 @@
-use rand::Rng;
 use crate::error::Result;
+use rand::Rng;
 
 byond_fn!(fn random_replacetext(text, prob, rand_char) {
     replacetext(text, prob, rand_char).ok()
@@ -18,8 +18,7 @@ fn replacetext(text: &str, prob_as_str: &str, replacement_str: &str) -> Result<S
 
         if rng.gen_ratio(prob, 100) {
             string_return.push_str(replacement_str);
-        }
-        else {
+        } else {
             string_return.push(character);
         }
 
