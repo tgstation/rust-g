@@ -11,7 +11,7 @@ fn replacetext(text: &str, prob_as_str: &str, replacement_str: &str) -> Result<S
     let mut string_return = String::new();
 
     for character in text.chars() {
-        if character.is_whitespace() { // Skip spaces
+        if character.is_whitespace() {
             string_return.push(character);
             continue;
         }
