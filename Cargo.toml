@@ -100,6 +100,7 @@ all = [
     "batchnoise",
     "hash",
     "pathfinder",
+    "random_replacetext",
     "redis_pubsub",
     "redis_reliablequeue",
     "unzip",
@@ -134,6 +135,7 @@ hash = [
     "serde_json",
 ]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
+random_replacetext = ["rand"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
