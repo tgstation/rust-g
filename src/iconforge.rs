@@ -671,7 +671,9 @@ fn icon_from_io(icon_in: IconObjectIO) -> IconObject {
         transform_hash_input: String::new(),
         icon_hash_input: String::new(),
     };
-    result.gen_icon_hash_input().unwrap(); // unsafe but idc
+    // This line can panic, but I consider that acceptable considering how annoying "proper" error handling would be
+    // especially when this failing basically breaks the entire program. The panic will be caught and written to logs anyway.
+    result.gen_icon_hash_input().unwrap();
     result
 }
 
