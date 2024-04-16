@@ -2,44 +2,31 @@ name: rust-g
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
 
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: i686-pc-windows-msvc
+          targets: i686-pc-windows-msvc
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Clippy (all features)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: clippy
-          args: --target i686-pc-windows-msvc --features all --locked -- -D warnings
+        run: cargo clippy --target i686-pc-windows-msvc --features all --locked -- -D warnings
 
       - name: Rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: fmt
-          args: -- --check
+        run: cargo fmt -- --check
 
       - name: Build (release) (default features)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: build
-          args: --target i686-pc-windows-msvc --locked --release
+        run: cargo build --target i686-pc-windows-msvc --locked --release
 
       - uses: actions/upload-artifact@v3
         with:
@@ -49,7 +36,6 @@ jobs:
             target/i686-pc-windows-msvc/release/rust_g.pdb
             target/rust_g.dm
 
-
   build-linux:
     runs-on: ubuntu-latest
     env:
@@ -58,7 +44,7 @@ jobs:
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
 
       - run: |
           sudo dpkg --add-architecture i386
@@ -66,42 +52,25 @@ jobs:
           sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386
           ./scripts/install_byond.sh
 
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: i686-unknown-linux-gnu
+          targets: i686-unknown-linux-gnu
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Check (all features)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: check
-          args: --target i686-unknown-linux-gnu --locked --features all
+        run: cargo check --target i686-unknown-linux-gnu --locked --features all
 
       - name: Build (Debug) (all features)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: build
-          args: --target i686-unknown-linux-gnu --locked --features all
+        run: cargo build --target i686-unknown-linux-gnu --locked --features all
 
       - name: Run tests (all features)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: test
-          args: --target i686-unknown-linux-gnu --locked --features all
+        run: cargo test --target i686-unknown-linux-gnu --locked --features all
         env:
           BYOND_BIN: /home/runner/BYOND/byond/bin
 
       - name: Build (release) (default features)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: build
-          args: --target i686-unknown-linux-gnu --locked --release
+        run: cargo build --target i686-unknown-linux-gnu --locked --release
 
       - uses: actions/upload-artifact@v3
         with:

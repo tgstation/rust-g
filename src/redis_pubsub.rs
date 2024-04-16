@@ -7,8 +7,8 @@ use std::time::Duration;
 const ERROR_CHANNEL: &str = "RUSTG_REDIS_ERROR_CHANNEL";
 
 thread_local! {
-    static REQUEST_SENDER: RefCell<Option<flume::Sender<PubSubRequest>>> = RefCell::new(None);
-    static RESPONSE_RECEIVER: RefCell<Option<flume::Receiver<PubSubResponse>>> = RefCell::new(None);
+    static REQUEST_SENDER: RefCell<Option<flume::Sender<PubSubRequest>>> = const { RefCell::new(None) };
+    static RESPONSE_RECEIVER: RefCell<Option<flume::Receiver<PubSubResponse>>> = const { RefCell::new(None) };
 }
 
 enum PubSubRequest {

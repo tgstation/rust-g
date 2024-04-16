@@ -18,6 +18,10 @@ byond_fn!(fn hash_string(algorithm, string) {
     string_hash(algorithm, string).ok()
 });
 
+byond_fn!(fn decode_base64(string) {
+    Some(base64::prelude::BASE64_STANDARD.decode(string).unwrap())
+});
+
 byond_fn!(fn hash_file(algorithm, string) {
     file_hash(algorithm, string).ok()
 });
@@ -93,7 +97,7 @@ fn totp_generate_tolerance(
 ) -> Result<String> {
     let mut results: Vec<String> = Vec::new();
     for i in -tolerance..(tolerance + 1) {
-        let result = totp_generate(hex_seed, i.try_into().unwrap(), time_override)?;
+        let result = totp_generate(hex_seed, i.into(), time_override)?;
         results.push(result)
     }
     Ok(serde_json::to_string(&results)?)

@@ -4,7 +4,7 @@ use std::num::NonZeroUsize;
 use std::time::Duration;
 
 thread_local! {
-    static REDIS_CLIENT: RefCell<Option<Client>> = RefCell::new(None);
+    static REDIS_CLIENT: RefCell<Option<Client>> = const { RefCell::new(None) };
 }
 
 fn connect(addr: &str) -> Result<(), RedisError> {

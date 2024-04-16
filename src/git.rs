@@ -1,24 +1,26 @@
 use chrono::{TimeZone, Utc};
-use git2::{Error, ErrorCode, Repository};
+use gix::{open::Error as OpenError, Repository};
 
 thread_local! {
-    static REPOSITORY: Result<Repository, Error> = Repository::open(".");
+    static REPOSITORY: Result<Repository, OpenError> = gix::open(".");
 }
 
 byond_fn!(fn rg_git_revparse(rev) {
-    REPOSITORY.with(|repo| -> Result<String, ErrorCode> {
-        let repo = repo.as_ref().map_err(Error::code)?;
-        let object = repo.revparse_single(rev).map_err(|e| e.code())?;
-        Ok(object.id().to_string())
-    }).ok()
+    REPOSITORY.with(|repo| -> Option<String> {
+        let repo = repo.as_ref().ok()?;
+        let object = repo.rev_parse_single(rev).ok()?;
+        Some(object.to_string())
+    })
 });
 
 byond_fn!(fn rg_git_commit_date(rev) {
-    REPOSITORY.with(|repo| -> Result<String, ErrorCode> {
-        let repo = repo.as_ref().map_err(Error::code)?;
-        let object = repo.revparse_single(rev).map_err(|e| e.code())?;
-        let commit = object.as_commit().ok_or(ErrorCode::GenericError)?;
-        let datetime = Utc.timestamp_opt(commit.time().seconds(), 0).latest().unwrap();
-        Ok(datetime.format("%F").to_string())
-    }).ok()
+    REPOSITORY.with(|repo| -> Option<String> {
+        let repo = repo.as_ref().ok()?;
+        let rev = repo.rev_parse_single(rev).ok()?;
+        let object = rev.object().ok()?;
+        let commit = object.try_into_commit().ok()?;
+        let commit_time = commit.committer().ok()?.time;
+        let datetime = Utc.timestamp_opt(commit_time.seconds, 0).latest()?;
+        Some(datetime.format("%F").to_string())
+    })
 });

@@ -21,3 +21,12 @@ var/list/reference = list()
 
     for (var/entry in reference)
         check_hash_base64(entry)
+
+    // Test B64 decode stuff
+    var/input_str = "dGhpcyBpcyBzb21lIHRleHQ="
+    var/expected_output = "this is some text"
+    var/actual = rustg_decode_base64(input_str)
+
+    if (!cmptextEx(expected_output, actual))
+        CRASH("Base64 decode failed | S: [input_str] | E: [expected_output] | A: [actual]")
+
