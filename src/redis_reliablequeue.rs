@@ -138,24 +138,28 @@ fn lpop(key: &str, count: Option<NonZeroUsize>) -> serde_json::Value {
 }
 
 byond_fn!(fn redis_connect_rq(addr) {
-    connect(addr).err().map(|e| e.to_string())
+    match connect(addr) {
+        Ok(_) => Some(serde_json::json!({"success": true, "content": ""}).to_string()),
+        Err(e) => Some(serde_json::json!({
+            "success": false, "content": format!("Failed to connect to {addr}: {e}")
+        }).to_string()),
+    }
 });
 
 byond_fn!(
     fn redis_disconnect_rq() {
         disconnect();
-        Some("")
+        Some(serde_json::json!({"success": true, "content": ""}).to_string())
     }
 );
 
 byond_fn!(fn redis_lpush(key, elements) {
-    #[allow(clippy::needless_return)]
-    return match serde_json::from_str(elements) {
+    match serde_json::from_str(elements) {
         Ok(elem) => Some(lpush(key, elem).to_string()),
         Err(e) => Some(serde_json::json!({
             "success": false, "content": format!("Failed to deserialize JSON: {e}")
         }).to_string()),
-    };
+    }
 });
 
 byond_fn!(fn redis_lrange(key, start, stop) {
