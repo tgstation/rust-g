@@ -24,6 +24,8 @@ pub mod git;
 pub mod hash;
 #[cfg(feature = "http")]
 pub mod http;
+#[cfg(feature = "iconforge")]
+pub mod iconforge;
 #[cfg(feature = "json")]
 pub mod json;
 #[cfg(feature = "log")]
