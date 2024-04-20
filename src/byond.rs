@@ -97,7 +97,6 @@ pub fn set_panic_hook() {
     SET_HOOK.call_once(|| {
         std::panic::set_hook(Box::new(|panic_info| {
             let mut file = OpenOptions::new()
-                .write(true)
                 .append(true)
                 .create(true)
                 .open("rustg-panic.log")
