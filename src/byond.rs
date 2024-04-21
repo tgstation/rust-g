@@ -117,6 +117,7 @@ pub fn set_panic_hook() {
     });
 }
 
+#[allow(dead_code)] // Used depending on feature set
 /// Utility for BYOND functions to catch panic unwinds safely and return a Result<String, Error>, as expected.
 /// Usage: catch_panic(|| internal_safe_function(arguments))
 pub fn catch_panic<F>(f: F) -> Result<String, Error>
