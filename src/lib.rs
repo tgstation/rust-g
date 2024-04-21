@@ -1,4 +1,4 @@
-#![forbid(unsafe_op_in_unsafe_fn)]
+// #![forbid(unsafe_op_in_unsafe_fn)] - see github.com/rust-lang/rust/issues/121483
 
 #[macro_use]
 mod byond;
@@ -24,6 +24,8 @@ pub mod git;
 pub mod hash;
 #[cfg(feature = "http")]
 pub mod http;
+#[cfg(feature = "iconforge")]
+pub mod iconforge;
 #[cfg(feature = "json")]
 pub mod json;
 #[cfg(feature = "log")]

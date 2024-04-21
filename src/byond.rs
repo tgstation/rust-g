@@ -1,11 +1,17 @@
+use crate::error::Error;
 use std::{
+    backtrace::Backtrace,
     borrow::Cow,
     cell::RefCell,
     ffi::{CStr, CString},
+    fs::OpenOptions,
+    io::Write,
     os::raw::{c_char, c_int},
     slice,
+    sync::Once,
 };
 
+static SET_HOOK: Once = Once::new();
 static EMPTY_STRING: c_char = 0;
 thread_local! {
     static RETURN_STRING: RefCell<CString> = RefCell::new(CString::default());
@@ -50,6 +56,7 @@ macro_rules! byond_fn {
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
         ) -> *const ::std::os::raw::c_char {
+            $crate::byond::set_panic_hook();
             let closure = || ($body);
             $crate::byond::byond_return(closure().map(From::from))
         }
@@ -84,3 +91,53 @@ byond_fn!(
         Some(env!("CARGO_PKG_VERSION"))
     }
 );
+
+/// Print any panics before exiting.
+pub fn set_panic_hook() {
+    SET_HOOK.call_once(|| {
+        std::panic::set_hook(Box::new(|panic_info| {
+            let mut file = OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open("rustg-panic.log")
+                .unwrap();
+            file.write_all(
+                panic_info
+                    .payload()
+                    .downcast_ref::<&'static str>()
+                    .map(|payload| payload.to_string())
+                    .or_else(|| panic_info.payload().downcast_ref::<String>().cloned())
+                    .unwrap()
+                    .as_bytes(),
+            )
+            .expect("Failed to extract error payload");
+            file.write_all(Backtrace::capture().to_string().as_bytes())
+                .expect("Failed to extract error backtrace");
+        }))
+    });
+}
+
+#[allow(dead_code)] // Used depending on feature set
+/// Utility for BYOND functions to catch panic unwinds safely and return a Result<String, Error>, as expected.
+/// Usage: catch_panic(|| internal_safe_function(arguments))
+pub fn catch_panic<F>(f: F) -> Result<String, Error>
+where
+    F: FnOnce() -> Result<String, Error> + std::panic::UnwindSafe,
+{
+    match std::panic::catch_unwind(f) {
+        Ok(o) => o,
+        Err(e) => {
+            let message: Option<String> = e
+                .downcast_ref::<&'static str>()
+                .map(|payload| payload.to_string())
+                .or_else(|| e.downcast_ref::<String>().cloned());
+            Err(Error::Panic(
+                message
+                    .unwrap_or(String::from(
+                        "Failed to stringify panic! Check rustg-panic.log!",
+                    ))
+                    .to_owned(),
+            ))
+        }
+    }
+}
