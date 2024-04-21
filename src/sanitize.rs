@@ -1,5 +1,4 @@
 use crate::error::Result;
-use maplit::hashset;
 use std::collections::HashSet;
 
 byond_fn!(fn sanitize_html(text, attribute_whitelist_json, tag_whitelist_json) {
@@ -21,7 +20,7 @@ fn seriously_sanitize_html(
     prune_url_schemes.insert("byond");
 
     let sanitized = ammonia::Builder::empty()
-        .clean_content_tags(hashset!["script", "style"]) // Completely forbid script and style attributes.
+        .clean_content_tags(HashSet::from_iter(["script", "style"]) ) // Completely forbid script and style attributes.
         .link_rel(Some("noopener")) // https://mathiasbynens.github.io/rel-noopener/
         .url_schemes(prune_url_schemes)
         .generic_attributes(attribute_whitelist)

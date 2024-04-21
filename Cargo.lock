@@ -2780,7 +2780,6 @@ dependencies = [
  "hex",
  "image",
  "lazy_static",
- "maplit",
  "md-5",
  "mysql",
  "noise",

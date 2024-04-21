@@ -65,7 +65,6 @@ num-integer = { version = "0.1.46", optional = true }
 dmi = { version = "0.3.5", optional = true }
 tracy_full = { version = "1.7.1", optional = true }
 ammonia = { version = "4.0.0", optional = true }
-maplit = { version = "1.0.2", optional = true }
 
 [features]
 default = [
@@ -121,7 +120,7 @@ git = ["gix", "chrono"]
 http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
 json = ["serde", "serde_json"]
 log = ["chrono"]
-sanitize = ["ammonia", "maplit", "serde_json"]
+sanitize = ["ammonia", "serde_json"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
 time = []
 toml = ["serde", "serde_json", "toml-dep"]
