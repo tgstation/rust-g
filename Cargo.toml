@@ -63,6 +63,8 @@ dbpnoise = { version = "0.1.2", optional = true }
 pathfinding = { version = "4.4", optional = true }
 num-integer = { version = "0.1.45", optional = true }
 dmi = { version = "0.3.1", optional = true }
+ammonia = { version = "4.0.0", optional = true }
+maplit = { version = "1.0.2", optional = true }
 
 [features]
 default = [
@@ -76,6 +78,7 @@ default = [
     "log",
     "noise",
     "rustls_tls",
+    "sanitize",
     "sql",
     "time",
     "toml",
@@ -93,6 +96,7 @@ all = [
     "log",
     "noise",
     "rustls_tls",
+    "sanitize",
     "sql",
     "time",
     "toml",
@@ -116,6 +120,7 @@ http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
 json = ["serde", "serde_json"]
 log = ["chrono"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
+sanitize = ["ammonia", "maplit", "serde_json"]
 time = []
 toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
