@@ -9,3 +9,6 @@ insert_final_newline = true
 
 [*.dm]
 indent_style = tab
+
+[*.yml]
+indent_size = 2
