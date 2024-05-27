@@ -68,6 +68,7 @@ tracy_full = { version = "1.7.1", optional = true }
 [features]
 default = [
     "acreplace",
+    "batchnoise",
     "cellularnoise",
     "dmi",
     "file",
@@ -81,7 +82,6 @@ default = [
     "time",
     "toml",
     "url",
-    "batchnoise",
 ]
 
 all = [
