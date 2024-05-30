@@ -38,7 +38,7 @@ png = { version = "0.17", optional = true }
 image = { version = "0.25", optional = true, default-features = false, features = [
     "png",
 ] }
-gix = { version = "0.62", optional = true, default-features = false, features = [
+gix = { version = "0.63", optional = true, default-features = false, features = [
     "revision",
     "max-performance-safe",
 ] }
@@ -52,18 +52,18 @@ serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 lazy_static = { version = "1.4", optional = true }
 once_cell = { version = "1.19", optional = true }
-mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.0", default_features = false, optional = true }
+mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.1", default_features = false, optional = true }
 dashmap = { version = "5.5", optional = true, features = ["rayon", "serde"] }
-zip = { version = "1.1", optional = true }
+zip = { version = "2.1.1", optional = true }
 rand = { version = "0.8", optional = true }
-toml-dep = { version = "0.8.12", package = "toml", optional = true }
+toml-dep = { version = "0.8.13", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
 rayon = { version = "1.10", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
 pathfinding = { version = "4.9", optional = true }
 num-integer = { version = "0.1.46", optional = true }
 dmi = { version = "0.3.5", optional = true }
-tracy_full = { version = "1.7.1", optional = true }
+tracy_full = { version = "1.8.0", optional = true }
 ammonia = { version = "4.0.0", optional = true }
 
 [features]
@@ -88,12 +88,12 @@ default = [
 
 all = [
     "acreplace",
+    "batchnoise",
     "cellularnoise",
     "dmi",
     "file",
     "git",
     "http",
-    "iconforge",
     "json",
     "log",
     "noise",
@@ -103,8 +103,8 @@ all = [
     "time",
     "toml",
     "url",
-    "batchnoise",
     "hash",
+    "iconforge",
     "pathfinder",
     "redis_pubsub",
     "redis_reliablequeue",
@@ -114,6 +114,7 @@ all = [
 
 # default features
 acreplace = ["aho-corasick"]
+batchnoise = ["dbpnoise"]
 cellularnoise = ["rand", "rayon"]
 dmi = ["png", "image", "dep:dmi"]
 file = []
@@ -128,7 +129,6 @@ toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
 
 # additional features
-batchnoise = ["dbpnoise"]
 hash = [
     "base64",
     "const-random",
