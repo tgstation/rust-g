@@ -2013,8 +2013,8 @@ dependencies = [
 
 [[package]]
 name = "mysql"
-version = "25.0.0"
-source = "git+https://github.com/ZeWaka/rust-mysql-simple.git?tag=v25.0.0#826af9f85fa5f65d697a503e5b2e4b0f29b86828"
+version = "25.0.1"
+source = "git+https://github.com/ZeWaka/rust-mysql-simple.git?tag=v25.0.1#21d12d0755ee1c88ba7273f00102b49d4f6ab07b"
 dependencies = [
  "bufstream",
  "bytes",
@@ -2026,7 +2026,6 @@ dependencies = [
  "mysql_common",
  "named_pipe",
  "native-tls",
- "once_cell",
  "pem",
  "percent-encoding",
  "rustls 0.23.5",
