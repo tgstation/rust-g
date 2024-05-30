@@ -54,7 +54,7 @@ lazy_static = { version = "1.4", optional = true }
 once_cell = { version = "1.19", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.0", default_features = false, optional = true }
 dashmap = { version = "5.5", optional = true, features = ["rayon", "serde"] }
-zip = { version = "1.1", optional = true }
+zip = { version = "2.1.1", optional = true }
 rand = { version = "0.8", optional = true }
 toml-dep = { version = "0.8.12", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
