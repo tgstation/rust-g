@@ -88,12 +88,12 @@ default = [
 
 all = [
     "acreplace",
+    "batchnoise",
     "cellularnoise",
     "dmi",
     "file",
     "git",
     "http",
-    "iconforge",
     "json",
     "log",
     "noise",
@@ -103,8 +103,8 @@ all = [
     "time",
     "toml",
     "url",
-    "batchnoise",
     "hash",
+    "iconforge",
     "pathfinder",
     "redis_pubsub",
     "redis_reliablequeue",
@@ -114,6 +114,7 @@ all = [
 
 # default features
 acreplace = ["aho-corasick"]
+batchnoise = ["dbpnoise"]
 cellularnoise = ["rand", "rayon"]
 dmi = ["png", "image", "dep:dmi"]
 file = []
@@ -128,7 +129,6 @@ toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
 
 # additional features
-batchnoise = ["dbpnoise"]
 hash = [
     "base64",
     "const-random",
