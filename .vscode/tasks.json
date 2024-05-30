@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "label": "rust: cargo build (win32)",
+            "args": [
+                "build",
+                "--release",
+                "--target",
+                "i686-pc-windows-msvc"
+            ],
+            "command": "cargo",
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": "build"
+        },
+    ]
+}
