@@ -38,6 +38,8 @@ pub mod pathfinder;
 pub mod redis_pubsub;
 #[cfg(feature = "redis_reliablequeue")]
 pub mod redis_reliablequeue;
+#[cfg(feature = "sanitize")]
+pub mod sanitize;
 #[cfg(feature = "sql")]
 pub mod sql;
 #[cfg(feature = "time")]
