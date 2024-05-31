@@ -77,6 +77,9 @@ cargo build --release --target i686-unknown-linux-gnu
 
 Windows:
 
+If you are using Visual Studio Code, you may use the `CONTROL + SHIFT + B` hotkey and run the `rust: cargo build (win32)` task.
+
+Alternatively:
 ```sh
 cargo build --release --target i686-pc-windows-msvc
 # output: target/i686-pc-windows-msvc/release/rust_g.dll
