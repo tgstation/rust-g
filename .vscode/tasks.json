@@ -7,6 +7,19 @@
                 "build",
                 "--target",
                 "i686-pc-windows-msvc",
+            ],
+            "command": "cargo",
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "rust: cargo build (win32, all features)",
+            "args": [
+                "build",
+                "--target",
+                "i686-pc-windows-msvc",
                 "--features",
                 "all",
             ],
