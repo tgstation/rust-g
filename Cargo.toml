@@ -52,7 +52,7 @@ serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 lazy_static = { version = "1.4", optional = true }
 once_cell = { version = "1.19", optional = true }
-mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.1", default_features = false, optional = true }
+mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.1", default-features = false, optional = true }
 dashmap = { version = "5.5", optional = true, features = ["rayon", "serde"] }
 zip = { version = "2.1.1", optional = true }
 rand = { version = "0.8", optional = true }
@@ -65,6 +65,7 @@ num-integer = { version = "0.1.46", optional = true }
 dmi = { version = "0.3.5", optional = true }
 tracy_full = { version = "1.8.0", optional = true }
 ammonia = { version = "4.0.0", optional = true }
+fast_poisson = { version = "0.5.2", optional = true, features = ["single_precision"]} # Higher versions have problems with x86 due to 'kiddo'.
 
 [features]
 default = [
@@ -106,6 +107,7 @@ all = [
     "hash",
     "iconforge",
     "pathfinder",
+    "poissonnoise",
     "redis_pubsub",
     "redis_reliablequeue",
     "unzip",
@@ -155,6 +157,7 @@ iconforge = [
     "twox-hash",
 ]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
+poissonnoise = ["fast_poisson"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
