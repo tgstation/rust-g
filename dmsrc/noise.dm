@@ -1,13 +1,15 @@
 #define rustg_noise_get_at_coordinates(seed, x, y) RUSTG_CALL(RUST_G, "noise_get_at_coordinates")(seed, x, y)
 
 /**
+ * Generates a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
+ *
  * params:
- * 	seed: str
- * 	x: int, width of the noisemap
- * 	y: int, height of the noisemap
- * 	radius: int, distance between points on the noisemap
+ * 	`seed`: str
+ * 	`width`: int, width of the noisemap (see world.maxx)
+ * 	`length`: int, height of the noisemap (see world.maxy)
+ * 	`radius`: int, distance between points on the noisemap
  *
  * returns:
- * 	string: a X*Y length string of 1s and 0s representing a 2D poisson sample collapsed into a 1D string
+ * 	a width*length length string of 1s and 0s representing a 2D poisson sample collapsed into a 1D string
  */
-#define rustg_noise_poisson_sample(seed, x, y, r) RUSTG_CALL(RUST_G, "generate_poisson_sample")(seed, x, y, r)
+#define rustg_noise_poisson_map(seed, width, length, radius) RUSTG_CALL(RUST_G, "noise_poisson_map")(seed, width, length, radius)

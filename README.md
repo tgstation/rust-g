@@ -111,6 +111,7 @@ Additional features are:
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 * iconforge: A much faster replacement for the spritesheet generation system used by [/tg/station].
 * pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
+* poissonnoise: A way to generate a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * redis_reliablequeue: Library for using a reliable queue pattern through Redis.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.

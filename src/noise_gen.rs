@@ -39,38 +39,33 @@ fn get_at_coordinates(seed_as_str: &str, x_as_str: &str, y_as_str: &str) -> Resu
     })
 }
 
-byond_fn!(fn generate_poisson_sample(seed, x, y, r) {
-    get_poisson_sample(seed, x, y, r).ok()
+byond_fn!(fn noise_poisson_map(seed, width, length, radius) {
+    get_poisson_map(seed, width, length, radius).ok()
 });
 
-fn get_poisson_sample(
+fn get_poisson_map(
     seed_as_str: &str,
-    x_as_str: &str,
-    y_as_str: &str,
+    width_as_str: &str,
+    length_as_str: &str,
     radius_as_str: &str,
 ) -> Result<String> {
-    let x = x_as_str.parse::<f64>()?;
-    let y = y_as_str.parse::<f64>()?;
-    let r = radius_as_str.parse::<f64>()?;
+    let width = width_as_str.parse::<f32>()?;
+    let length = length_as_str.parse::<f32>()?;
+    let radius = radius_as_str.parse::<f32>()?;
     let seed = seed_as_str.parse::<u64>()?;
 
-    let points = Poisson2D::new()
-        .with_dimensions([x, y], r)
+    let points: Vec<[f32; 2]> = Poisson2D::new()
+        .with_dimensions([width, length], radius)
         .with_seed(seed)
-        .iter();
-    let mut pointmap = vec![vec![0usize; y as usize]; x as usize];
+        .to_vec();
+
     let mut output = String::new();
-
-    // we're just gonna truncate these to the nearest point
-    for p in points {
-        let point_x = p[0] as usize;
-        let point_y = p[1] as usize;
-        pointmap[point_x][point_y] = 1;
-    }
-
-    for row in pointmap {
-        for cell in row {
-            if cell > 0 {
+    for y in 0..length as usize {
+        for x in 0..width as usize {
+            if points
+                .iter()
+                .any(|&point| point[0] as usize == x && point[1] as usize == y)
+            {
                 let _ = write!(output, "1");
             } else {
                 let _ = write!(output, "0");
