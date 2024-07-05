@@ -71,7 +71,6 @@ fast_poisson = { version = "0.5.2", optional = true, features = ["single_precisi
 default = [
     "acreplace",
     "batchnoise",
-    "poissonnoise",
     "cellularnoise",
     "dmi",
     "file",
