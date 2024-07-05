@@ -124,7 +124,6 @@ git = ["gix", "chrono"]
 http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
 json = ["serde", "serde_json"]
 log = ["chrono"]
-poissonnoise = ["fast_poisson"]
 sanitize = ["ammonia", "serde_json"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
 time = []
@@ -157,6 +156,7 @@ iconforge = [
     "tracy_full",
     "twox-hash",
 ]
+poissonnoise = ["fast_poisson"]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
