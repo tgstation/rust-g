@@ -13,7 +13,7 @@ byond_fn!(fn rg_git_revparse(rev) {
     })
 });
 
-byond_fn!(fn rg_git_commit_date(rev) {
+byond_fn!(fn rg_git_commit_date(rev, format) {
     REPOSITORY.with(|repo| -> Option<String> {
         let repo = repo.as_ref().ok()?;
         let rev = repo.rev_parse_single(rev).ok()?;
@@ -21,6 +21,6 @@ byond_fn!(fn rg_git_commit_date(rev) {
         let commit = object.try_into_commit().ok()?;
         let commit_time = commit.committer().ok()?.time;
         let datetime = Utc.timestamp_opt(commit_time.seconds, 0).latest()?;
-        Some(datetime.format("%F").to_string())
+        Some(datetime.format(format).to_string())
     })
 });
