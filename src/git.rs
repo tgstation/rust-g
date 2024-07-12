@@ -1,10 +1,10 @@
+use chrono::{TimeZone, Utc};
+use gix::{open::Error as OpenError, Repository};
 use std::{
     fs,
     path::{Path, PathBuf},
     str::FromStr,
 };
-use chrono::{TimeZone, Utc};
-use gix::{open::Error as OpenError, Repository};
 
 thread_local! {
     static REPOSITORY: Result<Repository, OpenError> = gix::open(".");
