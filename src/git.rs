@@ -1,5 +1,8 @@
-use std::{fs, os::raw::c_char, path::{Path, PathBuf}, str::FromStr};
-
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use chrono::{TimeZone, Utc};
 use gix::{open::Error as OpenError, Repository};
 
