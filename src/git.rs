@@ -31,7 +31,9 @@ byond_fn!(fn rg_git_commit_date(rev, format) {
 });
 
 byond_fn!(fn rg_git_commit_date_head(format) {
-    let head_log_path = Path::join(&PathBuf::from_str(".git").ok()?, "logs").join("HEAD");
+	let head_log_path = Path::new(".git")
+		.join("logs")
+		.join("HEAD");
     let head_log = fs::metadata(&head_log_path).ok()?;
     if !head_log.is_file() {
         return None;
