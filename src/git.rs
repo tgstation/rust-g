@@ -1,10 +1,6 @@
 use chrono::{TimeZone, Utc};
 use gix::{open::Error as OpenError, Repository};
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::{fs, path::Path};
 
 thread_local! {
     static REPOSITORY: Result<Repository, OpenError> = gix::open(".");
@@ -31,9 +27,9 @@ byond_fn!(fn rg_git_commit_date(rev, format) {
 });
 
 byond_fn!(fn rg_git_commit_date_head(format) {
-	let head_log_path = Path::new(".git")
-		.join("logs")
-		.join("HEAD");
+    let head_log_path = Path::new(".git")
+        .join("logs")
+        .join("HEAD");
     let head_log = fs::metadata(&head_log_path).ok()?;
     if !head_log.is_file() {
         return None;
