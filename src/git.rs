@@ -1,3 +1,5 @@
+use std::{fs, os::raw::c_char, path::{Path, PathBuf}, str::FromStr};
+
 use chrono::{TimeZone, Utc};
 use gix::{open::Error as OpenError, Repository};
 
@@ -23,4 +25,20 @@ byond_fn!(fn rg_git_commit_date(rev, format) {
         let datetime = Utc.timestamp_opt(commit_time.seconds, 0).latest()?;
         Some(datetime.format(format).to_string())
     })
+});
+
+byond_fn!(fn rg_git_commit_date_head(format) {
+    let head_log_path = Path::join(&PathBuf::from_str(".git").ok()?, "logs").join("HEAD");
+    let head_log = fs::metadata(&head_log_path).ok()?;
+    if !head_log.is_file() {
+        return None;
+    }
+    let log_entries = fs::read_to_string(&head_log_path).ok()?;
+    let log_entries = log_entries.split('\n');
+    let last_entry = log_entries.last()?.split_ascii_whitespace().collect::<Vec<_>>();
+    if last_entry.len() < 5 { // 5 is the timestamp
+        return None;
+    }
+    let datetime = Utc.timestamp_opt(last_entry[4].parse().ok()?, 0).latest()?;
+    Some(datetime.format(format).to_string())
 });
