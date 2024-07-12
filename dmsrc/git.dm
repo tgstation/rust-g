@@ -6,4 +6,4 @@
  * Defaults to returning %F which is YYYY-MM-DD
  */
 /proc/rustg_git_commit_date(rev, format = "%F")
-	return RUSTG_CALL("rg_git_commit_date")(rev, format)
+	return RUSTG_CALL(RUST_G, "rg_git_commit_date")(rev, format)
