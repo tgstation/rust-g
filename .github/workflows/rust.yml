@@ -12,28 +12,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: i686-pc-windows-msvc
+          targets: i686-win7-windows-msvc
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Clippy (all features)
-        run: cargo clippy --target i686-pc-windows-msvc --features all --locked -- -D warnings
+        run: cargo clippy -Z build-std --target i686-win7-windows-msvc --features all --locked -- -D warnings
 
       - name: Rustfmt
         run: cargo fmt -- --check
 
       - name: Build (release) (default features)
-        run: cargo build --target i686-pc-windows-msvc --locked --release
+        run: cargo build -Z build-std --target i686-win7-windows-msvc --locked --release
 
       - uses: actions/upload-artifact@v4
         with:
           name: Windows Build
           path: |
-            target/i686-pc-windows-msvc/release/rust_g.dll
-            target/i686-pc-windows-msvc/release/rust_g.pdb
+            target/i686-win7-windows-msvc/release/rust_g.dll
+            target/i686-win7-windows-msvc/release/rust_g.pdb
             target/rust_g.dm
 
   build-linux:
