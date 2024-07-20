@@ -17,7 +17,7 @@ jobs:
           targets: i686-pc-windows-msvc # Used for clippy, since it doesn't need to build the entire std
           components: rustfmt, clippy, rust-src
 
-      # - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
 
       - name: Clippy (all features)
         run: cargo clippy --target i686-pc-windows-msvc --features all --locked -- -D warnings

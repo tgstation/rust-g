@@ -40,12 +40,13 @@ fn handle_redis_inner(
                         pubsub.subscribe(&[channel.as_str()])?;
                     }
                     PubSubRequest::Publish(channel, message) => {
-                        pub_conn.publish(&channel, &message)?;
+                        // Fixes dependency_on_unit_never_type_fallback
+                        () = pub_conn.publish(&channel, &message)?;
                     }
                 },
                 Err(flume::TryRecvError::Empty) => break,
                 Err(flume::TryRecvError::Disconnected) => return Ok(()),
-            };
+            }
         }
 
         if let Some(msg) = match pubsub.get_message() {
