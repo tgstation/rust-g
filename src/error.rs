@@ -48,7 +48,7 @@ pub enum Error {
     InvalidPngData,
     #[cfg(feature = "http")]
     #[error(transparent)]
-    Request(#[from] reqwest::Error),
+    Request(#[from] ureq::Error),
     #[cfg(feature = "toml")]
     #[error(transparent)]
     TomlDeserialization(#[from] toml_dep::de::Error),
