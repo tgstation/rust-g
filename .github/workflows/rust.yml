@@ -16,7 +16,7 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@v2
+      # - uses: Swatinem/rust-cache@v2
 
       - name: Clippy (all features)
         run: cargo clippy -Z build-std --target i686-win7-windows-msvc --features all --locked -- -D warnings
