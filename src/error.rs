@@ -14,7 +14,7 @@ use png::{DecodingError, EncodingError};
 #[cfg(feature = "unzip")]
 use zip::result::ZipError;
 
-pub type Result<T> = result::Result<T, Error>;
+pub type Result<T> = result::Result<T, Box<Error>>;
 
 #[derive(Error, Debug)]
 pub enum Error {
