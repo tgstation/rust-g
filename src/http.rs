@@ -117,7 +117,7 @@ fn construct_request(
 }
 
 fn submit_request(prep: RequestPrep) -> Result<String> {
-    let response = prep.req.send_bytes(&prep.body)?;
+    let response = prep.req.send_bytes(&prep.body).map_err(Box::new)?;
 
     let body;
     let mut resp = Response {

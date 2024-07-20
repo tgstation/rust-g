@@ -28,7 +28,7 @@ byond_fn!(fn unzip_download_async(url, unzip_directory) {
 
 fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
     let unzip_path = Path::new(&prep.unzip_directory);
-    let response = prep.req.send_bytes(&[])?;
+    let response = prep.req.send_bytes(&[]).map_err(Box::new)?;
 
     let mut content = Vec::new();
     response.into_reader().read_to_end(&mut content)?;

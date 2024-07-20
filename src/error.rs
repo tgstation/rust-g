@@ -14,7 +14,7 @@ use png::{DecodingError, EncodingError};
 #[cfg(feature = "unzip")]
 use zip::result::ZipError;
 
-pub type Result<T> = result::Result<T, Box<Error>>;
+pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -48,7 +48,7 @@ pub enum Error {
     InvalidPngData,
     #[cfg(feature = "http")]
     #[error(transparent)]
-    Request(#[from] ureq::Error),
+    Request(#[from] Box<ureq::Error>),
     #[cfg(feature = "toml")]
     #[error(transparent)]
     TomlDeserialization(#[from] toml_dep::de::Error),
