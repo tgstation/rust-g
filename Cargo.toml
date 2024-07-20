@@ -169,6 +169,8 @@ rustls_tls = ["mysql/default-rustls"]
 
 # internal feature-like things
 jobs = ["flume"]
+allow_non_32bit = []
+allow_non_windows7 = []
 
 [dev-dependencies]
 regex = "1"
