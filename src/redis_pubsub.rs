@@ -45,7 +45,7 @@ fn handle_redis_inner(
                 },
                 Err(flume::TryRecvError::Empty) => break,
                 Err(flume::TryRecvError::Disconnected) => return Ok(()),
-            }
+            };
         }
 
         if let Some(msg) = match pubsub.get_message() {
