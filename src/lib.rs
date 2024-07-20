@@ -55,8 +55,8 @@ pub mod url;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
 
-#[cfg(all(rustversion::since(1.76), not(feature = "allow_non_windows7")))]
-compile_error!("Compiling under rustc 1.76 or newer is not allowed without enabling the `allow_non_windows7` feature ");
+#[cfg(all(rustversion::since(1.78), not(feature = "allow_non_windows7")))]
+compile_error!("Compiling under rustc 1.78 or newer is not allowed without enabling the `allow_non_windows7` feature ");
 
 
 #[cfg(all(not(target_pointer_width = "32"), not(feature = "allow_non_32bit")))]
