@@ -44,10 +44,7 @@ gix = { version = "0.63", optional = true, default-features = false, features = 
 ] }
 noise = { version = "0.9", optional = true }
 redis = { version = "0.25", optional = true }
-reqwest = { version = "0.12", optional = true, default-features = false, features = [
-    "blocking",
-    "rustls-tls",
-] }
+ureq = { version = "2.10.0", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 lazy_static = { version = "1.4", optional = true }
@@ -65,7 +62,9 @@ num-integer = { version = "0.1.46", optional = true }
 dmi = { version = "0.3.5", optional = true }
 tracy_full = { version = "1.8.0", optional = true }
 ammonia = { version = "4.0.0", optional = true }
-fast_poisson = { version = "0.5.2", optional = true, features = ["single_precision"]} # Higher versions have problems with x86 due to 'kiddo'.
+fast_poisson = { version = "0.5.2", optional = true, features = [
+    "single_precision",
+] } # Higher versions have problems with x86 due to 'kiddo'.
 
 [features]
 default = [
@@ -121,7 +120,7 @@ cellularnoise = ["rand", "rayon"]
 dmi = ["png", "image", "dep:dmi"]
 file = []
 git = ["gix", "chrono"]
-http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
+http = ["ureq", "serde", "serde_json", "once_cell", "jobs"]
 json = ["serde", "serde_json"]
 log = ["chrono"]
 sanitize = ["ammonia", "serde_json"]
