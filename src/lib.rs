@@ -55,5 +55,7 @@ pub mod url;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
 
-#[cfg(not(target_pointer_width = "32"))]
-compile_error!("rust-g must be compiled for a 32-bit target");
+#[cfg(all(not(target_pointer_width = "32"), not(feature = "allow_non_32bit")))]
+compile_error!(
+    "Compiling for non-32bit is not allowed without enabling the `allow_non_32bit` feature."
+);
