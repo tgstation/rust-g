@@ -15,11 +15,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: i686-pc-windows-msvc
+          components: clippy, rustfmt, rust-src
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: x86_64-pc-windows-msvc
-          components: clippy, rustfmt
+          components: clippy, rustfmt, rust-src
 
       - uses: Swatinem/rust-cache@v2
 
