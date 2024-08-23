@@ -14,7 +14,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: i686-pc-windows-msvc
+          targets: i686-win7-windows-msvc
           components: clippy, rustfmt, rust-src
 
       - uses: dtolnay/rust-toolchain@nightly
@@ -25,7 +25,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Clippy (all features)
-        run: cargo clippy --target i686-pc-windows-msvc --features all --locked -- -D warnings
+        run: cargo clippy --target i686-win7-windows-msvc --features all --locked -- -D warnings
 
       - name: Rustfmt
         run: cargo fmt -- --check
