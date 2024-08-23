@@ -14,10 +14,6 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: i686-win7-windows-msvc
-
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
           targets: x86_64-pc-windows-msvc
           components: clippy, rustfmt, rust-src
 
