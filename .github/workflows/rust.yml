@@ -16,7 +16,7 @@ jobs:
         with:
           targets: i686-pc-windows-msvc
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: x86_64-pc-windows-msvc
           components: clippy
