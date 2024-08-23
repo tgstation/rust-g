@@ -12,10 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: i686-win7-windows-msvc
-          components: clippy, rustfmt, rust-src
+          components: clippy, rustfmt
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
