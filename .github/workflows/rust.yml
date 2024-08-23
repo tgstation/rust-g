@@ -14,13 +14,13 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: i686-pc-windows-msvc # Used for clippy, since it doesn't need to build the entire std
-          components: rustfmt, clippy, rust-src
+          targets: x86_64-pc-windows-msvc
+          components: clippy, rustfmt, rust-src
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Clippy (all features)
-        run: cargo clippy --target i686-pc-windows-msvc --features all --locked -- -D warnings
+        run: cargo clippy -Z build-std --target i686-win7-windows-msvc --features all --locked -- -D warnings
 
       - name: Rustfmt
         run: cargo fmt -- --check
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BYOND_MAJOR: 515
-      BYOND_MINOR: 1636
+      BYOND_MINOR: 1642
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
@@ -52,7 +52,7 @@ jobs:
           sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386
           ./scripts/install_byond.sh
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: i686-unknown-linux-gnu
 
