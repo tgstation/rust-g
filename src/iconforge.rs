@@ -940,11 +940,7 @@ fn blend_icon(
 fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), String> {
     zone!("transform_image");
     match transform {
-        Transform::BlendColor { color, blend_mode } => {
-            if let Err(err) = blend_color(image, color, blend_mode) {
-                return Err(err);
-            }
-        }
+        Transform::BlendColor { color, blend_mode } => blend_color(image, color, blend_mode)?,
         Transform::BlendIcon { icon, blend_mode } => {
             zone!("blend_icon");
             let (mut other_image, cached) =
@@ -953,9 +949,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
             if !cached {
                 apply_all_transforms(&mut other_image, &icon.transform)?;
             };
-            if let Err(err) = blend_icon(image, &other_image, blend_mode) {
-                return Err(err);
-            }
+            blend_icon(image, &other_image, blend_mode)?;
             if let Err(err) = return_image(other_image, icon) {
                 return Err(err.to_string());
             }
@@ -1171,7 +1165,7 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
     };
 
     let colors_vec = colors
-        .split("#")
+        .split('#')
         .map(|x| String::from("#") + x)
         .filter(|x| x != "#")
         .collect::<Vec<String>>();
@@ -1234,7 +1228,7 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
         {
             return Err(Error::IconForge(format!(
                 "Error during icon saving: {}",
-                err.to_string()
+                err
             )));
         }
     }
@@ -1355,7 +1349,7 @@ fn generate_layer_groups_for_iconstate(
 /// Generates a specific layer.
 fn generate_layer_for_iconstate(
     state_name: &str,
-    colors: &Vec<String>,
+    colors: &[String],
     layer: &GAGSLayer,
     gags_data: &GAGSData,
     new_images: Option<Vec<DynamicImage>>,
@@ -1411,7 +1405,7 @@ fn generate_layer_for_iconstate(
             color_ids,
         } => {
             zone!("gags_layer_type_reference");
-            let mut colors_in: Vec<String> = colors.clone();
+            let mut colors_in: Vec<String> = colors.to_owned();
             if !color_ids.is_empty() {
                 colors_in = color_ids
                     .iter()
@@ -1497,11 +1491,10 @@ fn blend_images_other(
 ) -> Result<Vec<DynamicImage>, Error> {
     zone!("blend_images_other");
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
-    let images_out: Vec<DynamicImage>;
-    if images_other.len() == 1 {
+    let images_out: Vec<DynamicImage> = if images_other.len() == 1 {
         // This is useful in the case where the something with 4+ dirs blends with 1dir
         let first_image = images_other.remove(0).into_rgba8();
-        images_out = images
+        images
             .into_par_iter()
             .map(|image| {
                 zone!("blend_image_other_simple");
@@ -1531,9 +1524,9 @@ fn blend_images_other(
                 };
                 DynamicImage::ImageRgba8(new_image)
             })
-            .collect();
+            .collect()
     } else {
-        images_out = (images, images_other)
+        (images, images_other)
             .into_par_iter()
             .map(|(image, image2)| {
                 zone!("blend_image_other");
@@ -1563,8 +1556,8 @@ fn blend_images_other(
                 };
                 DynamicImage::ImageRgba8(new_image)
             })
-            .collect();
-    }
+            .collect()
+    };
     let errors_unlock = errors.lock().unwrap();
     if !errors_unlock.is_empty() {
         return Err(Error::IconForge(errors_unlock.join("\n")));
