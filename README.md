@@ -110,7 +110,7 @@ Additional features are:
 * allow_non_32bit: Disables the forced compile errors on non-32bit targets. Only use this if you know exactly what you are doing.
 * batchnoise: Discrete Batched Perlin-like Noise, fast and multi-threaded - sent over once instead of having to query for every tile.
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
-* iconforge: A much faster replacement for the spritesheet generation system used by [/tg/station].
+* iconforge: A much faster replacement for various bulk DM /icon operations such as [/tg/station]'s asset subsystem spritesheet generation and GAGS bundle generation.
 * pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
 * poissonnoise: A way to generate a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
 * redis_pubsub: Library for sending and receiving messages through Redis.
