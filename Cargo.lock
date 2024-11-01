@@ -1870,7 +1870,7 @@ dependencies = [
  "serde",
  "serde_json",
  "socket2",
- "twox-hash",
+ "twox-hash 1.6.3",
  "url",
  "webpki",
  "webpki-roots",
@@ -2572,7 +2572,7 @@ dependencies = [
  "thiserror",
  "toml",
  "tracy_full",
- "twox-hash",
+ "twox-hash 2.0.0",
  "ureq",
  "url",
  "zip",
@@ -3143,6 +3143,15 @@ dependencies = [
  "cfg-if",
  "rand",
  "static_assertions",
+]
+
+[[package]]
+name = "twox-hash"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d09466de2fbca05ea830e16e62943f26607ab2148fb72b642505541711d99ad2"
+dependencies = [
+ "rand",
 ]
 
 [[package]]
