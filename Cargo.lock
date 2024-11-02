@@ -319,9 +319,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.1.31"
+version = "1.1.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2e7962b54006dcfcc61cb72735f4d89bb97061dd6a7ed882ec6b8ee53714c6f"
+checksum = "e3788d6ac30243803df38a3e9991cf37e41210232916d41a8222ae378f912624"
 dependencies = [
  "jobserver",
  "libc",
@@ -702,9 +702,9 @@ dependencies = [
 
 [[package]]
 name = "dmi"
-version = "0.3.5"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75e7db200016e5059f8de3bfb7fb256195893ca1383682d401f07df0892306da"
+checksum = "91bec4fbd086174ce996af5c8d10074f63c82b4a1aa517fd40e2d812cd75f734"
 dependencies = [
  "bitflags 2.6.0",
  "deflate",
@@ -1644,9 +1644,9 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "jiff"
-version = "0.1.13"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a45489186a6123c128fdf6016183fcfab7113e1820eb813127e036e287233fb"
+checksum = "b9d9d414fc817d3e3d62b2598616733f76c4cc74fbac96069674739b881295c8"
 dependencies = [
  "jiff-tzdb-platform",
  "windows-sys 0.59.0",
