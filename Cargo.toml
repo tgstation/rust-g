@@ -27,7 +27,7 @@ flume = { version = "0.11", optional = true }
 chrono = { version = "0.4", optional = true }
 base64 = { version = "0.22", optional = true }
 md-5 = { version = "0.10", optional = true }
-twox-hash = { version = "1.6", optional = true }
+twox-hash = { version = "2.0", optional = true }
 const-random = { version = "0.1.18", optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
@@ -38,29 +38,28 @@ png = { version = "0.17", optional = true }
 image = { version = "0.25", optional = true, default-features = false, features = [
     "png",
 ] }
-gix = { version = "0.63", optional = true, default-features = false, features = [
+gix = { version = "0.67", optional = true, default-features = false, features = [
     "revision",
     "max-performance-safe",
 ] }
 noise = { version = "0.9", optional = true }
-redis = { version = "0.25", optional = true }
-ureq = { version = "2.10.0", optional = true }
+redis = { version = "0.27", optional = true, features = ["ahash"] }
+ureq = { version = "2.10", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
-lazy_static = { version = "1.4", optional = true }
-once_cell = { version = "1.19", optional = true }
+once_cell = { version = "1.20", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.1", default-features = false, optional = true }
-dashmap = { version = "5.5", optional = true, features = ["rayon", "serde"] }
-zip = { version = "2.1.1", optional = true }
+dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
+zip = { version = "2.2", optional = true }
 rand = { version = "0.8", optional = true }
-toml-dep = { version = "0.8.13", package = "toml", optional = true }
+toml-dep = { version = "0.8.19", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
 rayon = { version = "1.10", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
-pathfinding = { version = "4.9", optional = true }
+pathfinding = { version = "4.11", optional = true }
 num-integer = { version = "0.1.46", optional = true }
-dmi = { version = "0.3.5", optional = true }
-tracy_full = { version = "1.8.0", optional = true }
+dmi = { version = "0.3.7", optional = true }
+tracy_full = { version = "1.10.0", optional = true }
 ammonia = { version = "4.0.0", optional = true }
 fast_poisson = { version = "0.5.2", optional = true, features = [
     "single_precision",
