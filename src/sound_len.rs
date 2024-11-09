@@ -1,7 +1,5 @@
-use crate::error::{
-    Error::SoundLen,
-    Result,
-};
+use crate::error::{Error::SoundLen, Result};
+use std::{collections::HashMap, fs::File, path::Path, time::Duration};
 use symphonia::{
     self,
     core::{
@@ -9,15 +7,9 @@ use symphonia::{
         formats::FormatOptions,
         io::MediaSourceStream,
         meta::MetadataOptions,
-        probe::{Hint, ProbeResult}
+        probe::{Hint, ProbeResult},
     },
     default::{get_codecs, get_probe},
-};
-use std::{
-    collections::HashMap,
-    fs::File,
-    path::Path,
-    time::Duration,
 };
 
 byond_fn!(fn sound_len(sound_path) {
@@ -27,7 +19,7 @@ byond_fn!(fn sound_len(sound_path) {
     }
 });
 
-fn get_sound_length (sound_path: &str) -> Result<String> {
+fn get_sound_length(sound_path: &str) -> Result<String> {
     let path = Path::new(sound_path);
 
     // Gracefully exit if the filepath is invalid.
@@ -49,7 +41,10 @@ fn get_sound_length (sound_path: &str) -> Result<String> {
     hint.with_extension("mp3");
 
     let meta_opts: MetadataOptions = Default::default();
-    let fmt_opts: FormatOptions = symphonia::core::formats::FormatOptions { enable_gapless: true, ..Default::default() };
+    let fmt_opts: FormatOptions = symphonia::core::formats::FormatOptions {
+        enable_gapless: true,
+        ..Default::default()
+    };
 
     let probed = match get_probe().format(&hint, mss, &fmt_opts, &meta_opts) {
         Ok(r) => r,
@@ -65,10 +60,9 @@ fn get_sound_length (sound_path: &str) -> Result<String> {
         Ok(r) => Ok(format!("{:.3}", r as f32)),
         Err(e) => Err(e),
     }
-
 }
 
-fn sound_length_simple (probed: &ProbeResult) -> Result<f64> {
+fn sound_length_simple(probed: &ProbeResult) -> Result<f64> {
     let format = &probed.format;
 
     let track = match format.default_track() {
@@ -81,18 +75,18 @@ fn sound_length_simple (probed: &ProbeResult) -> Result<f64> {
         None => return Err(SoundLen("Codec does not provide a time base.".to_string())),
     };
 
-    let n_frames =  match track.codec_params.n_frames {
+    let n_frames = match track.codec_params.n_frames {
         Some(r) => r,
         None => return Err(SoundLen("Codec does not provide frame count".to_string())),
     };
 
-	let time = time_base.calc_time(n_frames);
-	let duration = Duration::from_secs(time.seconds) + Duration::from_secs_f64(time.frac);
+    let time = time_base.calc_time(n_frames);
+    let duration = Duration::from_secs(time.seconds) + Duration::from_secs_f64(time.frac);
 
     Ok(duration.as_secs_f64() * 10.0)
 }
 
-fn sound_length_decode (probed: ProbeResult) -> Result<f64> {
+fn sound_length_decode(probed: ProbeResult) -> Result<f64> {
     let mut format = probed.format;
 
     let track = match format.default_track() {
@@ -117,13 +111,17 @@ fn sound_length_decode (probed: ProbeResult) -> Result<f64> {
     // Try to grab a data packet from the container
     let encoded_packet = match format.next_packet() {
         Ok(r) => r,
-        Err(_e) => return Err(SoundLen("Failed to grab packet from container!".to_string())),
+        Err(_e) => {
+            return Err(SoundLen(
+                "Failed to grab packet from container!".to_string(),
+            ))
+        }
     };
 
     // Try to decode the data packet
     let decoded_packet = match decoder.decode(&encoded_packet) {
         Ok(r) => r,
-        Err(_e) => return Err(SoundLen("Failed to decode packet!".to_string()))
+        Err(_e) => return Err(SoundLen("Failed to decode packet!".to_string())),
     };
 
     // Grab the sample rate from the spec of the buffer.
@@ -153,7 +151,6 @@ fn get_sound_length_list(list: &str) -> String {
             Ok(r) => successes.insert(path_string.to_string(), r),
             Err(e) => errors.insert(path_string.to_string(), e.to_string()),
         };
-
     }
 
     let mut out: HashMap<String, HashMap<String, String>> = HashMap::new();
