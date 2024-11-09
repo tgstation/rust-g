@@ -1,3 +1,4 @@
+// Provided a static RSC file path or a raw text file path, returns the duration of the file in deciseconds as a float.
 /proc/rustg_sound_length(file_path)
 	var/static/list/sound_cache
 	if(isnull(sound_cache))
@@ -25,3 +26,8 @@
 
 	sound_cache[file_path] = as_num
 	return as_num
+
+#define RUSTG_SOUNDLEN_SUCCESSES "successes"
+#define RUSTG_SOUNDLEN_ERRORS "errors"
+// Returns a list of lists "successes" and "errors". Successes are file_path : duration. Errors are file_path : error.
+#define rustg_sound_length_list(file_paths) json_decode(RUSTG_CALL(RUST_G, "sound_len_list")(json_encode(file_paths)))

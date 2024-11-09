@@ -49,6 +49,9 @@ pub enum Error {
     #[cfg(feature = "http")]
     #[error(transparent)]
     Request(#[from] Box<ureq::Error>),
+    #[cfg(feature = "sound_len")]
+    #[error("SoundLen error: {0}")]
+    SoundLen(String),
     #[cfg(feature = "toml")]
     #[error(transparent)]
     TomlDeserialization(#[from] toml_dep::de::Error),
