@@ -15,8 +15,9 @@
 		else
 			CRASH("rustg_sound_length does not support non-static file refs.")
 
-	if(!isnull((. = sound_cache[file_path])))
-		return .
+	var/cached_length = sound_cache[file_path]
+	if(!isnull(cached_length))
+		return cached_length
 
 	var/ret = RUSTG_CALL(RUST_G, "sound_len")(file_path)
 	var/as_num = text2num(ret)

@@ -1,5 +1,5 @@
 use crate::error::{Error::SoundLen, Result};
-use std::{collections::HashMap, fs::File, path::Path, time::Duration};
+use std::{collections::HashMap, fs::File, time::Duration};
 use symphonia::{
     self,
     core::{
@@ -20,17 +20,10 @@ byond_fn!(fn sound_len(sound_path) {
 });
 
 fn get_sound_length(sound_path: &str) -> Result<String> {
-    let path = Path::new(sound_path);
-
-    // Gracefully exit if the filepath is invalid.
-    if !path.exists() {
-        return Err(SoundLen(format!("Bad path: {}", sound_path)));
-    }
-
     // Try to open the file
-    let sound_src = match File::open(path) {
+    let sound_src = match File::open(sound_path) {
         Ok(r) => r,
-        Err(_e) => return Err(SoundLen("Couldn't open file!".to_string())),
+        Err(e) => return Err(SoundLen(format!("Couldn't open file, {}", e))),
     };
 
     // Audio probe things
@@ -95,7 +88,7 @@ fn sound_length_decode(probed: ProbeResult) -> Result<f64> {
     };
 
     // Grab the number of frames of the track
-    let samples_capacity: f64 = if let Some(n_frames) = track.codec_params.n_frames {
+    let samples_capacity = if let Some(n_frames) = track.codec_params.n_frames {
         n_frames as f64
     } else {
         0.0
@@ -121,7 +114,7 @@ fn sound_length_decode(probed: ProbeResult) -> Result<f64> {
     };
 
     // Grab the sample rate from the spec of the buffer.
-    let sample_rate: f64 = decoded_packet.spec().rate as f64;
+    let sample_rate = decoded_packet.spec().rate as f64;
     // Math!
     let duration_in_desciseconds = samples_capacity / sample_rate * 10.0;
     Ok(duration_in_desciseconds)
