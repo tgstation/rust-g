@@ -64,7 +64,9 @@ ammonia = { version = "4.0.0", optional = true }
 fast_poisson = { version = "0.5.2", optional = true, features = [
     "single_precision",
 ] } # Higher versions have problems with x86 due to 'kiddo'.
-symphonia = { version = "0.5.4", optional = true }
+symphonia = { version = "0.5.4", optional = true, features = [
+    "all-codecs",
+] }
 
 [features]
 default = [

@@ -48,7 +48,7 @@ fn get_sound_length(sound_path: &str) -> Result<String> {
 
     let probed = match get_probe().format(&hint, mss, &fmt_opts, &meta_opts) {
         Ok(r) => r,
-        Err(_e) => return Err(SoundLen("Failed to probe file!".to_string())),
+        Err(e) => return Err(SoundLen(format!("Probe error: {}", e))),
     };
 
     match sound_length_simple(&probed) {
@@ -67,7 +67,7 @@ fn sound_length_simple(probed: &ProbeResult) -> Result<f64> {
 
     let track = match format.default_track() {
         Some(r) => r,
-        None => return Err(SoundLen("Failed to get default track".to_string())),
+        None => return Err(SoundLen("Could not get default track".to_string())),
     };
 
     let time_base = match track.codec_params.time_base {
@@ -91,7 +91,7 @@ fn sound_length_decode(probed: ProbeResult) -> Result<f64> {
 
     let track = match format.default_track() {
         Some(r) => r,
-        None => return Err(SoundLen("Failed to grab track from container!".to_string())),
+        None => return Err(SoundLen("Could not get default track".to_string())),
     };
 
     // Grab the number of frames of the track
@@ -105,23 +105,19 @@ fn sound_length_decode(probed: ProbeResult) -> Result<f64> {
     let decoder_opts: DecoderOptions = Default::default();
     let mut decoder = match get_codecs().make(&track.codec_params, &decoder_opts) {
         Ok(r) => r,
-        Err(_e) => return Err(SoundLen("Failed to generate decoder!".to_string())),
+        Err(e) => return Err(SoundLen(format!("Decoder creation error: {}", e))),
     };
 
     // Try to grab a data packet from the container
     let encoded_packet = match format.next_packet() {
         Ok(r) => r,
-        Err(_e) => {
-            return Err(SoundLen(
-                "Failed to grab packet from container!".to_string(),
-            ))
-        }
+        Err(e) => return Err(SoundLen(format!("Next_packet error: {}", e))),
     };
 
     // Try to decode the data packet
     let decoded_packet = match decoder.decode(&encoded_packet) {
         Ok(r) => r,
-        Err(_e) => return Err(SoundLen("Failed to decode packet!".to_string())),
+        Err(e) => return Err(SoundLen(format!("Decode error: {}", e))),
     };
 
     // Grab the sample rate from the spec of the buffer.
