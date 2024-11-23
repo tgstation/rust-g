@@ -132,8 +132,8 @@ fn get_sound_length_list(list: &str) -> String {
         Err(_e) => return String::from("Fatal error: Bad json"),
     };
 
-    let mut successes  = HashMap::new();
-    let mut errors  = HashMap::new();
+    let mut successes = HashMap::new();
+    let mut errors = HashMap::new();
 
     for path_string in json.iter() {
         match get_sound_length(path_string) {
