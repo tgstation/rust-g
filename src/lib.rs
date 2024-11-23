@@ -42,6 +42,8 @@ pub mod redis_pubsub;
 pub mod redis_reliablequeue;
 #[cfg(feature = "sanitize")]
 pub mod sanitize;
+#[cfg(feature = "sound_len")]
+pub mod sound_len;
 #[cfg(feature = "sql")]
 pub mod sql;
 #[cfg(feature = "time")]

@@ -64,6 +64,9 @@ ammonia = { version = "4.0.0", optional = true }
 fast_poisson = { version = "=0.5.2", optional = true, features = [
     "single_precision",
 ] } # Higher versions have problems with x86 due to 'kiddo'.
+symphonia = { version = "0.5.4", optional = true, features = [
+    "all-codecs",
+] }
 
 [features]
 default = [
@@ -79,6 +82,7 @@ default = [
     "noise",
     "rustls_tls",
     "sanitize",
+    "sound_len",
     "sql",
     "time",
     "toml",
@@ -98,6 +102,7 @@ all = [
     "noise",
     "rustls_tls",
     "sanitize",
+    "sound_len",
     "sql",
     "time",
     "toml",
@@ -123,6 +128,7 @@ http = ["ureq", "serde", "serde_json", "once_cell", "jobs"]
 json = ["serde", "serde_json"]
 log = ["chrono"]
 sanitize = ["ammonia", "serde_json"]
+sound_len = ["symphonia"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
 time = []
 toml = ["serde", "serde_json", "toml-dep"]
