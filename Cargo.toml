@@ -10,7 +10,7 @@ authors = [
 repository = "https://github.com/tgstation/rust-g"
 license = "MIT"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
-rust-version = "1.70"
+rust-version = "1.81"
 
 [lib]
 crate-type = ["cdylib"]
@@ -22,7 +22,7 @@ lto = true
 debug = true
 
 [dependencies]
-thiserror = "1.0"
+thiserror = "2.0"
 flume = { version = "0.11", optional = true }
 chrono = { version = "0.4", optional = true }
 base64 = { version = "0.22", optional = true }
@@ -48,7 +48,7 @@ ureq = { version = "2.10", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 once_cell = { version = "1.20", optional = true }
-mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.1", default-features = false, optional = true }
+mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.2", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
 zip = { version = "2.2", optional = true }
 rand = { version = "0.8", optional = true }
@@ -61,7 +61,7 @@ num-integer = { version = "0.1.46", optional = true }
 dmi = { version = "0.3.7", optional = true }
 tracy_full = { version = "1.10.0", optional = true }
 ammonia = { version = "4.0.0", optional = true }
-fast_poisson = { version = "0.5.2", optional = true, features = [
+fast_poisson = { version = "=0.5.2", optional = true, features = [
     "single_precision",
 ] } # Higher versions have problems with x86 due to 'kiddo'.
 symphonia = { version = "0.5.4", optional = true, features = [
