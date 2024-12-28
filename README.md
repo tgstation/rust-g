@@ -97,7 +97,9 @@ The default features are:
   Mostly used by the asset cache subsystem to improve load times.
 * file: Faster replacements for `file2text` and `text2file`, as well as reading or checking if files exist.
 * git: Functions for robustly checking the current git revision.
+* hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
 * http: Asynchronous HTTP(s) client supporting most standard methods.
+* iconforge: A much faster replacement for the spritesheet generation system used by [/tg/station].
 * json: Function to check JSON validity.
 * log: Faster log output.
 * noise: 2d Perlin noise.
@@ -110,8 +112,6 @@ The default features are:
 Additional features are:
 * allow_non_32bit: Disables the forced compile errors on non-32bit targets. Only use this if you know exactly what you are doing.
 * batchnoise: Discrete Batched Perlin-like Noise, fast and multi-threaded - sent over once instead of having to query for every tile.
-* hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
-* iconforge: A much faster replacement for the spritesheet generation system used by [/tg/station].
 * pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
 * poissonnoise: A way to generate a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
 * redis_pubsub: Library for sending and receiving messages through Redis.
