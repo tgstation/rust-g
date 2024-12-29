@@ -97,7 +97,7 @@ The default features are:
   Mostly used by the asset cache subsystem to improve load times.
 * file: Faster replacements for `file2text` and `text2file`, as well as reading or checking if files exist.
 * git: Functions for robustly checking the current git revision.
-* hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
+* hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512.
 * http: Asynchronous HTTP(s) client supporting most standard methods.
 * iconforge: A much faster replacement for the spritesheet generation system used by [/tg/station].
 * json: Function to check JSON validity.
