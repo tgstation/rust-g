@@ -886,7 +886,11 @@ fn apply_all_transforms(image: &mut RgbaImage, transforms: &Vec<Transform>) -> R
     Ok(())
 }
 
-fn blend_color(image: &mut RgbaImage, color: &String, blend_mode: &u8) -> Result<(), String> {
+fn blend_color(
+    image: &mut RgbaImage,
+    color: &String,
+    blend_mode: &BlendMode,
+) -> Result<(), String> {
     zone!("blend_color");
     let mut color2: [u8; 4] = [0, 0, 0, 255];
     {
@@ -907,7 +911,7 @@ fn blend_color(image: &mut RgbaImage, color: &String, blend_mode: &u8) -> Result
         for y in 0..image.height() {
             let px = image.get_pixel_mut(x, y);
             let pixel = px.channels();
-            let blended = Rgba::blend_u8(pixel, &color2, *blend_mode);
+            let blended = Rgba::blend_u8(pixel, &color2, blend_mode);
 
             *px = image::Rgba::<u8>(blended);
         }
@@ -918,17 +922,17 @@ fn blend_color(image: &mut RgbaImage, color: &String, blend_mode: &u8) -> Result
 fn blend_icon(
     image: &mut RgbaImage,
     other_image: &RgbaImage,
-    blend_mode: &u8,
+    blend_mode: &BlendMode,
 ) -> Result<(), String> {
     zone!("blend_icon");
     for x in 0..std::cmp::min(image.width(), other_image.width()) {
-        for y in 0..std::cmp::min(image.width(), other_image.width()) {
+        for y in 0..std::cmp::min(image.height(), other_image.height()) {
             let px1 = image.get_pixel_mut(x, y);
             let px2 = other_image.get_pixel(x, y);
             let pixel_1 = px1.channels();
             let pixel_2 = px2.channels();
 
-            let blended = Rgba::blend_u8(pixel_1, pixel_2, *blend_mode);
+            let blended = Rgba::blend_u8(pixel_1, pixel_2, blend_mode);
 
             *px1 = image::Rgba::<u8>(blended);
         }
@@ -940,7 +944,9 @@ fn blend_icon(
 fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), String> {
     zone!("transform_image");
     match transform {
-        Transform::BlendColor { color, blend_mode } => blend_color(image, color, blend_mode)?,
+        Transform::BlendColor { color, blend_mode } => {
+            blend_color(image, color, &BlendMode::from_u8(blend_mode)?)?
+        }
         Transform::BlendIcon { icon, blend_mode } => {
             zone!("blend_icon");
             let (mut other_image, cached) =
@@ -949,7 +955,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
             if !cached {
                 apply_all_transforms(&mut other_image, &icon.transform)?;
             };
-            blend_icon(image, &other_image, blend_mode)?;
+            blend_icon(image, &other_image, &BlendMode::from_u8(blend_mode)?)?;
             if let Err(err) = return_image(other_image, icon) {
                 return Err(err.to_string());
             }
@@ -1088,24 +1094,28 @@ enum GAGSLayer {
 }
 
 impl GAGSLayer {
-    fn get_blendmode(&self) -> String {
+    fn get_blendmode_str(&self) -> &String {
         match self {
             GAGSLayer::IconState {
                 icon_state: _,
                 blend_mode,
                 color_ids: _,
-            } => blend_mode.to_owned(),
+            } => blend_mode,
             GAGSLayer::Reference {
                 reference_type: _,
                 icon_state: _,
                 blend_mode,
                 color_ids: _,
-            } => blend_mode.to_owned(),
+            } => blend_mode,
             GAGSLayer::ColorMatrix {
                 blend_mode,
                 color_matrix: _,
-            } => blend_mode.to_owned(),
+            } => blend_mode,
         }
+    }
+
+    fn get_blendmode(&self) -> Result<BlendMode, String> {
+        BlendMode::from_str(self.get_blendmode_str().as_str())
     }
 }
 
@@ -1297,7 +1307,7 @@ fn generate_layer_groups_for_iconstate(
     let mut new_images: Option<Vec<DynamicImage>> = None;
     for option in layer_groups {
         zone!("process_gags_layergroup_option");
-        let (layer_images, blend_mode) = match option {
+        let (layer_images, blend_mode_result) = match option {
             GAGSLayerGroupOption::GAGSLayer(layer) => (
                 generate_layer_for_iconstate(
                     state_name,
@@ -1335,6 +1345,7 @@ fn generate_layer_groups_for_iconstate(
             }
         };
 
+        let blend_mode = blend_mode_result?;
         new_images = match new_images {
             Some(images) => Some(blend_images_other(images, layer_images, &blend_mode)?),
             None => Some(layer_images),
@@ -1392,7 +1403,7 @@ fn generate_layer_for_iconstate(
                 return Ok(blend_images_color(
                     images,
                     actual_color,
-                    &String::from("multiply"),
+                    &BlendMode::Multiply,
                 )?);
             } else {
                 return Ok(images); // this will get blended by the layergroup.
@@ -1444,7 +1455,7 @@ fn generate_layer_for_iconstate(
 fn blend_images_color(
     images: Vec<DynamicImage>,
     color: &String,
-    blend_mode: &String,
+    blend_mode: &BlendMode,
 ) -> Result<Vec<DynamicImage>, Error> {
     zone!("blend_images_color");
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -1453,24 +1464,7 @@ fn blend_images_color(
         .map(|image| {
             zone!("blend_image_color");
             let mut new_image = image.clone().into_rgba8();
-            if let Err(err) = blend_color(
-                &mut new_image,
-                color,
-                &match blend_mode.as_str() {
-                    "add" => 0,
-                    "subtract" => 1,
-                    "multiply" => 2,
-                    "overlay" => 3,
-                    "underlay" => 6,
-                    _ => {
-                        errors
-                            .lock()
-                            .unwrap()
-                            .push(format!("blend_mode '{}' is not supported!", blend_mode));
-                        3
-                    }
-                },
-            ) {
+            if let Err(err) = blend_color(&mut new_image, color, blend_mode) {
                 errors.lock().unwrap().push(err);
             }
             DynamicImage::ImageRgba8(new_image)
@@ -1487,7 +1481,7 @@ fn blend_images_color(
 fn blend_images_other(
     images: Vec<DynamicImage>,
     mut images_other: Vec<DynamicImage>,
-    blend_mode: &String,
+    blend_mode: &BlendMode,
 ) -> Result<Vec<DynamicImage>, Error> {
     zone!("blend_images_other");
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -1499,24 +1493,7 @@ fn blend_images_other(
             .map(|image| {
                 zone!("blend_image_other_simple");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(
-                    &mut new_image,
-                    &first_image,
-                    &match blend_mode.as_str() {
-                        "add" => 0,
-                        "subtract" => 1,
-                        "multiply" => 2,
-                        "overlay" => 3,
-                        "underlay" => 6,
-                        _ => {
-                            errors
-                                .lock()
-                                .unwrap()
-                                .push(format!("blend_mode '{}' is not supported!", blend_mode));
-                            3
-                        }
-                    },
-                ) {
+                match blend_icon(&mut new_image, &first_image, blend_mode) {
                     Ok(_) => (),
                     Err(error) => {
                         errors.lock().unwrap().push(error);
@@ -1531,24 +1508,7 @@ fn blend_images_other(
             .map(|(image, image2)| {
                 zone!("blend_image_other");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(
-                    &mut new_image,
-                    &image2.into_rgba8(),
-                    &match blend_mode.as_str() {
-                        "add" => 0,
-                        "subtract" => 1,
-                        "multiply" => 2,
-                        "overlay" => 3,
-                        "underlay" => 6,
-                        _ => {
-                            errors
-                                .lock()
-                                .unwrap()
-                                .push(format!("blend_mode '{}' is not supported!", blend_mode));
-                            3
-                        }
-                    },
-                ) {
+                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode) {
                     Ok(_) => (),
                     Err(error) => {
                         errors.lock().unwrap().push(error);
@@ -1571,6 +1531,41 @@ struct Rgba {
     g: f32,
     b: f32,
     a: f32,
+}
+
+// The numbers correspond to BYOND ICON_X blend modes. https://www.byond.com/docs/ref/#/icon/proc/Blend
+#[derive(Clone, Hash, Eq, PartialEq, Serialize)]
+#[repr(u8)]
+pub enum BlendMode {
+    Add = 0,
+    Subtract = 1,
+    Multiply = 2,
+    Overlay = 3,
+    Underlay = 6,
+}
+
+impl BlendMode {
+    fn from_u8(blend_mode: &u8) -> Result<BlendMode, String> {
+        match *blend_mode {
+            0 => Ok(BlendMode::Add),
+            1 => Ok(BlendMode::Subtract),
+            2 => Ok(BlendMode::Multiply),
+            3 => Ok(BlendMode::Overlay),
+            6 => Ok(BlendMode::Underlay),
+            _ => Err(format!("blend_mode '{}' is not supported!", blend_mode)),
+        }
+    }
+
+    fn from_str(blend_mode: &str) -> Result<BlendMode, String> {
+        match blend_mode {
+            "add" => Ok(BlendMode::Add),
+            "subtract" => Ok(BlendMode::Subtract),
+            "multiply" => Ok(BlendMode::Multiply),
+            "overlay" => Ok(BlendMode::Overlay),
+            "underlay" => Ok(BlendMode::Underlay),
+            _ => Err(format!("blend_mode '{}' is not supported!", blend_mode)),
+        }
+    }
 }
 
 impl Rgba {
@@ -1619,24 +1614,24 @@ impl Rgba {
     }
 
     /// Takes two [u8; 4]s, converts them to Rgba structs, then blends them according to blend_mode by calling blend().
-    fn blend_u8(color: &[u8], other_color: &[u8], blend_mode: u8) -> [u8; 4] {
+    fn blend_u8(color: &[u8], other_color: &[u8], blend_mode: &BlendMode) -> [u8; 4] {
         Rgba::from_array(color)
             .blend(&Rgba::from_array(other_color), blend_mode)
             .into_array()
     }
 
-    /// Blends two colors according to blend_mode. The numbers correspond to BYOND blend modes.
-    fn blend(&self, other_color: &Rgba, blend_mode: u8) -> Rgba {
+    /// Blends two colors according to blend_mode.
+    fn blend(&self, other_color: &Rgba, blend_mode: &BlendMode) -> Rgba {
         match blend_mode {
-            0 => Rgba::map_each(self, other_color, |c1, c2| c1 + c2, f32::min),
-            1 => Rgba::map_each(self, other_color, |c1, c2| c1 - c2, f32::min),
-            2 => Rgba::map_each(
+            BlendMode::Add => Rgba::map_each(self, other_color, |c1, c2| c1 + c2, f32::min),
+            BlendMode::Subtract => Rgba::map_each(self, other_color, |c1, c2| c1 - c2, f32::min),
+            BlendMode::Multiply => Rgba::map_each(
                 self,
                 other_color,
                 |c1, c2| c1 * c2 / 255.0,
                 |a1: f32, a2: f32| a1 * a2 / 255.0,
             ),
-            3 => Rgba::map_each_a(
+            BlendMode::Overlay => Rgba::map_each_a(
                 self,
                 other_color,
                 |c1, c2, c1_a, c2_a| {
@@ -1651,7 +1646,7 @@ impl Rgba {
                     high + (high * low / 255.0)
                 },
             ),
-            6 => Rgba::map_each_a(
+            BlendMode::Underlay => Rgba::map_each_a(
                 other_color,
                 self,
                 |c1, c2, c1_a, c2_a| {
@@ -1666,7 +1661,6 @@ impl Rgba {
                     high + (high * low / 255.0)
                 },
             ),
-            _ => self.clone(),
         }
     }
 }
