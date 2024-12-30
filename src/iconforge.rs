@@ -875,7 +875,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
                 apply_all_transforms(&mut other_image, &icon.transform)?;
             };
             for x in 0..std::cmp::min(image.width(), other_image.width()) {
-                for y in 0..std::cmp::min(image.width(), other_image.width()) {
+                for y in 0..std::cmp::min(image.height(), other_image.height()) {
                     let px1 = image.get_pixel_mut(x, y);
                     let px2 = other_image.get_pixel(x, y);
                     let pixel_1 = px1.channels();
