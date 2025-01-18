@@ -35,6 +35,23 @@ jobs:
             target/i686-win7-windows-msvc/release/rust_g.dll
             target/i686-win7-windows-msvc/release/rust_g.pdb
             target/rust_g.dm
+            
+      - name: x64 Clippy (all features)
+        run: cargo clippy -Z build-std --target x86_64-pc-windows-msvc --features all,allow_non_32bit --locked -- -D warnings
+
+      - name: Rustfmt
+        run: cargo fmt -- --check
+
+      - name: Build (release) (default features)
+        run: cargo build -Z build-std --target x86_64-pc-windows-msvc --features allow_non_32bit --locked --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows Build x64
+          path: |
+            target/x86_64-pc-windows-msvc/release/rust_g64.dll
+            target/x86_64-pc-windows-msvc/release/rust_g64.pdb
+            target/rust_g.dm            
 
   build-linux:
     runs-on: ubuntu-latest
@@ -54,7 +71,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: i686-unknown-linux-gnu
+          targets: i686-unknown-linux-gnu, x86_64-unknown-linux-gnu
 
       - uses: Swatinem/rust-cache@v2
 
@@ -77,4 +94,25 @@ jobs:
           name: Linux Build
           path: |
             target/i686-unknown-linux-gnu/release/librust_g.so
+            target/rust_g.dm
+            
+      - name: x64 Check (all features)
+        run: cargo check --target x86_64-unknown-linux-gnu --locked --features all,allow_non_32bit
+
+      - name: x64 Build (Debug) (all features)
+        run: cargo build --target x86_64-unknown-linux-gnu --locked --features all,allow_non_32bit
+
+      - name: x64 Run tests (all features)
+        run: cargo test --target x86_64-unknown-linux-gnu --locked --features all,allow_non_32bit
+        env:
+          BYOND_BIN: /home/runner/BYOND/byond/bin
+
+      - name: x64 Build (release) (default features)
+        run: cargo build --target x86_64-unknown-linux-gnu --locked --features allow_non_32bit --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Linux Build x64
+          path: |
+            target/x86_64-unknown-linux-gnu/release/librust_g64.so
             target/rust_g.dm
