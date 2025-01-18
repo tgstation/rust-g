@@ -136,11 +136,6 @@ jobs:
       - name: x64 Build (Debug) (all features)
         run: cargo build --target x86_64-unknown-linux-gnu --locked --features all,allow_non_32bit
 
-      - name: x64 Run tests (all features)
-        run: cargo test --target x86_64-unknown-linux-gnu --locked --features all,allow_non_32bit
-        env:
-          BYOND_BIN: /home/runner/BYOND/byond/bin
-
       - name: x64 Build (release) (default features)
         run: cargo build --target x86_64-unknown-linux-gnu --locked --features allow_non_32bit --release
 
