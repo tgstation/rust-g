@@ -19,25 +19,25 @@
 /* This comment bypasses grep checks */ /var/__rust_g
 
 /proc/__detect_rust_g()
-	var/__arch_suffix = null
+	var/arch_suffix = null
 	#ifdef OPENDREAM
-	__arch_suffix = "64"
+	arch_suffix = "64"
 	#endif
 	if (world.system_type == UNIX)
-		if (fexists("./librust_g[__arch_suffix].so"))
+		if (fexists("./librust_g[arch_suffix].so"))
 			// No need for LD_LIBRARY_PATH badness.
-			return __rust_g = "./librust_g[__arch_suffix].so"
-		else if (fexists("./rust_g[__arch_suffix]"))
+			return __rust_g = "./librust_g[arch_suffix].so"
+		else if (fexists("./rust_g[arch_suffix]"))
 			// Old dumb filename.
-			return __rust_g = "./rust_g[__arch_suffix]"
-		else if (fexists("[world.GetConfig("env", "HOME")]/.byond/bin/rust_g[__arch_suffix]"))
+			return __rust_g = "./rust_g[arch_suffix]"
+		else if (fexists("[world.GetConfig("env", "HOME")]/.byond/bin/rust_g[arch_suffix]"))
 			// Old dumb filename in `~/.byond/bin`.
-			return __rust_g = "rust_g[__arch_suffix]"
+			return __rust_g = "rust_g[arch_suffix]"
 		else
 			// It's not in the current directory, so try others
-			return __rust_g = "librust_g[__arch_suffix].so"
+			return __rust_g = "librust_g[arch_suffix].so"
 	else
-		return __rust_g = "rust_g[__arch_suffix]"
+		return __rust_g = "rust_g[arch_suffix]"
 
 #define RUST_G (__rust_g || __detect_rust_g())
 #endif
