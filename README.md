@@ -99,7 +99,7 @@ The default features are:
 * git: Functions for robustly checking the current git revision.
 * hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512.
 * http: Asynchronous HTTP(s) client supporting most standard methods.
-* iconforge: A much faster replacement for the spritesheet generation system used by [/tg/station].
+* iconforge: A much faster replacement for various bulk DM /icon operations such as [/tg/station]'s asset subsystem spritesheet generation and GAGS bundle generation.
 * json: Function to check JSON validity.
 * log: Faster log output.
 * noise: 2d Perlin noise.
