@@ -41,6 +41,7 @@ pub enum Error {
     ParseInt(#[from] ParseIntError),
     #[error(transparent)]
     ParseFloat(#[from] ParseFloatError),
+    #[cfg(feature = "png")]
     #[error(transparent)]
     GenericImage(#[from] ImageError),
     #[cfg(feature = "png")]
