@@ -119,22 +119,13 @@ fn construct_request(
 }
 
 fn submit_request(prep: RequestPrep) -> Result<String> {
-    let mut response = match prep.body {
-        Some(body) => HTTP_CLIENT
-            .run(
-                prep.builder
-                    .body(body)
-                    .map_err(|e| Error::HttpParse(e.to_string()))?,
-            )
-            .map_err(Box::new)?,
-        None => HTTP_CLIENT
-            .run(
-                prep.builder
-                    .body(())
-                    .map_err(|e| Error::HttpParse(e.to_string()))?,
-            )
-            .map_err(Box::new)?,
-    };
+    let mut response = HTTP_CLIENT
+        .run(
+            prep.builder
+                .body(prep.body.unwrap_or_default())
+                .map_err(|e| Error::HttpParse(e.to_string()))?,
+        )
+        .map_err(Box::new)?;
 
     let mut resp = Response {
         status_code: response.status().as_u16(),
@@ -142,12 +133,12 @@ fn submit_request(prep: RequestPrep) -> Result<String> {
         body: None,
     };
 
-    for (key, v) in response.headers() {
-        let Some(v) = v.to_str().ok() else {
+    for (k, v) in response.headers() {
+        let Some(value) = v.to_str().ok() else {
             continue;
         };
 
-        resp.headers.insert(key.to_string(), v.to_owned());
+        resp.headers.insert(k.to_string(), value.to_owned());
     }
 
     if let Some(output_filename) = prep.request_options.output_filename {
