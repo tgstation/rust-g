@@ -84,21 +84,21 @@ impl NoiseCellMap {
         let node_counter: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
         let reg_size = self.reg_size;
         self.reg_vec.par_iter_mut().flatten().for_each(|region| {
-            let mut rng = ThreadRng::default();
+            let mut rng = rand::rng();
             // basically, to make sure the algorithm works optimally or rather works at all without panicing we have to ensure we spawn at least some nodes
             // this amount of nodes scales inversely to range.
             {
                 let mut write_guard = node_counter.write().unwrap();
-                if (*write_guard < RANGE) && rng.gen_range(0..100) > node_chance {
+                if (*write_guard < RANGE) && rng.random_range(0..100) > node_chance {
                     *write_guard += 1;
                     return;
                 }
                 *write_guard = 0;
             }
 
-            let amt = rng.gen_range(node_min..node_max);
+            let amt = rng.random_range(node_min..node_max);
             for _ in 0..amt {
-                let coord = (rng.gen_range(0..reg_size), rng.gen_range(0..reg_size));
+                let coord = (rng.random_range(0..reg_size), rng.random_range(0..reg_size));
                 region.insert_node(coord);
             }
         });

@@ -51,7 +51,7 @@ once_cell = { version = "1.20", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
 zip = { version = "2.2", optional = true }
-rand = { version = "0.8", optional = true }
+rand = { version = "0.9", optional = true }
 toml-dep = { version = "0.8.19", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
 rayon = { version = "1.10", optional = true }
