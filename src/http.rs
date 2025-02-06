@@ -88,9 +88,9 @@ fn construct_request(
         .header("User-Agent", &format!("{PKG_NAME}/{VERSION}"));
 
     if !headers.is_empty() {
-        let headers: BTreeMap<String, String> = serde_json::from_str(headers)?;
+        let headers: BTreeMap<&str, &str> = serde_json::from_str(headers)?;
         for (key, value) in headers {
-            builder = builder.header(&key, &value);
+            builder = builder.header(key, value);
         }
     }
 
