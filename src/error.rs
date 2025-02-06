@@ -8,6 +8,7 @@ use thiserror::Error;
 
 #[cfg(feature = "http")]
 use serde_json::Error as JsonError;
+#[cfg(feature = "http")]
 use ureq::Error as UreqError;
 
 #[cfg(feature = "png")]
