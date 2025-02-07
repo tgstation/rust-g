@@ -2,11 +2,12 @@ use crate::{error::Error, error::Result, jobs};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
-use std::io::Write;
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use ureq::http;
 
 // ----------------------------------------------------------------------------
-// Interface
+// DM Interface
 
 #[derive(Deserialize)]
 struct RequestOptions {
@@ -18,9 +19,14 @@ struct RequestOptions {
 
 #[derive(Serialize)]
 struct Response {
+    /// Will be set to the HTTP status code if the request was sent.
     status_code: u16,
     headers: HashMap<String, String>,
+    /// If `body` is `Some`, the request was recieved. It might still be a 404 or 500.
     body: Option<String>,
+    /// If `error` is `Some`, either there was a 4xx/5xx error, or the request failed to be sent.
+    /// If it's the former, `status_code` will be set.
+    error: Option<String>,
 }
 
 // If the response can be deserialized -> success.
@@ -64,7 +70,14 @@ byond_fn!(fn http_check_request(id) {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
 
-pub static HTTP_CLIENT: Lazy<ureq::Agent> = Lazy::new(ureq::agent);
+pub static HTTP_CLIENT: Lazy<ureq::Agent> = Lazy::new(|| {
+    ureq::Agent::new_with_config(
+        ureq::Agent::config_builder()
+            .http_status_as_error(false)
+            .user_agent(format!("{PKG_NAME}/{VERSION}"))
+            .build(),
+    )
+});
 
 // ----------------------------------------------------------------------------
 // Request construction and execution
@@ -84,8 +97,7 @@ fn construct_request(
 ) -> Result<RequestPrep> {
     let mut builder = http::request::Builder::new()
         .method(method.parse().unwrap_or(http::Method::GET))
-        .uri(uri)
-        .header("User-Agent", &format!("{PKG_NAME}/{VERSION}"));
+        .uri(uri);
 
     if !headers.is_empty() {
         let headers: BTreeMap<&str, &str> = serde_json::from_str(headers)?;
@@ -127,29 +139,28 @@ fn submit_request(prep: RequestPrep) -> Result<String> {
         )
         .map_err(Box::new)?;
 
-    let mut resp = Response {
-        status_code: response.status().as_u16(),
-        headers: HashMap::new(),
-        body: None,
-    };
+    let headers: HashMap<String, String> = response
+        .headers()
+        .iter()
+        .filter_map(|(k, v)| Some((k.to_string(), v.to_str().ok()?.to_owned())))
+        .collect();
 
-    for (k, v) in response.headers() {
-        let Some(value) = v.to_str().ok() else {
-            continue;
-        };
-
-        resp.headers.insert(k.to_string(), value.to_owned());
-    }
-
-    if let Some(output_filename) = prep.request_options.output_filename {
-        let mut writer = std::io::BufWriter::new(std::fs::File::create(output_filename)?);
+    let body = if let Some(output_filename) = prep.request_options.output_filename {
+        let mut writer = BufWriter::new(File::create(output_filename)?);
         let mut reader = response.body_mut().as_reader();
         std::io::copy(&mut reader, &mut writer)?;
         writer.flush()?;
+        None
     } else {
-        let body = response.body_mut().read_to_string().map_err(Box::new)?;
-        resp.body = Some(body);
-    }
+        Some(response.body_mut().read_to_string().map_err(Box::new)?)
+    };
+
+    let resp = Response {
+        status_code: response.status().as_u16(),
+        headers,
+        body,
+        error: None,
+    };
 
     Ok(serde_json::to_string(&resp)?)
 }
