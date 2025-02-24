@@ -1543,9 +1543,9 @@ fn blend_images_other(
     if first_icon_state.frames != last_icon_state.frames {
         // We can handle the specific case where there's only one frame and the other has more frames. Simply add copies of that first frame.
         if last_icon_state.frames > 1 && first_icon_state.frames == 1 {
-            for _ in 0..(last_icon_state.frames - 2) {
+            for _ in 0..(last_icon_state.frames - 1) {
                 // Copy all dirs for each frame
-                for i in 0..(first_icon_state.dirs - 1) {
+                for i in 0..(first_icon_state.dirs) {
                     images.push(images.get(i as usize).unwrap().clone());
                 }
             }
