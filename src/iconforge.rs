@@ -1501,19 +1501,19 @@ fn blend_images_other(
     images_other: Vec<DynamicImage>,
     blend_mode: &BlendMode,
     first_matched_state: &mut Option<IconState>,
-    last_matched_state: &Option<IconState>,
+    last_matched_state: &mut Option<IconState>,
 ) -> Result<Vec<DynamicImage>, Error> {
     zone!("blend_images_other");
     let first_icon_state = match first_matched_state {
         Some(state) => state,
         None => {
-            return Err(Error::IconForge(format!("No value in first_matched_state during blend_images_other. This should never happen, unless a GAGS config doesn't start with an icon_state.")));
+            return Err(Error::IconForge("No value in first_matched_state during blend_images_other. This should never happen, unless a GAGS config doesn't start with an icon_state.".to_string()));
         }
     };
     let last_icon_state = match last_matched_state {
         Some(state) => state,
         None => {
-            return Err(Error::IconForge(format!("No value in last_matched_state during blend_images_other. This should never happen, unless a GAGS config doesn't start with an icon_state.")));
+            return Err(Error::IconForge("No value in last_matched_state during blend_images_other. This should never happen, unless a GAGS config doesn't start with an icon_state.".to_string()));
         }
     };
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -1532,16 +1532,35 @@ fn blend_images_other(
             images_other.len(), expected_length_last, last_icon_state.dirs, last_icon_state.frames
         )));
     }
+    let mut images = images.clone();
+    let mut images_other = images_other.clone();
     // Now we can complain to the user to handle a difference in length.
     if first_icon_state.dirs != last_icon_state.dirs {
-        return Err(Error::IconForge(format!(
-            "Attempted to blend two icon states with different dir amounts - {} and {}, with {} and {} dirs respectively.",
-            first_icon_state.name, last_icon_state.name, first_icon_state.dirs, last_icon_state.dirs
-        )));
+        // We can handle the specific case where there's only one dir being blended onto multiple. Copy the icon for each frame onto all dirs.
+        if first_icon_state.dirs > last_icon_state.dirs && last_icon_state.dirs == 1 {
+            // Loop backwards so that the frame indexes remain consistent while we iterate, since inserts shift the array right
+            for i in (0..(last_icon_state.frames)).rev() {
+                // Add the missing dirs between frames
+                for _ in 0..(first_icon_state.dirs - 1) {
+                    // Insert after the current frame index
+                    images_other.insert(
+                        (i + 1) as usize,
+                        images_other.get(i as usize).unwrap().clone(),
+                    );
+                }
+            }
+            // Copy the dir amount in case we need to handle frame cases next.
+            last_icon_state.dirs = first_icon_state.dirs;
+        } else {
+            return Err(Error::IconForge(format!(
+                "Attempted to blend two icon states with different dir amounts - {} and {}, with {} and {} dirs respectively.",
+                first_icon_state.name, last_icon_state.name, first_icon_state.dirs, last_icon_state.dirs
+            )));
+        }
     }
-    let mut images = images.clone();
+
     if first_icon_state.frames != last_icon_state.frames {
-        // We can handle the specific case where there's only one frame and the other has more frames. Simply add copies of that first frame.
+        // We can handle the specific case where there's only one frame on the base and the other has more frames. Simply add copies of that first frame.
         if last_icon_state.frames > 1 && first_icon_state.frames == 1 {
             for _ in 0..(last_icon_state.frames - 1) {
                 // Copy all dirs for each frame
@@ -1562,7 +1581,7 @@ fn blend_images_other(
     }
     let images_out: Vec<DynamicImage> = if images_other.len() == 1 {
         // This is useful in the case where the something with 4+ dirs blends with 1dir
-        let first_image = images_other.get(0).unwrap().clone().into_rgba8();
+        let first_image = images_other.first().unwrap().clone().into_rgba8();
         images
             .into_par_iter()
             .map(|image| {
