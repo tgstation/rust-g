@@ -1223,6 +1223,15 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
     }
 
     {
+        zone!("gags_sort_states");
+        // This is important, because it allows GAGS icons to be included inside of caches - they will output in the same order between runs.
+        output_states
+            .lock()
+            .unwrap()
+            .sort_unstable_by(|state1, state2| state1.name.cmp(&state2.name))
+    }
+
+    {
         zone!("gags_write_dmi");
         let path = std::path::Path::new(output_dmi_path);
         std::fs::create_dir_all(path.parent().unwrap())?;
