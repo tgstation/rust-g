@@ -1185,7 +1185,8 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
     gags_data.config.par_iter().for_each(|(icon_state_name, layer_groups)| {
         zone!("gags_create_icon_state");
         let mut first_matched_state: Option<IconState> = None;
-        let transformed_images = match generate_layer_groups_for_iconstate(icon_state_name, &colors_vec, layer_groups, &gags_data, None, &mut first_matched_state) {
+        let mut last_matched_state: Option<IconState> = None;
+        let transformed_images = match generate_layer_groups_for_iconstate(icon_state_name, &colors_vec, layer_groups, &gags_data, None, &mut first_matched_state, &mut last_matched_state) {
             Ok(images) => images,
             Err(err) => {
                 errors.lock().unwrap().push(err);
@@ -1262,6 +1263,7 @@ fn gags_internal(
     icon_state: &String,
     last_external_images: Option<Vec<DynamicImage>>,
     first_matched_state: &mut Option<IconState>,
+    last_matched_state: &mut Option<IconState>,
 ) -> Result<Vec<DynamicImage>, String> {
     zone!("gags_internal");
     let gags_data = match GAGS_CACHE.get(config_path) {
@@ -1280,6 +1282,7 @@ fn gags_internal(
     {
         zone!("gags_create_icon_state");
         let mut first_matched_state_internal: Option<IconState> = None;
+        let mut last_matched_state_internal: Option<IconState> = None;
         let transformed_images = match generate_layer_groups_for_iconstate(
             icon_state,
             colors_vec,
@@ -1287,6 +1290,7 @@ fn gags_internal(
             &gags_data,
             last_external_images,
             &mut first_matched_state_internal,
+            &mut last_matched_state_internal,
         ) {
             Ok(images) => images,
             Err(err) => {
@@ -1298,6 +1302,7 @@ fn gags_internal(
             if first_matched_state.is_none() && first_matched_state_internal.is_some() {
                 *first_matched_state = first_matched_state_internal;
             }
+            *last_matched_state = last_matched_state_internal;
         }
         Ok(transformed_images)
     }
@@ -1311,6 +1316,7 @@ fn generate_layer_groups_for_iconstate(
     gags_data: &GAGSData,
     last_external_images: Option<Vec<DynamicImage>>,
     first_matched_state: &mut Option<IconState>,
+    last_matched_state: &mut Option<IconState>,
 ) -> Result<Vec<DynamicImage>, String> {
     zone!("generate_layer_groups_for_iconstate");
     let mut new_images: Option<Vec<DynamicImage>> = None;
@@ -1325,6 +1331,7 @@ fn generate_layer_groups_for_iconstate(
                     gags_data,
                     new_images.clone().or(last_external_images.clone()),
                     first_matched_state,
+                    last_matched_state,
                 )?,
                 layer.get_blendmode(),
             ),
@@ -1343,6 +1350,7 @@ fn generate_layer_groups_for_iconstate(
                         gags_data,
                         new_images.clone().or(last_external_images.clone()),
                         first_matched_state,
+                        last_matched_state,
                     )?,
                     match layers.first().unwrap() {
                         GAGSLayerGroupOption::GAGSLayer(layer) => layer.get_blendmode(),
@@ -1356,7 +1364,13 @@ fn generate_layer_groups_for_iconstate(
 
         let blend_mode = blend_mode_result?;
         new_images = match new_images {
-            Some(images) => Some(blend_images_other(images, layer_images, &blend_mode)?),
+            Some(images) => Some(blend_images_other(
+                images,
+                layer_images,
+                &blend_mode,
+                first_matched_state,
+                last_matched_state,
+            )?),
             None => Some(layer_images),
         }
     }
@@ -1374,6 +1388,7 @@ fn generate_layer_for_iconstate(
     gags_data: &GAGSData,
     new_images: Option<Vec<DynamicImage>>,
     first_matched_state: &mut Option<IconState>,
+    last_matched_state: &mut Option<IconState>,
 ) -> Result<Vec<DynamicImage>, String> {
     zone!("generate_layer_for_iconstate");
     let images_result: Option<Vec<DynamicImage>> = match layer {
@@ -1401,6 +1416,8 @@ fn generate_layer_for_iconstate(
             if first_matched_state.is_none() {
                 *first_matched_state = Some(icon_state.clone());
             }
+
+            *last_matched_state = Some(icon_state.clone());
 
             let images = icon_state.images.clone();
             if !color_ids.is_empty() {
@@ -1443,6 +1460,7 @@ fn generate_layer_for_iconstate(
                 icon_state,
                 new_images,
                 first_matched_state,
+                last_matched_state,
             )?)
         }
         GAGSLayer::ColorMatrix {
@@ -1489,14 +1507,90 @@ fn blend_images_color(
 /// Blends a set of images with another set of images.
 fn blend_images_other(
     images: Vec<DynamicImage>,
-    mut images_other: Vec<DynamicImage>,
+    images_other: Vec<DynamicImage>,
     blend_mode: &BlendMode,
+    first_matched_state: &mut Option<IconState>,
+    last_matched_state: &mut Option<IconState>,
 ) -> Result<Vec<DynamicImage>, Error> {
     zone!("blend_images_other");
+    let first_icon_state = match first_matched_state {
+        Some(state) => state,
+        None => {
+            return Err(Error::IconForge("No value in first_matched_state during blend_images_other. This should never happen, unless a GAGS config doesn't start with an icon_state.".to_string()));
+        }
+    };
+    let last_icon_state = match last_matched_state {
+        Some(state) => state,
+        None => {
+            return Err(Error::IconForge("No value in last_matched_state during blend_images_other. This should never happen, unless a GAGS config doesn't start with an icon_state.".to_string()));
+        }
+    };
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
+    let expected_length_first = first_icon_state.dirs as u32 * first_icon_state.frames;
+    // Make sure our logic sound... First and last should correctly match these two Vecs at all times, but this assumption might be incorrect.
+    if expected_length_first != images.len() as u32 {
+        return Err(Error::IconForge(format!(
+            "Error during blend_images_other - the base set of images did not contain the correct amount of images (contains {}, it should contain {}) to match the amount of dirs ({}) or frames ({}) from the first icon state. This shouldn't ever happen!",
+            images.len(), expected_length_first, first_icon_state.dirs, first_icon_state.frames
+        )));
+    }
+    let expected_length_last = last_icon_state.dirs as u32 * last_icon_state.frames;
+    if expected_length_last != images_other.len() as u32 {
+        return Err(Error::IconForge(format!(
+            "Error during blend_images_other - the blending set of images did not contain the correct amount of images (contains {}, it should contain {}) to match the amount of dirs ({}) or frames ({}) from the last icon state. This shouldn't ever happen!",
+            images_other.len(), expected_length_last, last_icon_state.dirs, last_icon_state.frames
+        )));
+    }
+    let mut images = images.clone();
+    let mut images_other = images_other.clone();
+    // Now we can complain to the user to handle a difference in length.
+    if first_icon_state.dirs != last_icon_state.dirs {
+        // We can handle the specific case where there's only one dir being blended onto multiple. Copy the icon for each frame onto all dirs.
+        if first_icon_state.dirs > last_icon_state.dirs && last_icon_state.dirs == 1 {
+            // Loop backwards so that the frame indexes remain consistent while we iterate, since inserts shift the array right
+            for i in (0..(last_icon_state.frames)).rev() {
+                // Add the missing dirs between frames
+                for _ in 0..(first_icon_state.dirs - 1) {
+                    // Insert after the current frame index
+                    images_other.insert(
+                        (i + 1) as usize,
+                        images_other.get(i as usize).unwrap().clone(),
+                    );
+                }
+            }
+            // Copy the dir amount in case we need to handle frame cases next.
+            last_icon_state.dirs = first_icon_state.dirs;
+        } else {
+            return Err(Error::IconForge(format!(
+                "Attempted to blend two icon states with different dir amounts - {} and {}, with {} and {} dirs respectively.",
+                first_icon_state.name, last_icon_state.name, first_icon_state.dirs, last_icon_state.dirs
+            )));
+        }
+    }
+
+    if first_icon_state.frames != last_icon_state.frames {
+        // We can handle the specific case where there's only one frame on the base and the other has more frames. Simply add copies of that first frame.
+        if last_icon_state.frames > 1 && first_icon_state.frames == 1 {
+            for _ in 0..(last_icon_state.frames - 1) {
+                // Copy all dirs for each frame
+                for i in 0..(first_icon_state.dirs) {
+                    images.push(images.get(i as usize).unwrap().clone());
+                }
+            }
+            // Update the output IconState's frame count, because the values from the first state are used for the final result.
+            first_icon_state.frames = last_icon_state.frames;
+            // Copy the delays as well
+            first_icon_state.delay = last_icon_state.delay.to_owned();
+        } else {
+            return Err(Error::IconForge(format!(
+                "Attempted to blend two icon states with different frame amounts - {} and {}, with {} and {} frames respectively.",
+                first_icon_state.name, last_icon_state.name, first_icon_state.frames, last_icon_state.frames
+            )));
+        }
+    }
     let images_out: Vec<DynamicImage> = if images_other.len() == 1 {
         // This is useful in the case where the something with 4+ dirs blends with 1dir
-        let first_image = images_other.remove(0).into_rgba8();
+        let first_image = images_other.first().unwrap().clone().into_rgba8();
         images
             .into_par_iter()
             .map(|image| {
