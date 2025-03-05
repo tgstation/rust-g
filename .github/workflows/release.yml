@@ -59,8 +59,8 @@ jobs:
           files: |
             ./artifacts/windows/i686-win7-windows-msvc/release/rust_g.dll
             ./artifacts/windows/i686-win7-windows-msvc/release/rust_g.pdb
-            ./artifacts/windows-x64/x86_64-pc-windows-msvc/release/rust_g.dll#rust_g_x64.dll
-            ./artifacts/windows-x64/x86_64-pc-windows-msvc/release/rust_g.pdb#rust_g_x64.pdb
+            ./artifacts/windows-x64/x86_64-pc-windows-msvc/release/rust_g64.dll
+            ./artifacts/windows-x64/x86_64-pc-windows-msvc/release/rust_g64.pdb
             ./artifacts/linux/i686-unknown-linux-gnu/release/librust_g.so
-            ./artifacts/linux-x64/x86_64-unknown-linux-gnu/release/librust_g.so#librust_g_x64.so
+            ./artifacts/linux-x64/x86_64-unknown-linux-gnu/release/librust_g64.so
             ./artifacts/windows/rust_g.dm
