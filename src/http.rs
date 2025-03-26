@@ -3,6 +3,7 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
+use std::time::Duration;
 
 // ----------------------------------------------------------------------------
 // Interface
@@ -13,6 +14,8 @@ struct RequestOptions {
     output_filename: Option<String>,
     #[serde(default)]
     body_filename: Option<String>,
+    #[serde(default)]
+    timeout_seconds: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -106,6 +109,10 @@ fn construct_request(
         output_filename = options.output_filename;
         if let Some(fname) = options.body_filename {
             final_body = std::fs::read(fname)?;
+        }
+
+        if let Some(timeout_seconds) = options.timeout_seconds {
+            req = req.timeout(Duration::from_secs(timeout_seconds));
         }
     }
 
