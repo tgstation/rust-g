@@ -47,6 +47,7 @@ redis = { version = "0.29", optional = true, features = ["ahash"] }
 ureq = { version = "2.12", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
+serde_repr = { version = "0.1", optional = true }
 once_cell = { version = "1.20", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
@@ -64,9 +65,7 @@ ammonia = { version = "4.0.0", optional = true }
 fast_poisson = { version = "=0.5.2", optional = true, features = [
     "single_precision",
 ] } # Higher versions have problems with x86 due to 'kiddo'.
-symphonia = { version = "0.5.4", optional = true, features = [
-    "all-codecs",
-] }
+symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
 
 [features]
 default = [
@@ -123,7 +122,7 @@ all = [
 acreplace = ["aho-corasick"]
 batchnoise = ["dbpnoise"]
 cellularnoise = ["rand", "rayon"]
-dmi = ["png", "image", "dep:dmi"]
+dmi = ["png", "image", "dep:dmi", "serde_repr"]
 file = []
 git = ["gix", "chrono"]
 hash = [
