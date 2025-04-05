@@ -127,17 +127,24 @@ fn resize_png<P: AsRef<Path>>(
 ///
 /// Erroring at any point will produce an empty string
 fn read_states(path: &str) -> Result<String> {
-    let reader = BufReader::new(File::open(path)?);
-    let icon = Icon::load(reader).ok();
-    if icon.is_none() {
-        return Err(Error::InvalidPngData);
+    let file = File::open(path).map(BufReader::new)?;
+    let decoder = png::Decoder::new(file);
+    let reader = decoder.read_info().map_err(|_| Error::InvalidPngData)?;
+    let info = reader.info();
+    let mut states = Vec::<String>::new();
+    for ztxt in &info.compressed_latin1_text {
+        let text = ztxt.get_text()?;
+        text.lines()
+            .take_while(|line| !line.contains("# END DMI"))
+            .filter_map(|line| {
+                line.trim()
+                    .strip_prefix("state = \"")
+                    .and_then(|line| line.strip_suffix('"'))
+            })
+            .for_each(|state| {
+                states.push(state.to_owned());
+            });
     }
-    let states: Vec<_> = icon
-        .unwrap()
-        .states
-        .iter()
-        .map(|s| s.name.clone())
-        .collect();
     Ok(serde_json::to_string(&states)?)
 }
 
