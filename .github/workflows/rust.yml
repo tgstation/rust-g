@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BYOND_MAJOR: 515
-      BYOND_MINOR: 1642
+      BYOND_MINOR: 1647
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BYOND_MAJOR: 515
-      BYOND_MINOR: 1642
+      BYOND_MINOR: 1647
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
