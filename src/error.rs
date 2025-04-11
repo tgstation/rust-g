@@ -1,3 +1,4 @@
+use dmi::error::DmiError;
 use std::{
     io,
     num::{ParseFloatError, ParseIntError},
@@ -70,6 +71,15 @@ pub enum Error {
     IconForge(String),
     #[error("Panic during function execution: {0}")]
     Panic(String),
+    #[error("Build params have zero width/height")]
+    ZeroIconSize,
+    #[error("No state data in build params.")]
+    NoDmiStates,
+    #[error("Incorrect data for state \"{0}\": {1}")]
+    StateDataFormat(String, String),
+    #[cfg(feature = "dmi")]
+    #[error(transparent)]
+    Dmi(#[from] DmiError),
 }
 
 impl From<Utf8Error> for Error {
