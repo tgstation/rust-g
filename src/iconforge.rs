@@ -327,14 +327,14 @@ fn cache_valid(input_hash: &str, dmi_hashes_in: &str, sprites_in: &str) -> Resul
                                 if fail_reason.read().unwrap().is_some() {
                                     return;
                                 }
-                                *fail_reason.write().unwrap() = Some(format!("Input hash matched, but dmi_hash was invalid DMI: '{}' (stored hash: {}, new hash: {})", dmi_path, hash.clone(), new_hash));
+                                *fail_reason.write().unwrap() = Some(format!("Input hash matched, but dmi_hash was invalid DMI: dmi_path (stored hash: {}, new hash: {new_hash})", hash.clone()));
                             }
                         },
                         Err(err) => {
                             if fail_reason.read().unwrap().is_some() {
                                 return;
                             }
-                            *fail_reason.write().unwrap() = Some(format!("ERROR: Error while hashing dmi_path '{}': {}", dmi_path, err));
+                            *fail_reason.write().unwrap() = Some(format!("ERROR: Error while hashing dmi_path '{dmi_path}': {err}"));
                         }
                     }
                 }
@@ -342,7 +342,7 @@ fn cache_valid(input_hash: &str, dmi_hashes_in: &str, sprites_in: &str) -> Resul
                     if fail_reason.read().unwrap().is_some() {
                         return;
                     }
-                    *fail_reason.write().unwrap() = Some(format!("Input hash matched, but no dmi_hash existed for DMI: '{}'", dmi_path));
+                    *fail_reason.write().unwrap() = Some(format!("Input hash matched, but no dmi_hash existed for DMI: '{dmi_path}'"));
                 }
             }
         });
@@ -372,7 +372,9 @@ fn generate_spritesheet(
     let error = Arc::new(Mutex::new(Vec::<String>::new()));
     let dmi_hashes = DashMap::<String, String>::new();
 
-    let size_to_icon_objects = Arc::new(Mutex::new(HashMap::<String, Vec<(&String, &IconObject)>>::new()));
+    let size_to_icon_objects = Arc::new(Mutex::new(
+        HashMap::<String, Vec<(&String, &IconObject)>>::new(),
+    ));
     let sprites_objects =
         DashMap::<String, SpritesheetEntry, BuildHasherDefault<XxHash64>>::with_hasher(
             BuildHasherDefault::<XxHash64>::default(),
@@ -565,7 +567,10 @@ fn generate_spritesheet(
         .par_iter()
         .for_each(|(size_id, sprite_entries)| {
             zone!("join_sprites");
-            let file_path = format!("{}{}_{}.{}", file_path, spritesheet_name, size_id, if generate_dmi { "dmi" } else { "png" });
+            let file_path = format!(
+                "{file_path}{spritesheet_name}_{size_id}.{}",
+                if generate_dmi { "dmi" } else { "png" }
+            );
             let size_data: Vec<&str> = size_id.split('x').collect();
             let base_width = size_data
                 .first()
@@ -620,7 +625,9 @@ fn generate_spritesheet(
                                 width: base_width,
                                 height: base_height,
                                 states: output_states.lock().unwrap().to_owned(),
-                            }.save(&mut output_file).err();
+                            }
+                            .save(&mut output_file)
+                            .err();
                         }
                     }
                 }
@@ -642,8 +649,7 @@ fn generate_spritesheet(
     let sizes: Vec<String> = size_to_icon_objects
         .lock()
         .unwrap()
-        .iter()
-        .map(|(k, _v)| k)
+        .keys()
         .cloned()
         .collect();
 
@@ -658,7 +664,11 @@ fn generate_spritesheet(
     Ok(serde_json::to_string::<SpritesheetResult>(&returned)?)
 }
 
-fn create_png_image(base_width: u32, base_height: u32, sprite_entries: &Vec<(&String, &IconObject)>) -> Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, String> {
+fn create_png_image(
+    base_width: u32,
+    base_height: u32,
+    sprite_entries: &Vec<(&String, &IconObject)>,
+) -> Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, String> {
     zone!("create_png_image");
     let mut final_image = RgbaImage::new(base_width * sprite_entries.len() as u32, base_height);
     for (idx, sprite_entry) in sprite_entries.iter().enumerate() {
@@ -683,7 +693,9 @@ fn create_png_image(base_width: u32, base_height: u32, sprite_entries: &Vec<(&St
     Ok(final_image)
 }
 
-fn create_dmi_output_states(sprite_entries: &Vec<(&String, &IconObject)>) -> Result<Arc<Mutex<Vec<IconState>>>, String> {
+fn create_dmi_output_states(
+    sprite_entries: &Vec<(&String, &IconObject)>,
+) -> Result<Arc<Mutex<Vec<IconState>>>, String> {
     zone!("create_dmi_output_states");
     let output_states = Arc::new(Mutex::new(Vec::<IconState>::new()));
     let errors = Mutex::new(Vec::<String>::new());
@@ -694,13 +706,13 @@ fn create_dmi_output_states(sprite_entries: &Vec<(&String, &IconObject)>) -> Res
             Ok((image, _)) => image,
             Err(err) => {
                 errors.lock().unwrap().push(err);
-                return
+                return;
             }
         };
         let dynamic_image = DynamicImage::ImageRgba8(image.to_owned());
         if let Err(err) = return_image(image, icon) {
             errors.lock().unwrap().push(err.to_string());
-            return
+            return;
         }
         output_states.lock().unwrap().push(IconState {
             name: sprite_name.to_owned(),
@@ -714,7 +726,6 @@ fn create_dmi_output_states(sprite_entries: &Vec<(&String, &IconObject)>) -> Res
             hotspot: Option::None,
             images: vec![dynamic_image; 1],
         });
-
     });
     if !errors.lock().unwrap().is_empty() {
         return Err(errors.lock().unwrap().join("\n"));
@@ -868,7 +879,7 @@ fn filepath_to_dmi(icon_path: &str) -> Result<Arc<Icon>, String> {
     let icon_file = match File::open(icon_path) {
         Ok(icon_file) => icon_file,
         Err(err) => {
-            return Err(format!("Failed to open DMI '{}' - {}", icon_path, err));
+            return Err(format!("Failed to open DMI '{icon_path}' - {err}"));
         }
     };
     let reader = BufReader::new(icon_file);
@@ -878,7 +889,7 @@ fn filepath_to_dmi(icon_path: &str) -> Result<Arc<Icon>, String> {
         dmi = match Icon::load(reader) {
             Ok(dmi) => dmi,
             Err(err) => {
-                return Err(format!("DMI '{}' failed to parse - {}", icon_path, err));
+                return Err(format!("DMI '{icon_path}' failed to parse - {err}"));
             }
         };
     }
@@ -905,10 +916,7 @@ fn icon_to_image(
     if cached {
         zone!("check_rgba_image_exists");
         if icon.icon_hash_input.is_empty() {
-            return Err(format!(
-                "No icon_hash generated for {} {}",
-                icon, sprite_name
-            ));
+            return Err(format!("No icon_hash generated for {icon} {sprite_name}"));
         }
         if let Some(entry) = ICON_STATES.get(&icon.icon_hash_input) {
             return Ok((entry.value().clone(), true));
@@ -932,8 +940,8 @@ fn icon_to_image(
         Some(state) => state,
         None => {
             return Err(format!(
-                "Could not find associated icon state {} for {}",
-                icon.icon_state, sprite_name
+                "Could not find associated icon state {} for {sprite_name}",
+                icon.icon_state
             ));
         }
     };
@@ -941,16 +949,13 @@ fn icon_to_image(
     let dir = match Dirs::from_bits(icon.dir) {
         Some(dir) => dir,
         None => {
-            return Err(format!(
-                "Invalid dir number {} for {}",
-                icon.dir, sprite_name
-            ));
+            return Err(format!("Invalid dir number {} for {sprite_name}", icon.dir));
         }
     };
     Ok(match state.get_image(&dir, icon.frame) {
         Ok(image) => (image.to_rgba8(), false),
         Err(err) => {
-            return Err(format!("Error getting image for {}: {}", sprite_name, err));
+            return Err(format!("Error getting image for {sprite_name}: {err}"));
         }
     })
 }
@@ -960,8 +965,7 @@ fn return_image(image: RgbaImage, icon: &IconObject) -> Result<(), Error> {
     zone!("insert_rgba_image");
     if icon.icon_hash_input.is_empty() {
         return Err(Error::IconForge(format!(
-            "No icon_hash_input generated for {}",
-            icon
+            "No icon_hash_input generated for {icon}"
         )));
     }
     ICON_STATES.insert(icon.icon_hash_input.to_owned(), image);
@@ -999,7 +1003,7 @@ fn blend_color(
         }
 
         if let Err(err) = hex::decode_to_slice(hex, &mut color2) {
-            return Err(format!("Decoding hex color {} failed: {}", color, err));
+            return Err(format!("Decoding hex color {color} failed: {err}"));
         }
     }
     for x in 0..image.width() {
@@ -1045,7 +1049,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
         Transform::BlendIcon { icon, blend_mode } => {
             zone!("blend_icon");
             let (mut other_image, cached) =
-                icon_to_image(icon, &format!("Transform blend_icon {}", icon), true, false)?;
+                icon_to_image(icon, &format!("Transform blend_icon {icon}"), true, false)?;
 
             if !cached {
                 apply_all_transforms(&mut other_image, &icon.transform)?;
@@ -1086,8 +1090,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
             x1 -= 1;
             if x2 <= x1 || y2 <= y1 {
                 return Err(format!(
-                    "Invalid bounds {} {} to {} {} in crop transform",
-                    x1, y1, x2, y2
+                    "Invalid bounds {x1} {y1} to {x2} {y2} in crop transform"
                 ));
             }
 
@@ -1263,8 +1266,7 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
         Some(config) => config,
         None => {
             return Err(Error::IconForge(format!(
-                "Provided config_path {} has not been loaded by iconforge_load_gags_config!",
-                config_path
+                "Provided config_path {config_path} has not been loaded by iconforge_load_gags_config!"
             )));
         }
     };
@@ -1291,7 +1293,7 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
         let icon_state = match first_matched_state {
             Some(state) => state,
             None => {
-                errors.lock().unwrap().push(format!("GAGS state {} for GAGS config {} had no matching icon_states in any layers!", icon_state_name, config_path));
+                errors.lock().unwrap().push(format!("GAGS state {icon_state_name} for GAGS config {config_path} had no matching icon_states in any layers!"));
                 return;
             }
         };
@@ -1341,10 +1343,7 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
         }
         .save(&mut output_file))
         {
-            return Err(Error::IconForge(format!(
-                "Error during icon saving: {}",
-                err
-            )));
+            return Err(Error::IconForge(format!("Error during icon saving: {err}")));
         }
     }
 
@@ -1364,14 +1363,14 @@ fn gags_internal(
     let gags_data = match GAGS_CACHE.get(config_path) {
         Some(config) => config,
         None => {
-            return Err(format!("Provided config_path {} has not been loaded by iconforge_load_gags_config (from gags_internal)!", config_path));
+            return Err(format!("Provided config_path {config_path} has not been loaded by iconforge_load_gags_config (from gags_internal)!"));
         }
     };
 
     let layer_groups = match gags_data.config.get(icon_state) {
         Some(data) => data,
         None => {
-            return Err(format!("Provided config_path {} did not contain requested icon_state {} for reference type.", config_path, icon_state));
+            return Err(format!("Provided config_path {config_path} did not contain requested icon_state {icon_state} for reference type."));
         }
     };
     {
@@ -1433,8 +1432,8 @@ fn generate_layer_groups_for_iconstate(
             GAGSLayerGroupOption::GAGSLayerGroup(layers) => {
                 if layers.is_empty() {
                     return Err(format!(
-                        "Empty layer group provided to GAGS state {} for GAGS config {} !",
-                        state_name, gags_data.config_path
+                        "Empty layer group provided to GAGS state {state_name} for GAGS config {} !",
+                        gags_data.config_path
                     ));
                 }
                 (
@@ -1450,7 +1449,7 @@ fn generate_layer_groups_for_iconstate(
                     match layers.first().unwrap() {
                         GAGSLayerGroupOption::GAGSLayer(layer) => layer.get_blendmode(),
                         GAGSLayerGroupOption::GAGSLayerGroup(_) => {
-                            return Err(format!("Layer group began with another layer group in GAGS state {} for GAGS config {} !", state_name, gags_data.config_path));
+                            return Err(format!("Layer group began with another layer group in GAGS state {state_name} for GAGS config {} !", gags_data.config_path));
                         }
                     },
                 )
@@ -1471,7 +1470,7 @@ fn generate_layer_groups_for_iconstate(
     }
     match new_images {
         Some(images) => Ok(images),
-        None => Err(format!("No image found for GAGS state {}", state_name)),
+        None => Err(format!("No image found for GAGS state {state_name}")),
     }
 }
 
@@ -1502,8 +1501,8 @@ fn generate_layer_for_iconstate(
                 Some(state) => state,
                 None => {
                     return Err(format!(
-                        "Invalid icon_state {} in layer provided for GAGS config {}",
-                        state_name, gags_data.config_path
+                        "Invalid icon_state {state_name} in layer provided for GAGS config {}",
+                        gags_data.config_path
                     ));
                 }
             };
@@ -1567,8 +1566,8 @@ fn generate_layer_for_iconstate(
     match images_result {
         Some(images) => Ok(images),
         None => Err(format!(
-            "No images found for GAGS state {} for GAGS config {} !",
-            state_name, gags_data.config_path
+            "No images found for GAGS state {state_name} for GAGS config {} !",
+            gags_data.config_path
         )),
     }
 }
@@ -1625,15 +1624,15 @@ fn blend_images_other(
     // Make sure our logic sound... First and last should correctly match these two Vecs at all times, but this assumption might be incorrect.
     if expected_length_first != images.len() as u32 {
         return Err(Error::IconForge(format!(
-            "Error during blend_images_other - the base set of images did not contain the correct amount of images (contains {}, it should contain {}) to match the amount of dirs ({}) or frames ({}) from the first icon state. This shouldn't ever happen!",
-            images.len(), expected_length_first, first_icon_state.dirs, first_icon_state.frames
+            "Error during blend_images_other - the base set of images did not contain the correct amount of images (contains {}, it should contain {expected_length_first}) to match the amount of dirs ({}) or frames ({}) from the first icon state. This shouldn't ever happen!",
+            images.len(), first_icon_state.dirs, first_icon_state.frames
         )));
     }
     let expected_length_last = last_icon_state.dirs as u32 * last_icon_state.frames;
     if expected_length_last != images_other.len() as u32 {
         return Err(Error::IconForge(format!(
-            "Error during blend_images_other - the blending set of images did not contain the correct amount of images (contains {}, it should contain {}) to match the amount of dirs ({}) or frames ({}) from the last icon state. This shouldn't ever happen!",
-            images_other.len(), expected_length_last, last_icon_state.dirs, last_icon_state.frames
+            "Error during blend_images_other - the blending set of images did not contain the correct amount of images (contains {}, it should contain {expected_length_last}) to match the amount of dirs ({}) or frames ({}) from the last icon state. This shouldn't ever happen!",
+            images_other.len(), last_icon_state.dirs, last_icon_state.frames
         )));
     }
     let mut images = images.clone();
@@ -1750,7 +1749,7 @@ impl BlendMode {
             2 => Ok(BlendMode::Multiply),
             3 => Ok(BlendMode::Overlay),
             6 => Ok(BlendMode::Underlay),
-            _ => Err(format!("blend_mode '{}' is not supported!", blend_mode)),
+            _ => Err(format!("blend_mode '{blend_mode}' is not supported!")),
         }
     }
 
@@ -1761,7 +1760,7 @@ impl BlendMode {
             "multiply" => Ok(BlendMode::Multiply),
             "overlay" => Ok(BlendMode::Overlay),
             "underlay" => Ok(BlendMode::Underlay),
-            _ => Err(format!("blend_mode '{}' is not supported!", blend_mode)),
+            _ => Err(format!("blend_mode '{blend_mode}' is not supported!")),
         }
     }
 }
