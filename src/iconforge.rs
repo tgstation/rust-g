@@ -40,12 +40,13 @@ static ICON_FILES: Lazy<DashMap<String, Arc<Icon>, BuildHasherDefault<XxHash64>>
 static ICON_STATES: Lazy<DashMap<String, RgbaImage, BuildHasherDefault<XxHash64>>> =
     Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
 
-byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites, hash_icons) {
+byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites, hash_icons, generate_dmi) {
     let file_path = file_path.to_owned();
     let spritesheet_name = spritesheet_name.to_owned();
     let sprites = sprites.to_owned();
     let hash_icons = hash_icons.to_owned();
-    let result = Some(match catch_panic(|| generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons)) {
+    let generate_dmi = generate_dmi.to_owned();
+    let result = Some(match catch_panic(|| generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons, &generate_dmi)) {
         Ok(o) => o.to_string(),
         Err(e) => e.to_string()
     });
@@ -53,13 +54,14 @@ byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites, hash_icons
     result
 });
 
-byond_fn!(fn iconforge_generate_async(file_path, spritesheet_name, sprites, hash_icons) {
+byond_fn!(fn iconforge_generate_async(file_path, spritesheet_name, sprites, hash_icons, generate_dmi) {
     let file_path = file_path.to_owned();
     let spritesheet_name = spritesheet_name.to_owned();
     let sprites = sprites.to_owned();
     let hash_icons = hash_icons.to_owned();
+    let generate_dmi = generate_dmi.to_owned();
     Some(jobs::start(move || {
-        let result = match catch_panic(|| generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons)) {
+        let result = match catch_panic(|| generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons, &generate_dmi)) {
             Ok(o) => o.to_string(),
             Err(e) => e.to_string()
         };
@@ -362,13 +364,15 @@ fn generate_spritesheet(
     spritesheet_name: &str,
     sprites: &str,
     hash_icons: &str,
+    generate_dmi: &str,
 ) -> std::result::Result<String, Error> {
     zone!("generate_spritesheet");
     let hash_icons: bool = hash_icons == "1";
+    let generate_dmi: bool = generate_dmi == "1";
     let error = Arc::new(Mutex::new(Vec::<String>::new()));
     let dmi_hashes = DashMap::<String, String>::new();
 
-    let size_to_icon_objects = Arc::new(Mutex::new(HashMap::<String, Vec<&IconObject>>::new()));
+    let size_to_icon_objects = Arc::new(Mutex::new(HashMap::<String, Vec<(&String, &IconObject)>>::new()));
     let sprites_objects =
         DashMap::<String, SpritesheetEntry, BuildHasherDefault<XxHash64>>::with_hasher(
             BuildHasherDefault::<XxHash64>::default(),
@@ -537,7 +541,7 @@ fn generate_spritesheet(
                 let mut size_map = size_to_icon_objects.lock().unwrap();
                 let vec = (*size_map).entry(size_id.to_owned()).or_default();
                 icon_position = vec.len() as u32;
-                vec.push(icon);
+                vec.push(sprite_entry);
             }
 
             {
@@ -554,18 +558,14 @@ fn generate_spritesheet(
     });
 
     // all images have been returned now, so continue...
-
-    // cache this here so we don't generate the same string 5000 times
-    let sprite_name = String::from("N/A, in final generation stage");
-
     // Get all the sprites and spew them onto a spritesheet.
     size_to_icon_objects
         .lock()
         .unwrap()
         .par_iter()
-        .for_each(|(size_id, icon_objects)| {
+        .for_each(|(size_id, sprite_entries)| {
             zone!("join_sprites");
-            let file_path = format!("{}{}_{}.png", file_path, spritesheet_name, size_id);
+            let file_path = format!("{}{}_{}.{}", file_path, spritesheet_name, size_id, if generate_dmi { "dmi" } else { "png" });
             let size_data: Vec<&str> = size_id.split('x').collect();
             let base_width = size_data
                 .first()
@@ -580,31 +580,61 @@ fn generate_spritesheet(
                 .parse::<u32>()
                 .unwrap();
 
-            let mut final_image =
-                RgbaImage::new(base_width * icon_objects.len() as u32, base_height);
+            // Image used by PNG output mode
 
-            for (idx, icon) in icon_objects.iter().enumerate() {
-                zone!("join_sprite");
-                let image = match icon_to_image(icon, &sprite_name, true, true) {
-                    Ok((image, _)) => image,
+
+            // List of DMI states for use by the DMI output mode
+            if generate_dmi {
+                let output_states = match create_dmi_output_states(sprite_entries) {
+                    Ok(output_states) => output_states,
                     Err(err) => {
                         error.lock().unwrap().push(err);
                         return;
                     }
                 };
-                let base_x: u32 = base_width * idx as u32;
-                for x in 0..image.width() {
-                    for y in 0..image.height() {
-                        final_image.put_pixel(base_x + x, y, *image.get_pixel(x, y))
+                {
+                    zone!("spritesheet_dmi_sort_states");
+                    // This is important, because it allows the outputted DMI to be used in IconForge's own cache - they will output in the same order between runs.
+                    // PNGs don't need these because they're only usable in the UI, but these DMI icons are potentially persistent (they may be used at compile time!!)
+                    output_states
+                        .lock()
+                        .unwrap()
+                        .sort_unstable_by(|state1, state2| state1.name.cmp(&state2.name))
+                }
+                {
+                    zone!("write_spritesheet_dmi");
+                    let path = std::path::Path::new(&file_path);
+                    if let Err(err) = std::fs::create_dir_all(path.parent().unwrap()) {
+                        error.lock().unwrap().push(err.to_string());
+                        return;
+                    };
+                    let mut output_file = match File::create(path) {
+                        Ok(file) => file,
+                        Err(err) => {
+                            error.lock().unwrap().push(err.to_string());
+                            return;
+                        }
+                    };
+
+                    Icon {
+                        version: DmiVersion::default(),
+                        width: base_width,
+                        height: base_height,
+                        states: output_states.lock().unwrap().to_owned(),
+                    }.save(&mut output_file).err();
+                }
+            } else {
+                let final_image = match create_png_image(base_width, base_height, sprite_entries) {
+                    Ok(image) => image,
+                    Err(err) => {
+                        error.lock().unwrap().push(err);
+                        return;
                     }
+                };
+                {
+                    zone!("write_spritesheet_png");
+                    final_image.save(file_path).err();
                 }
-                if let Err(err) = return_image(image, icon) {
-                    error.lock().unwrap().push(err.to_string());
-                }
-            }
-            {
-                zone!("write_spritesheet");
-                final_image.save(file_path).err();
             }
         });
 
@@ -625,6 +655,70 @@ fn generate_spritesheet(
         error: error.lock().unwrap().join("\n"),
     };
     Ok(serde_json::to_string::<SpritesheetResult>(&returned)?)
+}
+
+fn create_png_image(base_width: u32, base_height: u32, sprite_entries: &Vec<(&String, &IconObject)>) -> Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, String> {
+    zone!("create_png_image");
+    let mut final_image = RgbaImage::new(base_width * sprite_entries.len() as u32, base_height);
+    for (idx, sprite_entry) in sprite_entries.iter().enumerate() {
+        zone!("join_sprite_png");
+        let (sprite_name, icon) = *sprite_entry;
+        let image = match icon_to_image(icon, sprite_name, true, true) {
+            Ok((image, _)) => image,
+            Err(err) => {
+                return Err(err);
+            }
+        };
+        let base_x: u32 = base_width * idx as u32;
+        for x in 0..image.width() {
+            for y in 0..image.height() {
+                final_image.put_pixel(base_x + x, y, *image.get_pixel(x, y))
+            }
+        }
+        if let Err(err) = return_image(image, icon) {
+            return Err(err.to_string());
+        }
+    }
+    Ok(final_image)
+}
+
+fn create_dmi_output_states(sprite_entries: &Vec<(&String, &IconObject)>) -> Result<Arc<Mutex<Vec<IconState>>>, String> {
+    zone!("create_dmi_output_states");
+    let output_states = Arc::new(Mutex::new(Vec::<IconState>::new()));
+    let errors = Mutex::new(Vec::<String>::new());
+    sprite_entries.par_iter().for_each(|sprite_entry| {
+        zone!("create_output_state_dmi");
+        let (sprite_name, icon) = *sprite_entry;
+        let image = match icon_to_image(icon, sprite_name, true, true) {
+            Ok((image, _)) => image,
+            Err(err) => {
+                errors.lock().unwrap().push(err);
+                return
+            }
+        };
+        let dynamic_image = DynamicImage::ImageRgba8(image.to_owned());
+        if let Err(err) = return_image(image, icon) {
+            errors.lock().unwrap().push(err.to_string());
+            return
+        }
+        output_states.lock().unwrap().push(IconState {
+            name: sprite_name.to_owned(),
+            dirs: 1,
+            frames: 1,
+            delay: Option::None,
+            loop_flag: dmi::icon::Looping::Indefinitely,
+            rewind: false,
+            movement: false,
+            unknown_settings: Option::None,
+            hotspot: Option::None,
+            images: vec![dynamic_image; 1],
+        });
+
+    });
+    if !errors.lock().unwrap().is_empty() {
+        return Err(errors.lock().unwrap().join("\n"));
+    }
+    Ok(output_states)
 }
 
 /// Given an array of 'transform arrays' onto from a shared IconObject base,
