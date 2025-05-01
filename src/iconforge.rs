@@ -580,10 +580,6 @@ fn generate_spritesheet(
                 .parse::<u32>()
                 .unwrap();
 
-            // Image used by PNG output mode
-
-
-            // List of DMI states for use by the DMI output mode
             if generate_dmi {
                 let output_states = match create_dmi_output_states(sprite_entries) {
                     Ok(output_states) => output_states,
@@ -603,25 +599,30 @@ fn generate_spritesheet(
                 }
                 {
                     zone!("write_spritesheet_dmi");
-                    let path = std::path::Path::new(&file_path);
-                    if let Err(err) = std::fs::create_dir_all(path.parent().unwrap()) {
-                        error.lock().unwrap().push(err.to_string());
-                        return;
-                    };
-                    let mut output_file = match File::create(path) {
-                        Ok(file) => file,
-                        Err(err) => {
+                    {
+                        zone!("create_file");
+                        let path = std::path::Path::new(&file_path);
+                        if let Err(err) = std::fs::create_dir_all(path.parent().unwrap()) {
                             error.lock().unwrap().push(err.to_string());
                             return;
+                        };
+                        let mut output_file = match File::create(path) {
+                            Ok(file) => file,
+                            Err(err) => {
+                                error.lock().unwrap().push(err.to_string());
+                                return;
+                            }
+                        };
+                        {
+                            zone!("save_dmi");
+                            Icon {
+                                version: DmiVersion::default(),
+                                width: base_width,
+                                height: base_height,
+                                states: output_states.lock().unwrap().to_owned(),
+                            }.save(&mut output_file).err();
                         }
-                    };
-
-                    Icon {
-                        version: DmiVersion::default(),
-                        width: base_width,
-                        height: base_height,
-                        states: output_states.lock().unwrap().to_owned(),
-                    }.save(&mut output_file).err();
+                    }
                 }
             } else {
                 let final_image = match create_png_image(base_width, base_height, sprite_entries) {
