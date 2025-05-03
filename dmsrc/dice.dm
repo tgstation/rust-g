@@ -6,6 +6,6 @@
  * * input: the xdy dice to roll; see syntax guide & examples for proper formatting.
  *
  * Returns:
- * * the total sum of the roll as a string.
+ * * the total sum of the roll.
  */
 #define rustg_roll_dice(input) text2num(RUSTG_CALL(RUST_G, "roll_dice")("[input]"))
