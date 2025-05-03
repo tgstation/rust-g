@@ -8,4 +8,4 @@
  * Returns:
  * * the total sum of the roll as a string.
  */
-#define rustg_roll_dice(input) RUSTG_CALL(RUST_G, "roll_dice")("[input]")
+#define rustg_roll_dice(input) text2num(RUSTG_CALL(RUST_G, "roll_dice")("[input]"))
