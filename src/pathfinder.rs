@@ -243,7 +243,7 @@ mod tests {
     fn test_register() {
         let json = std::fs::read_to_string("tests/rsc/ai_nodes_info.json").unwrap();
         assert!(register_nodes(&json).is_ok());
-        assert!(NODES.with(|nodes_ref| nodes_ref.borrow().len() != 0))
+        assert!(NODES.with(|nodes_ref| !nodes_ref.borrow().is_empty()))
     }
 
     #[test]
