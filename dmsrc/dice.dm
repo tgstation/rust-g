@@ -1,5 +1,4 @@
 /*
- *
  * Syntax Guide: https://docs.rs/caith/latest/caith/#syntax
  * Examples: https://docs.rs/caith/latest/caith/#examples
  *
