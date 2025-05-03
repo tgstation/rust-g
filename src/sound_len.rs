@@ -23,7 +23,7 @@ fn get_sound_length(sound_path: &str) -> Result<String> {
     // Try to open the file
     let sound_src = match File::open(sound_path) {
         Ok(r) => r,
-        Err(e) => return Err(SoundLen(format!("Couldn't open file, {}", e))),
+        Err(e) => return Err(SoundLen(format!("Couldn't open file, {e}"))),
     };
 
     // Audio probe things
@@ -41,7 +41,7 @@ fn get_sound_length(sound_path: &str) -> Result<String> {
 
     let probed = match get_probe().format(&hint, mss, &fmt_opts, &meta_opts) {
         Ok(r) => r,
-        Err(e) => return Err(SoundLen(format!("Probe error: {}", e))),
+        Err(e) => return Err(SoundLen(format!("Probe error: {e}"))),
     };
 
     match sound_length_simple(&probed) {
@@ -98,19 +98,19 @@ fn sound_length_decode(probed: ProbeResult) -> Result<f64> {
     let decoder_opts: DecoderOptions = Default::default();
     let mut decoder = match get_codecs().make(&track.codec_params, &decoder_opts) {
         Ok(r) => r,
-        Err(e) => return Err(SoundLen(format!("Decoder creation error: {}", e))),
+        Err(e) => return Err(SoundLen(format!("Decoder creation error: {e}"))),
     };
 
     // Try to grab a data packet from the container
     let encoded_packet = match format.next_packet() {
         Ok(r) => r,
-        Err(e) => return Err(SoundLen(format!("Next_packet error: {}", e))),
+        Err(e) => return Err(SoundLen(format!("Next_packet error: {e}"))),
     };
 
     // Try to decode the data packet
     let decoded_packet = match decoder.decode(&encoded_packet) {
         Ok(r) => r,
-        Err(e) => return Err(SoundLen(format!("Decode error: {}", e))),
+        Err(e) => return Err(SoundLen(format!("Decode error: {e}"))),
     };
 
     // Grab the sample rate from the spec of the buffer.

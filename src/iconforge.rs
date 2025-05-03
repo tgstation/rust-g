@@ -332,7 +332,7 @@ fn cache_valid(input_hash: &str, dmi_hashes_in: &str, sprites_in: &str) -> Resul
                             if fail_reason.read().unwrap().is_some() {
                                 return;
                             }
-                            *fail_reason.write().unwrap() = Some(format!("ERROR: Error while hashing dmi_path '{}': {}", dmi_path, err));
+                            *fail_reason.write().unwrap() = Some(format!("ERROR: Error while hashing dmi_path '{dmi_path}': {err}"));
                         }
                     }
                 }
@@ -340,7 +340,7 @@ fn cache_valid(input_hash: &str, dmi_hashes_in: &str, sprites_in: &str) -> Resul
                     if fail_reason.read().unwrap().is_some() {
                         return;
                     }
-                    *fail_reason.write().unwrap() = Some(format!("Input hash matched, but no dmi_hash existed for DMI: '{}'", dmi_path));
+                    *fail_reason.write().unwrap() = Some(format!("Input hash matched, but no dmi_hash existed for DMI: '{dmi_path}'"));
                 }
             }
         });
@@ -565,7 +565,7 @@ fn generate_spritesheet(
         .par_iter()
         .for_each(|(size_id, icon_objects)| {
             zone!("join_sprites");
-            let file_path = format!("{}{}_{}.png", file_path, spritesheet_name, size_id);
+            let file_path = format!("{file_path}{spritesheet_name}_{size_id}.png");
             let size_data: Vec<&str> = size_id.split('x').collect();
             let base_width = size_data
                 .first()
@@ -611,8 +611,7 @@ fn generate_spritesheet(
     let sizes: Vec<String> = size_to_icon_objects
         .lock()
         .unwrap()
-        .iter()
-        .map(|(k, _v)| k)
+        .keys()
         .cloned()
         .collect();
 
@@ -773,7 +772,7 @@ fn filepath_to_dmi(icon_path: &str) -> Result<Arc<Icon>, String> {
     let icon_file = match File::open(icon_path) {
         Ok(icon_file) => icon_file,
         Err(err) => {
-            return Err(format!("Failed to open DMI '{}' - {}", icon_path, err));
+            return Err(format!("Failed to open DMI '{icon_path}' - {err}"));
         }
     };
     let reader = BufReader::new(icon_file);
@@ -783,7 +782,7 @@ fn filepath_to_dmi(icon_path: &str) -> Result<Arc<Icon>, String> {
         dmi = match Icon::load(reader) {
             Ok(dmi) => dmi,
             Err(err) => {
-                return Err(format!("DMI '{}' failed to parse - {}", icon_path, err));
+                return Err(format!("DMI '{icon_path}' failed to parse - {err}"));
             }
         };
     }
@@ -810,10 +809,7 @@ fn icon_to_image(
     if cached {
         zone!("check_rgba_image_exists");
         if icon.icon_hash_input.is_empty() {
-            return Err(format!(
-                "No icon_hash generated for {} {}",
-                icon, sprite_name
-            ));
+            return Err(format!("No icon_hash generated for {icon} {sprite_name}"));
         }
         if let Some(entry) = ICON_STATES.get(&icon.icon_hash_input) {
             return Ok((entry.value().clone(), true));
@@ -855,7 +851,7 @@ fn icon_to_image(
     Ok(match state.get_image(&dir, icon.frame) {
         Ok(image) => (image.to_rgba8(), false),
         Err(err) => {
-            return Err(format!("Error getting image for {}: {}", sprite_name, err));
+            return Err(format!("Error getting image for {sprite_name}: {err}"));
         }
     })
 }
@@ -865,8 +861,7 @@ fn return_image(image: RgbaImage, icon: &IconObject) -> Result<(), Error> {
     zone!("insert_rgba_image");
     if icon.icon_hash_input.is_empty() {
         return Err(Error::IconForge(format!(
-            "No icon_hash_input generated for {}",
-            icon
+            "No icon_hash_input generated for {icon}"
         )));
     }
     ICON_STATES.insert(icon.icon_hash_input.to_owned(), image);
@@ -904,7 +899,7 @@ fn blend_color(
         }
 
         if let Err(err) = hex::decode_to_slice(hex, &mut color2) {
-            return Err(format!("Decoding hex color {} failed: {}", color, err));
+            return Err(format!("Decoding hex color {color} failed: {err}"));
         }
     }
     for x in 0..image.width() {
@@ -950,7 +945,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
         Transform::BlendIcon { icon, blend_mode } => {
             zone!("blend_icon");
             let (mut other_image, cached) =
-                icon_to_image(icon, &format!("Transform blend_icon {}", icon), true, false)?;
+                icon_to_image(icon, &format!("Transform blend_icon {icon}"), true, false)?;
 
             if !cached {
                 apply_all_transforms(&mut other_image, &icon.transform)?;
@@ -991,8 +986,7 @@ fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), S
             x1 -= 1;
             if x2 <= x1 || y2 <= y1 {
                 return Err(format!(
-                    "Invalid bounds {} {} to {} {} in crop transform",
-                    x1, y1, x2, y2
+                    "Invalid bounds {x1} {y1} to {x2} {y2} in crop transform"
                 ));
             }
 
@@ -1168,8 +1162,7 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
         Some(config) => config,
         None => {
             return Err(Error::IconForge(format!(
-                "Provided config_path {} has not been loaded by iconforge_load_gags_config!",
-                config_path
+                "Provided config_path {config_path} has not been loaded by iconforge_load_gags_config!"
             )));
         }
     };
@@ -1196,7 +1189,7 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
         let icon_state = match first_matched_state {
             Some(state) => state,
             None => {
-                errors.lock().unwrap().push(format!("GAGS state {} for GAGS config {} had no matching icon_states in any layers!", icon_state_name, config_path));
+                errors.lock().unwrap().push(format!("GAGS state {icon_state_name} for GAGS config {config_path} had no matching icon_states in any layers!"));
                 return;
             }
         };
@@ -1246,10 +1239,7 @@ fn gags(config_path: &str, colors: &str, output_dmi_path: &str) -> Result<String
         }
         .save(&mut output_file))
         {
-            return Err(Error::IconForge(format!(
-                "Error during icon saving: {}",
-                err
-            )));
+            return Err(Error::IconForge(format!("Error during icon saving: {err}")));
         }
     }
 
@@ -1269,14 +1259,14 @@ fn gags_internal(
     let gags_data = match GAGS_CACHE.get(config_path) {
         Some(config) => config,
         None => {
-            return Err(format!("Provided config_path {} has not been loaded by iconforge_load_gags_config (from gags_internal)!", config_path));
+            return Err(format!("Provided config_path {config_path} has not been loaded by iconforge_load_gags_config (from gags_internal)!"));
         }
     };
 
     let layer_groups = match gags_data.config.get(icon_state) {
         Some(data) => data,
         None => {
-            return Err(format!("Provided config_path {} did not contain requested icon_state {} for reference type.", config_path, icon_state));
+            return Err(format!("Provided config_path {config_path} did not contain requested icon_state {icon_state} for reference type."));
         }
     };
     {
@@ -1376,7 +1366,7 @@ fn generate_layer_groups_for_iconstate(
     }
     match new_images {
         Some(images) => Ok(images),
-        None => Err(format!("No image found for GAGS state {}", state_name)),
+        None => Err(format!("No image found for GAGS state {state_name}")),
     }
 }
 
@@ -1655,7 +1645,7 @@ impl BlendMode {
             2 => Ok(BlendMode::Multiply),
             3 => Ok(BlendMode::Overlay),
             6 => Ok(BlendMode::Underlay),
-            _ => Err(format!("blend_mode '{}' is not supported!", blend_mode)),
+            _ => Err(format!("blend_mode '{blend_mode}' is not supported!")),
         }
     }
 
@@ -1666,7 +1656,7 @@ impl BlendMode {
             "multiply" => Ok(BlendMode::Multiply),
             "overlay" => Ok(BlendMode::Overlay),
             "underlay" => Ok(BlendMode::Underlay),
-            _ => Err(format!("blend_mode '{}' is not supported!", blend_mode)),
+            _ => Err(format!("blend_mode '{blend_mode}' is not supported!")),
         }
     }
 }
