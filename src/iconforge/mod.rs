@@ -204,10 +204,13 @@ fn generate_spritesheet(
     sprites: &str,
     hash_icons: &str,
     generate_dmi: &str,
+    flatten: &str,
 ) -> std::result::Result<String, Error> {
     zone!("generate_spritesheet");
     let hash_icons: bool = hash_icons == "1";
     let generate_dmi: bool = generate_dmi == "1";
+    // PNGs cannot be non-flat
+    let flatten: bool = !generate_dmi || flatten == "1";
     let error = Arc::new(Mutex::new(Vec::<String>::new()));
     let dmi_hashes = DashMap::<String, String>::new();
 
@@ -311,7 +314,7 @@ fn generate_spritesheet(
                 &sprite_name,
                 false,
                 false,
-                !generate_dmi,
+                flatten,
             ) {
                 Ok(icon_data) => icon_data,
                 Err(err) => {
@@ -344,7 +347,7 @@ fn generate_spritesheet(
                     &unique_icons.into_iter().collect(),
                     base_icon_data.clone(),
                     0,
-                    !generate_dmi,
+                    flatten,
                 ) {
                     error.lock().unwrap().push(err);
                 }
@@ -362,7 +365,7 @@ fn generate_spritesheet(
             sprite_name,
             true,
             true,
-            !generate_dmi, // PNGs cannot contain multiple frames/dirs or things will go BADLY
+            flatten,
         ) {
             Ok(image) => image,
             Err(err) => {
