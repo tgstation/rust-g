@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use serde::Serialize;
+use std::str::FromStr;
 
 #[derive(Clone)]
 pub struct Rgba {

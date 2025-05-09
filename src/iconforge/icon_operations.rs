@@ -6,6 +6,8 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::sync::{Arc, Mutex};
 use tracy_full::zone;
 
+use super::UniversalIconData;
+
 pub fn blend_color(
     image: &mut RgbaImage,
     color: &String,
@@ -60,10 +62,7 @@ pub fn blend_icon(
     Ok(())
 }
 
-pub fn crop(
-    image: &mut RgbaImage,
-    x1: i32, y1: i32, x2: i32, y2: i32
-) -> Result<(), String> {
+pub fn crop(image: &mut RgbaImage, x1: i32, y1: i32, x2: i32, y2: i32) -> Result<(), String> {
     zone!("crop");
 
     let i_width = image.width();
@@ -75,7 +74,8 @@ pub fn crop(
         ));
     }
 
-    let (mut x1, mut y1, mut x2, mut y2) = byond_crop_to_image_coords(i_height as i32, x1, y1, x2, y2);
+    let (mut x1, mut y1, mut x2, mut y2) =
+        byond_crop_to_image_coords(i_height as i32, x1, y1, x2, y2);
 
     // Check for silly expansion crops and add transparency in the gaps.
     if x1 < 0 || x2 > i_width as i32 || y1 < 0 || y2 > i_height as i32 {
@@ -126,7 +126,13 @@ pub fn crop(
     Ok(())
 }
 
-pub fn byond_crop_to_image_coords(image_height: i32, x1: i32, y1: i32, x2: i32, y2: i32) -> (i32, i32, i32, i32) {
+pub fn byond_crop_to_image_coords(
+    image_height: i32,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+) -> (i32, i32, i32, i32) {
     // BYOND indexes from 1,1! how silly of them. We'll just fix this here.
     // Crop(1,1,1,1) is a valid statement. Save us.
     // Convert from BYOND (0,0 is bottom left) to Rust (0,0 is top left)
@@ -135,6 +141,7 @@ pub fn byond_crop_to_image_coords(image_height: i32, x1: i32, y1: i32, x2: i32, 
 }
 
 pub fn scale(image: &mut RgbaImage, width: u32, height: u32) {
+    zone!("scale");
     let old_width = image.width() as usize;
     let old_height = image.height() as usize;
     let x_ratio = old_width as f32 / width as f32;
@@ -148,6 +155,48 @@ pub fn scale(image: &mut RgbaImage, width: u32, height: u32) {
         }
     }
     *image = new_image;
+}
+
+/// Scales a set of images.
+pub fn scale_images(images: Vec<DynamicImage>, width: u32, height: u32) -> Vec<DynamicImage> {
+    zone!("scale_images");
+    images
+        .into_par_iter()
+        .map(|image: DynamicImage| {
+            zone!("scale_image");
+            let mut new_image = image.clone().into_rgba8();
+            scale(&mut new_image, width, height);
+            DynamicImage::ImageRgba8(new_image)
+        })
+        .collect()
+}
+
+/// Crops a set of images.
+pub fn crop_images(
+    images: Vec<DynamicImage>,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+) -> Result<Vec<DynamicImage>, Error> {
+    zone!("crop_images");
+    let errors = Arc::new(Mutex::new(Vec::<String>::new()));
+    let images_out = images
+        .into_par_iter()
+        .map(|image| {
+            zone!("crop_image");
+            let mut new_image = image.clone().into_rgba8();
+            if let Err(err) = crop(&mut new_image, x1, y1, x2, y2) {
+                errors.lock().unwrap().push(err);
+            }
+            DynamicImage::ImageRgba8(new_image)
+        })
+        .collect();
+    let errors_unlock = errors.lock().unwrap();
+    if !errors_unlock.is_empty() {
+        return Err(Error::IconForge(errors_unlock.join("\n")));
+    }
+    Ok(images_out)
 }
 
 /// Blends a set of images with a color.
@@ -174,6 +223,127 @@ pub fn blend_images_color(
         return Err(Error::IconForge(errors_unlock.join("\n")));
     }
     Ok(images_out)
+}
+
+/// Blends a set of images with another set of images.
+/// The frame and dir counts of first_matched_state are mutated to match the new icon.
+pub fn blend_images_other_universal(
+    image_data: Arc<UniversalIconData>,
+    image_data_other: Arc<UniversalIconData>,
+    blend_mode: &blending::BlendMode,
+) -> Result<UniversalIconData, Error> {
+    zone!("blend_images_other_universal");
+    let errors = Arc::new(Mutex::new(Vec::<String>::new()));
+    let expected_length_first = image_data.dirs as u32 * image_data.frames;
+    // Make sure our logic sound... First and last should correctly match these two Vecs at all times, but this assumption might be incorrect.
+    if expected_length_first != image_data.images.len() as u32 {
+        return Err(Error::IconForge(format!(
+            "Error during blend_images_other - the base set of images did not contain the correct amount of images (contains {}, it should contain {expected_length_first}) to match the amount of dirs ({}) or frames ({}) from the first icon state. This shouldn't ever happen!",
+            image_data.images.len(), image_data.dirs, image_data.frames
+        )));
+    }
+    let expected_length_last = image_data_other.dirs as u32 * image_data_other.frames;
+    if expected_length_last != image_data_other.images.len() as u32 {
+        return Err(Error::IconForge(format!(
+            "Error during blend_images_other - the blending set of images did not contain the correct amount of images (contains {}, it should contain {expected_length_last}) to match the amount of dirs ({}) or frames ({}) from the last icon state. This shouldn't ever happen!",
+            image_data_other.images.len(), image_data_other.dirs, image_data_other.frames
+        )));
+    }
+    let mut images = image_data.images.clone();
+    let mut images_other = image_data_other.images.clone();
+    let mut frames_out = image_data.frames;
+    let mut delay_out = image_data.delay.clone();
+    // If more custom handling is added in the future, this could be mutable
+    let /*mut*/ dirs_out = image_data.dirs;
+
+    // Now we can complain to the user to handle a difference in length.
+    if image_data.dirs != image_data_other.dirs {
+        // We can handle the specific case where there's only one dir being blended onto multiple. Copy the icon for each frame onto all dirs.
+        if image_data.dirs > image_data_other.dirs && image_data_other.dirs == 1 {
+            // Loop backwards so that the frame indexes remain consistent while we iterate, since inserts shift the array right
+            for i in (0..(image_data_other.frames)).rev() {
+                // Add the missing dirs between frames
+                for _ in 0..(image_data.dirs - 1) {
+                    // Insert after the current frame index
+                    images_other.insert(
+                        (i + 1) as usize,
+                        images_other.get(i as usize).unwrap().clone(),
+                    );
+                }
+            }
+        } else {
+            return Err(Error::IconForge(format!(
+                "Attempted to blend two icon states with different dir amounts with {} and {} dirs respectively.",
+                image_data.dirs, image_data_other.dirs
+            )));
+        }
+    }
+
+    if image_data.frames != image_data_other.frames {
+        // We can handle the specific case where there's only one frame on the base and the other has more frames. Simply add copies of that first frame.
+        if image_data_other.frames > 1 && image_data.frames == 1 {
+            for _ in 0..(image_data_other.frames - 1) {
+                // Copy all dirs for each frame
+                for i in 0..(image_data.dirs) {
+                    images.push(images.get(i as usize).unwrap().clone());
+                }
+            }
+            // Update the output IconState's frame count, because the values from the first state are used for the final result.
+            frames_out = image_data_other.frames;
+            // Copy the delays as well
+            delay_out = image_data_other.delay.to_owned();
+        } else {
+            return Err(Error::IconForge(format!(
+                "Attempted to blend two icon states with different frame amounts - with {} and {} frames respectively.",
+                image_data.frames, image_data_other.frames
+            )));
+        }
+    }
+    let images_out: Vec<DynamicImage> = if images_other.len() == 1 {
+        // This is useful in the case where the something with 4+ dirs blends with 1dir
+        let first_image = images_other.first().unwrap().clone().into_rgba8();
+        images
+            .into_par_iter()
+            .map(|image| {
+                zone!("blend_image_other_simple");
+                let mut new_image = image.clone().into_rgba8();
+                match blend_icon(&mut new_image, &first_image, blend_mode) {
+                    Ok(_) => (),
+                    Err(error) => {
+                        errors.lock().unwrap().push(error);
+                    }
+                };
+                DynamicImage::ImageRgba8(new_image)
+            })
+            .collect()
+    } else {
+        (images, images_other)
+            .into_par_iter()
+            .map(|(image, image2)| {
+                zone!("blend_image_other");
+                let mut new_image = image.clone().into_rgba8();
+                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode) {
+                    Ok(_) => (),
+                    Err(error) => {
+                        errors.lock().unwrap().push(error);
+                    }
+                };
+                DynamicImage::ImageRgba8(new_image)
+            })
+            .collect()
+    };
+    let errors_unlock = errors.lock().unwrap();
+    if !errors_unlock.is_empty() {
+        return Err(Error::IconForge(errors_unlock.join("\n")));
+    }
+    Ok(UniversalIconData {
+        images: images_out,
+        frames: frames_out,
+        dirs: dirs_out,
+        delay: delay_out,
+        loop_flag: image_data.loop_flag,
+        rewind: image_data.rewind,
+    })
 }
 
 /// Blends a set of images with another set of images.

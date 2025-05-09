@@ -1,6 +1,6 @@
-use std::hash::BuildHasherDefault;
 use dashmap::DashMap;
 use serde::Serialize;
+use std::hash::BuildHasherDefault;
 use twox_hash::XxHash64;
 
 #[derive(Serialize)]

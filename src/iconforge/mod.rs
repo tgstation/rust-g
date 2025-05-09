@@ -2,16 +2,16 @@
 // Developed by itsmeow
 pub mod blending;
 pub mod byond;
-pub mod image_cache;
 pub mod gags;
 pub mod icon_operations;
+pub mod image_cache;
 pub mod spritesheet;
 use crate::{
     error::Error,
     hash::{file_hash, string_hash},
 };
 use dashmap::{DashMap, DashSet};
-use dmi::icon::{DmiVersion, Icon, IconState};
+use dmi::icon::{DmiVersion, Icon, IconState, Looping};
 use image::{DynamicImage, RgbaImage};
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -44,6 +44,16 @@ pub struct UniversalIcon {
     transform: Vec<Transform>,
 }
 
+#[derive(Clone)]
+pub struct UniversalIconData {
+    images: Vec<DynamicImage>,
+    frames: u32,
+    dirs: u8,
+    delay: Option<Vec<f32>>,
+    loop_flag: Looping,
+    rewind: bool,
+}
+
 impl std::fmt::Display for UniversalIcon {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -62,7 +72,7 @@ impl UniversalIcon {
             icon_state: self.icon_state.to_owned(),
             dir: self.dir,
             frame: self.frame,
-            transform: Vec::new()
+            transform: Vec::new(),
         })
     }
 }
@@ -201,13 +211,15 @@ fn generate_spritesheet(
     let error = Arc::new(Mutex::new(Vec::<String>::new()));
     let dmi_hashes = DashMap::<String, String>::new();
 
-    let size_to_icon_objects = Arc::new(Mutex::new(
-        HashMap::<String, Vec<(&String, &UniversalIcon)>>::new(),
-    ));
-    let sprites_objects =
-        DashMap::<String, spritesheet::SpritesheetEntry, BuildHasherDefault<XxHash64>>::with_hasher(
-            BuildHasherDefault::<XxHash64>::default(),
-        );
+    let size_to_icon_objects = Arc::new(Mutex::new(HashMap::<
+        String,
+        Vec<(&String, &UniversalIcon)>,
+    >::new()));
+    let sprites_objects = DashMap::<
+        String,
+        spritesheet::SpritesheetEntry,
+        BuildHasherDefault<XxHash64>,
+    >::with_hasher(BuildHasherDefault::<XxHash64>::default());
 
     let tree_bases = Arc::new(Mutex::new(HashMap::<
         UniversalIcon,
@@ -294,9 +306,14 @@ fn generate_spritesheet(
                     return;
                 }
             };
-            let (base_image, _) = match image_cache::icon_to_image(first_icon, &sprite_name, false, false)
-            {
-                Ok(image) => image,
+            let (base_icon_data, _) = match image_cache::universal_icon_to_images(
+                first_icon,
+                &sprite_name,
+                false,
+                false,
+                !generate_dmi,
+            ) {
+                Ok(icon_data) => icon_data,
                 Err(err) => {
                     error.lock().unwrap().push(err);
                     return;
@@ -319,16 +336,15 @@ fn generate_spritesheet(
                 });
             }
             if let Some(entry) = no_transforms {
-                if let Err(err) = image_cache::return_image(base_image.clone(), entry) {
-                    error.lock().unwrap().push(err.to_string());
-                }
+                image_cache::cache_transformed_images(entry, base_icon_data.clone());
             }
             {
                 zone!("transform_all_leaves");
                 if let Err(err) = transform_leaves(
                     &unique_icons.into_iter().collect(),
-                    base_image,
+                    base_icon_data.clone(),
                     0,
+                    !generate_dmi,
                 ) {
                     error.lock().unwrap().push(err);
                 }
@@ -341,7 +357,13 @@ fn generate_spritesheet(
         let (sprite_name, icon) = sprite_entry;
 
         // get RgbaImage, it should already be transformed, so it must be cached.
-        let (image, _) = match image_cache::icon_to_image(icon, sprite_name, true, true) {
+        let (image_data, _) = match image_cache::universal_icon_to_images(
+            icon,
+            sprite_name,
+            true,
+            true,
+            !generate_dmi, // PNGs cannot contain multiple frames/dirs or things will go BADLY
+        ) {
             Ok(image) => image,
             Err(err) => {
                 error.lock().unwrap().push(err);
@@ -349,13 +371,18 @@ fn generate_spritesheet(
             }
         };
 
+        let first = match image_data.images.first() {
+            Some(first) => first,
+            None => {
+                error.lock().unwrap().push(format!("No images contained in output data for \"{sprite_name}\"! This shouldn't happen..."));
+                return;
+            }
+        };
+
         {
             zone!("create_game_metadata");
             // Generate the metadata used by the game
-            let size_id = format!("{}x{}", image.width(), image.height());
-            if let Err(err) = image_cache::return_image(image, icon) {
-                error.lock().unwrap().push(err.to_string());
-            }
+            let size_id = format!("{}x{}", first.width(), first.height());
             let icon_position;
             {
                 zone!("insert_into_size_map");
@@ -481,7 +508,9 @@ fn generate_spritesheet(
         sprites_hash,
         error: error.lock().unwrap().join("\n"),
     };
-    Ok(serde_json::to_string::<spritesheet::SpritesheetResult>(&returned)?)
+    Ok(serde_json::to_string::<spritesheet::SpritesheetResult>(
+        &returned,
+    )?)
 }
 
 fn create_png_image(
@@ -494,20 +523,22 @@ fn create_png_image(
     for (idx, sprite_entry) in sprite_entries.iter().enumerate() {
         zone!("join_sprite_png");
         let (sprite_name, icon) = *sprite_entry;
-        let image = match image_cache::icon_to_image(icon, sprite_name, true, true) {
-            Ok((image, _)) => image,
-            Err(err) => {
-                return Err(err);
-            }
-        };
+        let image_data =
+            match image_cache::universal_icon_to_images(icon, sprite_name, true, true, true) {
+                Ok((image, _)) => image,
+                Err(err) => {
+                    return Err(err);
+                }
+            };
+        if image_data.images.len() > 1 {
+            return Err(format!("More than one image (non-flattened) sprite {sprite_name} in PNG spritesheet for icon {icon}!"));
+        }
+        let image = image_data.images.first().unwrap().to_rgba8();
         let base_x: u32 = base_width * idx as u32;
         for x in 0..image.width() {
             for y in 0..image.height() {
                 final_image.put_pixel(base_x + x, y, *image.get_pixel(x, y))
             }
-        }
-        if let Err(err) = image_cache::return_image(image, icon) {
-            return Err(err.to_string());
         }
     }
     Ok(final_image)
@@ -522,29 +553,25 @@ fn create_dmi_output_states(
     sprite_entries.par_iter().for_each(|sprite_entry| {
         zone!("create_output_state_dmi");
         let (sprite_name, icon) = *sprite_entry;
-        let image = match image_cache::icon_to_image(icon, sprite_name, true, true) {
-            Ok((image, _)) => image,
-            Err(err) => {
-                errors.lock().unwrap().push(err);
-                return;
-            }
-        };
-        let dynamic_image = DynamicImage::ImageRgba8(image.to_owned());
-        if let Err(err) = image_cache::return_image(image, icon) {
-            errors.lock().unwrap().push(err.to_string());
-            return;
-        }
+        let image_data =
+            match image_cache::universal_icon_to_images(icon, sprite_name, true, true, false) {
+                Ok((image, _)) => image,
+                Err(err) => {
+                    errors.lock().unwrap().push(err);
+                    return;
+                }
+            };
         output_states.lock().unwrap().push(IconState {
             name: sprite_name.to_owned(),
-            dirs: 1,
-            frames: 1,
-            delay: Option::None,
-            loop_flag: dmi::icon::Looping::Indefinitely,
-            rewind: false,
+            dirs: image_data.dirs,
+            frames: image_data.frames,
+            delay: image_data.delay.clone(),
+            loop_flag: image_data.loop_flag,
+            rewind: image_data.rewind,
             movement: false,
             unknown_settings: Option::None,
             hotspot: Option::None,
-            images: vec![dynamic_image; 1],
+            images: image_data.images.to_vec(),
         });
     });
     if !errors.lock().unwrap().is_empty() {
@@ -555,7 +582,12 @@ fn create_dmi_output_states(
 
 /// Given an array of 'transform arrays' onto from a shared UniversalIcon base,
 /// recursively applies transforms in a tree structure. Maximum transform depth is 128.
-fn transform_leaves(icons: &Vec<&UniversalIcon>, image: RgbaImage, depth: u8) -> Result<(), String> {
+fn transform_leaves(
+    icons: &Vec<&UniversalIcon>,
+    image_data: Arc<UniversalIconData>,
+    depth: u8,
+    flatten: bool,
+) -> Result<(), String> {
     zone!("transform_leaf");
     if depth > 128 {
         return Err(String::from(
@@ -583,14 +615,14 @@ fn transform_leaves(icons: &Vec<&UniversalIcon>, image: RgbaImage, depth: u8) ->
         next_transforms
             .into_par_iter()
             .for_each(|(transform, mut associated_icons)| {
-                let mut altered_image;
-                {
-                    zone!("clone_image");
-                    altered_image = image.clone();
-                }
-                if let Err(err) = transform_image(&mut altered_image, &transform) {
-                    errors.lock().unwrap().push(err);
-                }
+                let altered_image_data =
+                    match transform_images(image_data.clone(), &transform, flatten) {
+                        Ok(data) => Arc::new(data),
+                        Err(err) => {
+                            errors.lock().unwrap().push(err);
+                            return;
+                        }
+                    };
                 {
                     zone!("filter_associated_icons");
                     associated_icons
@@ -602,13 +634,19 @@ fn transform_leaves(icons: &Vec<&UniversalIcon>, image: RgbaImage, depth: u8) ->
                                 && *icon.transform.last().unwrap() == transform
                             {
                                 associated_icons.swap_remove(idx);
-                                if let Err(err) = image_cache::return_image(altered_image.clone(), icon) {
-                                    errors.lock().unwrap().push(err.to_string());
-                                }
+                                image_cache::cache_transformed_images(
+                                    icon,
+                                    altered_image_data.clone(),
+                                );
                             }
                         });
                 }
-                if let Err(err) = transform_leaves(&associated_icons, altered_image, depth + 1) {
+                if let Err(err) = transform_leaves(
+                    &associated_icons,
+                    altered_image_data.clone(),
+                    depth + 1,
+                    flatten,
+                ) {
                     errors.lock().unwrap().push(err);
                 }
             });
@@ -636,50 +674,89 @@ fn icon_to_icons(icon_in: &UniversalIcon) -> Vec<&UniversalIcon> {
     icons
 }
 
-fn apply_all_transforms(image: &mut RgbaImage, transforms: &Vec<Transform>) -> Result<(), String> {
+fn apply_all_transforms(
+    image_data: Arc<UniversalIconData>,
+    transforms: &Vec<Transform>,
+    flatten: bool,
+) -> Result<Arc<UniversalIconData>, String> {
     let mut errors = Vec::<String>::new();
+    let mut last_image_data = image_data;
     for transform in transforms {
-        if let Err(error) = transform_image(image, transform) {
-            errors.push(error);
+        match transform_images(last_image_data.clone(), transform, flatten) {
+            Ok(new_image_data) => last_image_data = Arc::new(new_image_data),
+            Err(error) => errors.push(error),
         }
     }
     if !errors.is_empty() {
         return Err(errors.join("\n"));
     }
-    Ok(())
+    Ok(last_image_data)
 }
 
-/// Applies transforms to a RgbaImage.
-fn transform_image(image: &mut RgbaImage, transform: &Transform) -> Result<(), String> {
-    zone!("transform_image");
+/// Applies transforms to UniversalIconData.
+fn transform_images(
+    image_data: Arc<UniversalIconData>,
+    transform: &Transform,
+    flatten: bool,
+) -> Result<UniversalIconData, String> {
+    zone!("transform_images");
+    let images: Vec<DynamicImage>;
+    let mut frames = image_data.frames;
+    let mut dirs = image_data.dirs;
+    let mut delay = image_data.delay.to_owned();
+    let loop_flag = image_data.loop_flag;
+    let rewind = image_data.rewind;
     match transform {
         Transform::BlendColor { color, blend_mode } => {
-            icon_operations::blend_color(image, color, &blending::BlendMode::from_u8(blend_mode)?)?
+            let blend_mode = &blending::BlendMode::from_u8(blend_mode)?;
+            match icon_operations::blend_images_color(image_data.images.clone(), color, blend_mode)
+            {
+                Ok(result_images) => {
+                    images = result_images;
+                }
+                Err(err) => {
+                    return Err(err.to_string());
+                }
+            }
         }
         Transform::BlendIcon { icon, blend_mode } => {
             zone!("blend_icon");
-            let (mut other_image, cached) =
-                image_cache::icon_to_image(icon, &format!("Transform blend_icon {icon}"), true, false)?;
+            let (mut other_image_data, cached) = image_cache::universal_icon_to_images(
+                icon,
+                &format!("Transform blend_icon {icon}"),
+                true,
+                false,
+                flatten,
+            )?;
 
             if !cached {
-                apply_all_transforms(&mut other_image, &icon.transform)?;
+                other_image_data =
+                    apply_all_transforms(other_image_data, &icon.transform, flatten)?;
             };
-            icon_operations::blend_icon(
-                image,
-                &other_image,
+            let new_out = icon_operations::blend_images_other_universal(
+                image_data,
+                other_image_data.clone(),
                 &blending::BlendMode::from_u8(blend_mode)?,
             )?;
-            if let Err(err) = image_cache::return_image(other_image, icon) {
-                return Err(err.to_string());
-            }
+            images = new_out.images;
+            frames = new_out.frames;
+            dirs = new_out.dirs;
+            delay = new_out.delay;
+            image_cache::cache_transformed_images(icon, other_image_data);
         }
         Transform::Scale { width, height } => {
-            zone!("scale");
-            icon_operations::scale(image, *width, *height);
+            images = icon_operations::scale_images(image_data.images.clone(), *width, *height);
         }
         Transform::Crop { x1, y1, x2, y2 } => {
-            icon_operations::crop(image, *x1, *y1, *x2, *y2)?;
+            images = icon_operations::crop_images(image_data.images.clone(), *x1, *y1, *x2, *y2)?;
         }
     }
-    Ok(())
+    Ok(UniversalIconData {
+        images,
+        frames,
+        dirs,
+        delay,
+        loop_flag,
+        rewind,
+    })
 }

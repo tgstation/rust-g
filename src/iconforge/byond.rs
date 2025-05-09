@@ -1,6 +1,6 @@
 use crate::{
     byond::catch_panic,
-    iconforge::{image_cache, cache_valid, gags, generate_spritesheet},
+    iconforge::{cache_valid, gags, generate_spritesheet, image_cache},
     jobs,
 };
 use tracy_full::frame;

@@ -1,9 +1,9 @@
-use crate::error::Error;
-use crate::iconforge::UniversalIcon;
+use crate::iconforge::{UniversalIcon, UniversalIconData};
 use dashmap::DashMap;
-use dmi::icon::Icon;
+use dmi::dirs::{ALL_DIRS, CARDINAL_DIRS};
+use dmi::icon::{dir_to_dmi_index, Icon};
 use dmi::{dirs::Dirs, icon::IconState};
-use image::RgbaImage;
+use image::DynamicImage;
 use once_cell::sync::Lazy;
 use std::fs::File;
 use std::hash::BuildHasherDefault;
@@ -12,9 +12,10 @@ use std::sync::Arc;
 use tracy_full::zone;
 use twox_hash::XxHash64;
 
-/// A cache of UniversalIcon to RgbaImage (with transforms applied! This can only contain COMPLETED sprites).
-static ICON_STATES: Lazy<DashMap<UniversalIcon, RgbaImage, BuildHasherDefault<XxHash64>>> =
-    Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
+/// A cache of UniversalIcon to UniversalIconData. These will not all have their transforms ready, but because they're mutably locked it's OK!
+static ICON_STATES: Lazy<
+    DashMap<UniversalIcon, Arc<UniversalIconData>, BuildHasherDefault<XxHash64>>,
+> = Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
 
 pub fn image_cache_contains(icon: &UniversalIcon) -> bool {
     ICON_STATES.contains_key(icon)
@@ -24,31 +25,32 @@ pub fn image_cache_clear() {
     ICON_STATES.clear();
 }
 
-/// Takes an UniversalIcon, gets its DMI, then picks out a RgbaImage for the IconState.
-/// Returns with True if the RgbaImage is pre-cached (and shouldn't have new transforms applied)
-/// Gives ownership over the image. Please return when you are done <3 (via cache::return_image)
-pub fn icon_to_image(
-    icon: &UniversalIcon,
+/// Takes an UniversalIcon, gets its DMI, then picks out a UniversalIconData for the IconState.
+/// If flatten is true, will output only one dir and frame (defaulting to SOUTH/1 if unscoped) regardless of the input uni_icon
+/// Returns with True if the UniversalIconData is pre-cached (and shouldn't have new transforms applied)
+pub fn universal_icon_to_images(
+    uni_icon: &UniversalIcon,
     sprite_name: &String,
     cached: bool,
     must_be_cached: bool,
-) -> Result<(RgbaImage, bool), String> {
-    zone!("icon_to_image");
+    flatten: bool,
+) -> Result<(Arc<UniversalIconData>, bool), String> {
+    zone!("universal_icon_to_images");
     if cached {
-        zone!("check_rgba_image_exists");
-        if let Some(entry) = ICON_STATES.get(icon) {
-            return Ok((entry.value().clone(), true));
+        zone!("check_image_cache");
+        if let Some(entry) = ICON_STATES.get(uni_icon) {
+            return Ok((entry.value().to_owned(), true));
         }
         if must_be_cached {
             return Err(String::from("Image not found in cache!"));
         }
     }
-    let dmi = filepath_to_dmi(&icon.icon_file)?;
+    let dmi = filepath_to_dmi(&uni_icon.icon_file)?;
     let mut matched_state: Option<&IconState> = None;
     {
         zone!("match_icon_state");
         for icon_state in &dmi.states {
-            if icon_state.name == icon.icon_state {
+            if icon_state.name == uni_icon.icon_state {
                 matched_state = Some(icon_state);
                 break;
             }
@@ -59,30 +61,111 @@ pub fn icon_to_image(
         None => {
             return Err(format!(
                 "Could not find associated icon state {} for {sprite_name}",
-                icon.icon_state
+                uni_icon.icon_state
             ));
         }
     };
 
-    let dir = match Dirs::from_bits(icon.dir.unwrap_or(1)) {
-        Some(dir) => dir,
-        None => {
-            return Err(format!("Invalid dir number {} for {sprite_name}", icon.dir.unwrap_or(1)));
+    let mut dirs = state.dirs as usize;
+    let mut dir_index = 0;
+
+    if let Some(dir_bits) = uni_icon.dir {
+        // Consider 0 to be "unscoped"
+        if dir_bits > 0 {
+            dirs = 1;
+            dir_index = match Dirs::from_bits(dir_bits) {
+                Some(dir) => {
+                    if (state.dirs == 1 && dir != Dirs::SOUTH)
+                        || (state.dirs == 4 && !CARDINAL_DIRS.contains(&dir))
+                        || (state.dirs == 8 && !ALL_DIRS.contains(&dir))
+                    {
+                        return Err(format!(
+                            "Dir specified {dir} is not in the set of valid dirs ({} dirs) for icon_state \"{}\" for {sprite_name}", state.dirs, state.name
+                        ));
+                    }
+                    match dir_to_dmi_index(&dir) {
+                        Some(index) => index,
+                        None => {
+                            return Err(format!(
+                                "Invalid dir in dir ordering {dir} for {sprite_name}"
+                            ));
+                        }
+                    }
+                }
+                None => {
+                    return Err(format!("Invalid dir number {dir_bits} for {sprite_name}"));
+                }
+            };
+        } else if flatten {
+            dirs = 1;
+            dir_index = 0;
         }
-    };
-    Ok(match state.get_image(&dir, icon.frame.unwrap_or(1)) {
-        Ok(image) => (image.to_rgba8(), false),
-        Err(err) => {
-            return Err(format!("Error getting image for {sprite_name}: {err}"));
+    } else if flatten {
+        dirs = 1;
+        dir_index = 0;
+    }
+
+    let mut frames = state.frames as usize;
+    let mut frame_offset: usize = 0;
+
+    if let Some(frame) = uni_icon.frame {
+        // Consider 0 to be "unscoped"
+        // Also no underflow please
+        if frame > 0 {
+            frames = 1;
+            frame_offset = frame as usize - 1;
+            if state.frames < frame {
+                return Err(format!(
+                    "Specified frame \"{frame}\" is larger than the number of frames ({}) for icon_state \"{}\" in sprite \"{sprite_name}\"",
+                    state.frames, state.name
+                ));
+            }
+        } else if flatten {
+            frames = 1;
+            frame_offset = 0;
         }
-    })
+    } else if flatten {
+        frames = 1;
+        frame_offset = 0;
+    }
+
+    let mut images: Vec<DynamicImage> = Vec::new();
+
+    for frame_index in frame_offset..(frame_offset + frames) {
+        for dir_offset in dir_index..(dir_index + dirs) {
+            match state
+                .images
+                .get((frame_index * state.dirs as usize) + dir_offset)
+            {
+                Some(image) => images.push(image.clone()),
+                None => {
+                    return Err(format!("Somehow got out of bounds image for dir {dir_index} and frame {frame_offset} on {sprite_name}!"));
+                }
+            }
+        }
+    }
+
+    let result = Arc::new(UniversalIconData {
+        images,
+        frames: frames as u32,
+        dirs: dirs as u8,
+        delay: if frames > 1 {
+            state.delay.to_owned()
+        } else {
+            None
+        },
+        loop_flag: state.loop_flag,
+        rewind: state.rewind,
+    });
+
+    ICON_STATES.insert(uni_icon.to_owned(), result.to_owned());
+
+    Ok((result, false))
 }
 
-/// Gives an image back to the cache, after it is done being used.
-pub fn return_image(image: RgbaImage, icon: &UniversalIcon) -> Result<(), Error> {
-    zone!("insert_rgba_image");
-    ICON_STATES.insert(icon.to_owned(), image);
-    Ok(())
+pub fn cache_transformed_images(uni_icon: &UniversalIcon, image_data: Arc<UniversalIconData>) {
+    zone!("cache_transformed_images");
+    ICON_STATES.insert(uni_icon.to_owned(), image_data.to_owned());
 }
 
 /* ---- DMI CACHING ---- */
