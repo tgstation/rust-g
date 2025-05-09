@@ -28,12 +28,12 @@ fn run_dm_tests(name: &str) {
     std::env::remove_var("RUST_BACKTRACE");
 
     let byond_bin = std::env::var("BYOND_BIN").expect("environment variable BYOND_BIN");
-    let byondexec = format!("{}/byondexec", byond_bin);
-    let dream_maker = format!("{}/DreamMaker", byond_bin);
-    let dream_daemon = format!("{}/DreamDaemon", byond_bin);
+    let byondexec = format!("{byond_bin}/byondexec");
+    let dream_maker = format!("{byond_bin}/DreamMaker");
+    let dream_daemon = format!("{byond_bin}/DreamDaemon");
 
-    let dme = format!("tests/dm/{}.dme", name);
-    let dmb = format!("tests/dm/{}.dmb", name);
+    let dme = format!("tests/dm/{name}.dme");
+    let dmb = format!("tests/dm/{name}.dmb");
 
     let target_dir = if cfg!(target_os = "linux") {
         "i686-unknown-linux-gnu"
@@ -50,7 +50,7 @@ fn run_dm_tests(name: &str) {
     } else {
         "rust_g.dll"
     };
-    let rust_g = format!("target/{}/{}/{}", target_dir, profile, fname);
+    let rust_g = format!("target/{target_dir}/{profile}/{fname}");
 
     let output = Command::new("bash")
         .arg(&byondexec)
