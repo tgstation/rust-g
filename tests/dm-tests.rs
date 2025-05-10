@@ -24,6 +24,12 @@ fn hash() {
     run_dm_tests("hash");
 }
 
+#[cfg(feature = "dice")]
+#[test]
+fn dice() {
+    run_dm_tests("dice");
+}
+
 fn run_dm_tests(name: &str) {
     std::env::remove_var("RUST_BACKTRACE");
 
