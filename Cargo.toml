@@ -157,7 +157,7 @@ log = ["chrono"]
 sanitize = ["ammonia", "serde_json"]
 sound_len = ["symphonia"]
 sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
-time = []
+time = ["chrono"]
 toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
 
