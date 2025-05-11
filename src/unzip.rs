@@ -5,7 +5,7 @@ use std::path::Path;
 use zip::ZipArchive;
 
 struct UnzipPrep {
-    req: ureq::Request,
+    req: ureq::RequestBuilder<ureq::typestate::WithoutBody>,
     unzip_directory: String,
 }
 
@@ -28,10 +28,19 @@ byond_fn!(fn unzip_download_async(url, unzip_directory) {
 
 fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
     let unzip_path = Path::new(&prep.unzip_directory);
-    let response = prep.req.send_bytes(&[]).map_err(Box::new)?;
+    let response = prep.req.call().map_err(Box::new)?;
 
-    let mut content = Vec::new();
-    response.into_reader().read_to_end(&mut content)?;
+    const LIMIT: u64 = 100 * 1024 * 1024; // 100MB
+    let content_length: u64 = response.headers().get("Content-Length")
+        .and_then(|s| s.to_str().ok())
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    if content_length > LIMIT {
+        return Err(crate::error::Error::HttpTooBig);
+    }
+    let mut binding = response.into_body();
+    let body = binding.with_config().limit(LIMIT);
+    let content = body.read_to_vec().map_err(|e| crate::error::Error::HttpParse(e.to_string()))?;
 
     let reader = std::io::Cursor::new(content);
     let mut archive = ZipArchive::new(reader)?;

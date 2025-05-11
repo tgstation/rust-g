@@ -68,22 +68,28 @@ byond_fn!(fn http_check_request(id) {
 });
 
 // ----------------------------------------------------------------------------
-// Shared HTTP client state
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+const TLS_FEATURE: &str = if cfg!(feature = "native_tls") {
+    "+native_tls"
+} else if cfg!(feature = "rustls_tls") {
+    "+rustls_tls"
+} else {
+    ""
+};
 
+// Shared HTTP client for all requests (except for those with a custom timeout).
 pub static HTTP_CLIENT: Lazy<ureq::Agent> = Lazy::new(|| {
     ureq::Agent::new_with_config(
         ureq::Agent::config_builder()
             .http_status_as_error(false)
-            .user_agent(format!("{PKG_NAME}/{VERSION}"))
+            .user_agent(format!("{PKG_NAME}/{VERSION}{TLS_FEATURE}"))
             .build(),
     )
 });
 
 // ----------------------------------------------------------------------------
-// Request construction and execution
 
 struct RequestPrep {
     builder: http::request::Builder,
@@ -115,6 +121,7 @@ fn construct_request(
         RequestOptions {
             output_filename: None,
             body_filename: None,
+            timeout_seconds: None,
         }
     };
 
@@ -134,13 +141,27 @@ fn construct_request(
 }
 
 fn submit_request(prep: RequestPrep) -> Result<String> {
-    let mut response = HTTP_CLIENT
-        .run(
-            prep.builder
-                .body(prep.body.unwrap_or_default())
-                .map_err(|e| Error::HttpParse(e.to_string()))?,
-        )
-        .map_err(Box::new)?;
+    let request = prep.builder
+        .body(prep.body.unwrap_or_default())
+        .map_err(|e| Error::HttpParse(e.to_string()))?;
+
+    // Use the default HTTP_CLIENT if no timeout is specified,
+    // otherwise create a new agent with the specified timeout
+    let mut response = match prep.request_options.timeout_seconds {
+        Some(timeout_seconds) => {
+            let agent = ureq::Agent::new_with_config(
+                ureq::Agent::config_builder()
+                    .http_status_as_error(false)
+                    .user_agent(format!("{PKG_NAME}/{VERSION}{TLS_FEATURE}"))
+                    .timeout_global(Some(Duration::from_secs(timeout_seconds)))
+                    .build(),
+            );
+            agent.run(request).map_err(Box::new)?
+        },
+        None => {
+            HTTP_CLIENT.run(request).map_err(Box::new)?
+        }
+    };
 
     let headers: HashMap<String, String> = response
         .headers()
@@ -158,11 +179,18 @@ fn submit_request(prep: RequestPrep) -> Result<String> {
         Some(response.body_mut().read_to_string().map_err(Box::new)?)
     };
 
+    let status_code = response.status().as_u16();
+    let error = if (400..600).contains(&status_code) {
+        Some(format!("HTTP error: {}", status_code))
+    } else {
+        None
+    };
+
     let resp = Response {
-        status_code: response.status().as_u16(),
+        status_code,
         headers,
         body,
-        error: None,
+        error,
     };
 
     Ok(serde_json::to_string(&resp)?)

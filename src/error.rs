@@ -56,6 +56,9 @@ pub enum Error {
     #[cfg(feature = "http")]
     #[error("Unable to parse HTTP arguments: {0}")]
     HttpParse(String),
+    #[cfg(feature = "http")]
+    #[error("HTTP response over size limit")]
+    HttpTooBig,
 
     #[cfg(feature = "iconforge")]
     #[error("IconForge error: {0}")]
