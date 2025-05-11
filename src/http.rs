@@ -13,9 +13,9 @@ use ureq::http;
 #[derive(Deserialize)]
 struct RequestOptions {
     #[serde(default)]
-    output_filename: Option<String>,
+    input_filename: Option<String>,
     #[serde(default)]
-    body_filename: Option<String>,
+    output_filename: Option<String>,
     #[serde(default)]
     timeout_seconds: Option<u64>,
 }
@@ -120,12 +120,12 @@ fn construct_request(
     } else {
         RequestOptions {
             output_filename: None,
-            body_filename: None,
+            input_filename: None,
             timeout_seconds: None,
         }
     };
 
-    let body_to_send = if let Some(fname) = options.body_filename.clone() {
+    let body_to_send = if let Some(fname) = options.input_filename.clone() {
         Some(std::fs::read(fname)?)
     } else if !body.is_empty() {
         Some(body.as_bytes().to_vec())

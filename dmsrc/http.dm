@@ -16,14 +16,16 @@
 	var/body
 	var/headers
 	var/url
-	/// If present, the response body will be saved to this file.
-	var/output_file = null
 	/// If present, the request body will be read from this file.
 	var/input_file = null
+	/// If present, the response body will be saved to this file.
+	var/output_file = null
+	/// If present, request will timeout after this duration.
+	var/timeout_seconds
 
 	var/_raw_response
 
-/datum/http_request/proc/prepare(method, url, body = "", list/headers, output_file, input_file)
+/datum/http_request/proc/prepare(method, url, body = "", list/headers, output_file, input_file, timeout_seconds)
 	if (!length(headers))
 		headers = ""
 	else
@@ -33,8 +35,9 @@
 	src.url = url
 	src.body = body
 	src.headers = headers
-	src.output_file = output_file
 	src.input_file = input_file
+	src.output_file = output_file
+	src.timeout_seconds = timeout_seconds
 
 /datum/http_request/proc/execute_blocking()
 	_raw_response = rustg_http_request_blocking(method, url, body, headers, build_options())
@@ -52,11 +55,11 @@
 		in_progress = TRUE
 
 /datum/http_request/proc/build_options()
-	if (output_file || input_file)
-		. = json_encode(list(
-			"output_filename" = output_file,
-			"input_filename" = input_file
-		))
+	. = json_encode(list(
+		"input_filename" = (input_file ? input_file : null),
+		"output_filename" = (output_file ? output_file : null),
+		"timeout_seconds"=(timeout_seconds ? timeout_seconds : null)
+	))
 
 /datum/http_request/proc/is_complete()
 	if (isnull(id))
@@ -89,13 +92,14 @@
 	return R
 
 /datum/http_response
-	/// The HTTP Status code - e.g., "404"
+	/// The HTTP Status code - e.g., `"404"`
 	var/status_code
-	/// The response body - e.g., "{ "message": "No query results for xyz." }"
+	/// The response body - e.g., `{ "message": "No query results for xyz." }`
 	var/body
-	/// A list of headers - e.g., list("Content-Type" = "application/json")
+	/// A list of headers - e.g., list("Content-Type" = "application/json").
 	var/list/headers
 	/// If the request errored, this will be TRUE.
 	var/errored = FALSE
-	/// If the request errored, this will contain the error message - e.g., "status code 404"
+	/// If there was a 4xx/5xx error or the request failed to be sent, this will be the error message - e.g., `"HTTP error: 404"`
+	/// If it's the former, `status_code` will be set.
 	var/error
