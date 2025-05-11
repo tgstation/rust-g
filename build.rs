@@ -19,12 +19,12 @@ fn main() {
 
     // header
     let header_content = std::fs::read_to_string(feature_dm_file!("main")).unwrap();
-    writeln!(f, "{}", header_content).unwrap();
+    writeln!(f, "{header_content}").unwrap();
 
     // jobs is a dependency of other features
     if feature_dm_exists!("jobs") {
         let jobs_content = std::fs::read_to_string(feature_dm_file!("jobs")).unwrap();
-        writeln!(f, "{}", jobs_content).unwrap();
+        writeln!(f, "{jobs_content}").unwrap();
     }
 
     for (key, _value) in std::env::vars() {
