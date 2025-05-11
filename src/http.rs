@@ -1,11 +1,11 @@
 use crate::{error::Error, error::Result, jobs};
-use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use ureq::http;
+use std::sync::LazyLock;
 use std::time::Duration;
+use ureq::http;
+use serde::{Deserialize, Serialize};
 
 // ----------------------------------------------------------------------------
 // DM Interface
@@ -80,7 +80,7 @@ const TLS_FEATURE: &str = if cfg!(feature = "native_tls") {
 };
 
 // Shared HTTP client for all requests (except for those with a custom timeout).
-pub static HTTP_CLIENT: Lazy<ureq::Agent> = Lazy::new(|| {
+pub static HTTP_CLIENT: LazyLock<ureq::Agent> = LazyLock::new(|| {
     ureq::Agent::new_with_config(
         ureq::Agent::config_builder()
             .http_status_as_error(false)

@@ -137,7 +137,7 @@ hash = [
     "serde",
     "serde_json",
 ]
-http = ["ureq", "serde", "serde_json", "once_cell", "jobs"]
+http = ["ureq", "serde", "serde_json", "jobs"]
 iconforge = [
     "dashmap",
     "dep:dmi",
