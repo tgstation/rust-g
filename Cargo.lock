@@ -2608,7 +2608,6 @@ dependencies = [
  "mysql",
  "noise",
  "num-integer",
- "once_cell",
  "pathfinding",
  "percent-encoding",
  "png",

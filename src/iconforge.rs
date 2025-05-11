@@ -12,10 +12,8 @@ use dmi::{
     icon::{DmiVersion, Icon, IconState},
 };
 use image::{DynamicImage, Pixel, RgbaImage};
-use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::sync::RwLock;
 use std::{
     collections::HashMap,
@@ -24,21 +22,22 @@ use std::{
     io::BufReader,
     sync::{Arc, Mutex},
 };
+use std::{collections::HashSet, sync::LazyLock};
 use tracy_full::{frame, zone};
 use twox_hash::XxHash64;
 type SpriteJsonMap = HashMap<String, HashMap<String, IconObjectIO>, BuildHasherDefault<XxHash64>>;
 /// This is used to save time decoding 'sprites' a second time between the cache step and the generate step.
-static SPRITES_TO_JSON: Lazy<Arc<Mutex<SpriteJsonMap>>> = Lazy::new(|| {
+static SPRITES_TO_JSON: LazyLock<Arc<Mutex<SpriteJsonMap>>> = LazyLock::new(|| {
     Arc::new(Mutex::new(HashMap::with_hasher(BuildHasherDefault::<
         XxHash64,
     >::default())))
 });
 /// A cache of DMI filepath -> Icon objects.
-static ICON_FILES: Lazy<DashMap<String, Arc<Icon>, BuildHasherDefault<XxHash64>>> =
-    Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
+static ICON_FILES: LazyLock<DashMap<String, Arc<Icon>, BuildHasherDefault<XxHash64>>> =
+    LazyLock::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
 /// A cache of icon_hash_input to RgbaImage (with transforms applied! This can only contain COMPLETED sprites).
-static ICON_STATES: Lazy<DashMap<String, RgbaImage, BuildHasherDefault<XxHash64>>> =
-    Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
+static ICON_STATES: LazyLock<DashMap<String, RgbaImage, BuildHasherDefault<XxHash64>>> =
+    LazyLock::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
 
 byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites, hash_icons) {
     let file_path = file_path.to_owned();
@@ -1121,7 +1120,7 @@ struct GAGSData {
     config_icon: Arc<Icon>,
 }
 
-static GAGS_CACHE: Lazy<DashMap<String, GAGSData>> = Lazy::new(DashMap::new);
+static GAGS_CACHE: LazyLock<DashMap<String, GAGSData>> = LazyLock::new(DashMap::new);
 
 /// Loads a GAGS config and the requested DMIs into memory for use by iconforge_gags()
 fn load_gags_config(
