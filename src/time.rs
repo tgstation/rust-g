@@ -1,3 +1,4 @@
+use chrono::{FixedOffset, Local, Utc};
 use std::{
     cell::RefCell,
     collections::hash_map::{Entry, HashMap},
@@ -47,3 +48,24 @@ byond_fn!(
         ))
     }
 );
+
+byond_fn!(
+    fn formatted_timestamp(format, offset) {
+        format_timestamp(format, offset)
+    }
+);
+
+fn format_timestamp(format: &str, offset: &str) -> Option<String> {
+    if offset.is_empty() {
+        Some(Local::now().format(format).to_string())
+    } else {
+        let offset_seconds = offset.parse::<i32>().ok()? * 3600;
+        let timezone = FixedOffset::east_opt(offset_seconds)?;
+        Some(
+            Utc::now()
+                .with_timezone(&timezone)
+                .format(format)
+                .to_string(),
+        )
+    }
+}

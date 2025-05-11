@@ -5,6 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use ureq::http;
+use std::time::Duration;
 
 // ----------------------------------------------------------------------------
 // DM Interface
@@ -15,6 +16,8 @@ struct RequestOptions {
     output_filename: Option<String>,
     #[serde(default)]
     body_filename: Option<String>,
+    #[serde(default)]
+    timeout_seconds: Option<u64>,
 }
 
 #[derive(Serialize)]

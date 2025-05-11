@@ -199,7 +199,7 @@ If you're still having problems, ask in the [Coderbus Discord]'s
 [Rust]: https://rust-lang.org
 [Cargo]: https://doc.rust-lang.org/cargo/
 [rustup]: https://rustup.rs/
-[msvc]: https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15
+[msvc]: https://visualstudio.microsoft.com/visual-cpp-build-tools/
 [Coderbus Discord]: https://discord.gg/Vh8TJp9
 
 ## License

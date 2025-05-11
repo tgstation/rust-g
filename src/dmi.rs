@@ -1,5 +1,4 @@
 use crate::error::{Error, Result};
-use dmi::icon::Icon;
 use png::{Decoder, Encoder, OutputInfo, Reader};
 use std::{
     fs::{create_dir_all, File},
@@ -79,14 +78,18 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     let height = height.parse::<u32>()?;
 
     let bytes = data.as_bytes();
-    if bytes.len() % 7 != 0 {
-        return Err(Error::InvalidPngData);
-    }
 
     let mut result: Vec<u8> = Vec::new();
-    for pixel in bytes.chunks_exact(7) {
-        for channel in pixel[1..].chunks_exact(2) {
+    for pixel in bytes.split(|&b| b == b'#').skip(1) {
+        if pixel.len() != 6 && pixel.len() != 8 {
+            return Err(Error::InvalidPngData);
+        }
+        for channel in pixel.chunks_exact(2) {
             result.push(u8::from_str_radix(std::str::from_utf8(channel)?, 16)?);
+        }
+        // If only RGB is provided for any pixel we also add alpha
+        if pixel.len() == 6 {
+            result.push(255);
         }
     }
 
@@ -97,7 +100,7 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     }
 
     let mut encoder = Encoder::new(File::create(path)?, width, height);
-    encoder.set_color(png::ColorType::Rgb);
+    encoder.set_color(png::ColorType::Rgba);
     encoder.set_depth(png::BitDepth::Eight);
     let mut writer = encoder.write_header()?;
     Ok(writer.write_image_data(&result)?)
@@ -123,16 +126,23 @@ fn resize_png<P: AsRef<Path>>(
 ///
 /// Erroring at any point will produce an empty string
 fn read_states(path: &str) -> Result<String> {
-    let reader = BufReader::new(File::open(path)?);
-    let icon = Icon::load(reader).ok();
-    if icon.is_none() {
-        return Err(Error::InvalidPngData);
+    let file = File::open(path).map(BufReader::new)?;
+    let decoder = png::Decoder::new(file);
+    let reader = decoder.read_info().map_err(|_| Error::InvalidPngData)?;
+    let info = reader.info();
+    let mut states = Vec::<String>::new();
+    for ztxt in &info.compressed_latin1_text {
+        let text = ztxt.get_text()?;
+        text.lines()
+            .take_while(|line| !line.contains("# END DMI"))
+            .filter_map(|line| {
+                line.trim()
+                    .strip_prefix("state = \"")
+                    .and_then(|line| line.strip_suffix('"'))
+            })
+            .for_each(|state| {
+                states.push(state.to_owned());
+            });
     }
-    let states: Vec<_> = icon
-        .unwrap()
-        .states
-        .iter()
-        .map(|s| s.name.clone())
-        .collect();
     Ok(serde_json::to_string(&states)?)
 }
