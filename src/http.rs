@@ -1,11 +1,11 @@
 use crate::{error::Error, error::Result, jobs};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::sync::LazyLock;
 use std::time::Duration;
 use ureq::http;
-use serde::{Deserialize, Serialize};
 
 // ----------------------------------------------------------------------------
 // DM Interface
@@ -141,7 +141,8 @@ fn construct_request(
 }
 
 fn submit_request(prep: RequestPrep) -> Result<String> {
-    let request = prep.builder
+    let request = prep
+        .builder
         .body(prep.body.unwrap_or_default())
         .map_err(|e| Error::HttpParse(e.to_string()))?;
 
@@ -157,10 +158,8 @@ fn submit_request(prep: RequestPrep) -> Result<String> {
                     .build(),
             );
             agent.run(request).map_err(Box::new)?
-        },
-        None => {
-            HTTP_CLIENT.run(request).map_err(Box::new)?
         }
+        None => HTTP_CLIENT.run(request).map_err(Box::new)?,
     };
 
     let headers: HashMap<String, String> = response
