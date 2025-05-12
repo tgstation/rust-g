@@ -85,9 +85,7 @@ fn run_dm_tests(name: &str) {
 
 fn prepare_all_dmsrc_files() -> Vec<(String, String)> {
     let mut files_data = Vec::new();
-    let dmsrc_path = "x:\\repos\\rust-g\\dmsrc";
-
-    for entry in fs::read_dir(dmsrc_path).unwrap() {
+    for entry in fs::read_dir("dmsrc").unwrap() {
         let path = entry.unwrap().path();
 
         if path.extension().and_then(|s| s.to_str()) == Some("dm") {
