@@ -1,3 +1,4 @@
+use std::fs;
 use std::process::{Command, Output};
 
 #[cfg(feature = "git")]
@@ -24,7 +25,10 @@ fn hash() {
     run_dm_tests("hash");
 }
 
+
 fn run_dm_tests(name: &str) {
+    let files_data = prepare_all_dmsrc_files();
+
     std::env::remove_var("RUST_BACKTRACE");
 
     let byond_bin = std::env::var("BYOND_BIN").expect("environment variable BYOND_BIN");
@@ -75,6 +79,36 @@ fn run_dm_tests(name: &str) {
     dump(&output);
     generic_check(&output);
     runtime_check(&output);
+
+    revert_all_dmsrc_files(files_data);
+}
+
+fn prepare_all_dmsrc_files() -> Vec<(String, String)> {
+    let mut files_data = Vec::new();
+    let dmsrc_path = "x:\\repos\\rust-g\\dmsrc";
+
+    for entry in fs::read_dir(dmsrc_path).unwrap() {
+        let path = entry.unwrap().path();
+
+        if path.extension().and_then(|s| s.to_str()) == Some("dm") {
+            let path_str = path.to_string_lossy().to_string();
+            let original = fs::read_to_string(&path_str).unwrap();
+
+            // Uncomment special sections
+            let stripped = original.replace("/***", "").replace("***/", "");
+            fs::write(&path_str, &stripped).unwrap();
+
+            files_data.push((path_str, original));
+        }
+    }
+
+    files_data
+}
+
+fn revert_all_dmsrc_files(files_data: Vec<(String, String)>) {
+    for (path, original) in files_data {
+        fs::write(&path, &original).unwrap();
+    }
 }
 
 fn dump(output: &Output) {

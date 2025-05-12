@@ -8,6 +8,13 @@
 #define rustg_http_request_async(method, url, body, headers, options) RUSTG_CALL(RUST_G, "http_request_async")(method, url, body, headers, options)
 #define rustg_http_check_request(req_id) RUSTG_CALL(RUST_G, "http_check_request")(req_id)
 
+// If you don't have the following proc in your codebase, you will need to uncomment it.
+/***
+/// Wrapper to let us runtime without killing the current proc, since CRASH only kills the exact proc it was called from
+/proc/stack_trace(var/thing_to_crash)
+	CRASH(thing_to_crash)
+***/
+
 /datum/http_request
 	var/id
 	var/in_progress = FALSE
