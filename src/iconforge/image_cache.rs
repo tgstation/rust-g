@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tracy_full::zone;
 use twox_hash::XxHash64;
 
-/// A cache of UniversalIcon to UniversalIconData. These will not all have their transforms ready, but because they're mutably locked it's OK!
+/// A cache of UniversalIcon to UniversalIconData. In order for something to exist in this cache, it must have had any transforms applied to the images.
 static ICON_STATES: Lazy<
     DashMap<UniversalIcon, Arc<UniversalIconData>, BuildHasherDefault<XxHash64>>,
 > = Lazy::new(|| DashMap::with_hasher(BuildHasherDefault::<XxHash64>::default()));
@@ -42,7 +42,7 @@ pub fn universal_icon_to_images(
             return Ok((entry.value().to_owned(), true));
         }
         if must_be_cached {
-            return Err(String::from("Image not found in cache!"));
+            return Err(format!("Image was requested but does not exist in the cache. It's likely that the icon state doesn't exist: {uni_icon} - while generating '{sprite_name}'"));
         }
     }
     let dmi = filepath_to_dmi(&uni_icon.icon_file)?;
@@ -158,7 +158,8 @@ pub fn universal_icon_to_images(
         rewind: state.rewind,
     });
 
-    ICON_STATES.insert(uni_icon.to_owned(), result.to_owned());
+    // Don't insert, because the cache should only contain transformed images.
+    //ICON_STATES.insert(uni_icon.to_owned(), result.to_owned());
 
     Ok((result, false))
 }
