@@ -180,7 +180,7 @@ fn submit_request(prep: RequestPrep) -> Result<String> {
 
     let status_code = response.status().as_u16();
     let error = if (400..600).contains(&status_code) {
-        Some(format!("HTTP error: {}", status_code))
+        Some(format!("HTTP error: {status_code}"))
     } else {
         None
     };
