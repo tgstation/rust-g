@@ -96,10 +96,12 @@ fn prepare_all_dmsrc_files() -> Vec<(String, String)> {
 
             // Uncomment special sections
             let stripped = original.replace("/***", "").replace("***/", "");
+            if stripped != original {
+                println!("Debug: File modified: {}", path_str);
+            }
             fs::write(&path_str, &stripped).unwrap();
 
             files_data.push((path_str.clone(), original));
-            println!("Found DM file: {}", path_str);
         }
     }
 
