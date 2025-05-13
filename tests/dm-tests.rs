@@ -1,4 +1,3 @@
-use std::fs;
 use std::process::{Command, Output};
 
 #[cfg(feature = "git")]
@@ -25,10 +24,7 @@ fn hash() {
     run_dm_tests("hash");
 }
 
-
 fn run_dm_tests(name: &str) {
-    let files_data = prepare_all_dmsrc_files();
-
     std::env::remove_var("RUST_BACKTRACE");
 
     let byond_bin = std::env::var("BYOND_BIN").expect("environment variable BYOND_BIN");
@@ -56,6 +52,12 @@ fn run_dm_tests(name: &str) {
     };
     let rust_g = format!("target/{target_dir}/{profile}/{fname}");
 
+    // Remove test-only comment blocks in target/rust_g.dm
+    let dm_path = "target/rust_g.dm";
+    let mut rust_g_dm = std::fs::read_to_string(dm_path).unwrap();
+    rust_g_dm = rust_g_dm.replace("/***", "").replace("***/", "");
+    std::fs::write(dm_path, &rust_g_dm).unwrap();
+
     let output = Command::new("bash")
         .arg(&byondexec)
         .arg(&dream_maker)
@@ -79,41 +81,6 @@ fn run_dm_tests(name: &str) {
     dump(&output);
     generic_check(&output);
     runtime_check(&output);
-
-    revert_all_dmsrc_files(files_data);
-}
-
-fn prepare_all_dmsrc_files() -> Vec<(String, String)> {
-    println!("Current working directory: {}", std::env::current_dir().unwrap().display());
-    println!("Reading from 'dmsrc' directory...");
-    let mut files_data = Vec::new();
-    for entry in fs::read_dir("dmsrc").unwrap() {
-        let path = entry.unwrap().path();
-
-        if path.extension().and_then(|s| s.to_str()) == Some("dm") {
-            let path_str = path.to_string_lossy().to_string();
-            let original = fs::read_to_string(&path_str).unwrap();
-
-            // Uncomment special sections
-            let stripped = original.replace("/***", "").replace("***/", "");
-            if stripped != original {
-                println!("Debug: File modified: {}", path_str);
-            }
-            fs::write(&path_str, &stripped).unwrap();
-
-            files_data.push((path_str.clone(), original));
-        }
-    }
-
-    files_data
-}
-
-fn revert_all_dmsrc_files(files_data: Vec<(String, String)>) {
-    println!("Reverting changes to DM files...");
-    for (path, original) in files_data {
-        fs::write(&path, &original).unwrap();
-        println!("Reverted: {}", path);
-    }
 }
 
 fn dump(output: &Output) {
