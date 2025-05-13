@@ -84,6 +84,8 @@ fn run_dm_tests(name: &str) {
 }
 
 fn prepare_all_dmsrc_files() -> Vec<(String, String)> {
+    println!("Current working directory: {}", std::env::current_dir().unwrap().display());
+    println!("Reading from 'dmsrc' directory...");
     let mut files_data = Vec::new();
     for entry in fs::read_dir("dmsrc").unwrap() {
         let path = entry.unwrap().path();
@@ -96,7 +98,8 @@ fn prepare_all_dmsrc_files() -> Vec<(String, String)> {
             let stripped = original.replace("/***", "").replace("***/", "");
             fs::write(&path_str, &stripped).unwrap();
 
-            files_data.push((path_str, original));
+            files_data.push((path_str.clone(), original));
+            println!("Found DM file: {}", path_str);
         }
     }
 
@@ -104,8 +107,10 @@ fn prepare_all_dmsrc_files() -> Vec<(String, String)> {
 }
 
 fn revert_all_dmsrc_files(files_data: Vec<(String, String)>) {
+    println!("Reverting changes to DM files...");
     for (path, original) in files_data {
         fs::write(&path, &original).unwrap();
+        println!("Reverted: {}", path);
     }
 }
 
