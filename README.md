@@ -103,6 +103,7 @@ The default features are:
 * json: Function to check JSON validity.
 * log: Faster log output.
 * noise: 2d Perlin noise.
+* pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
 * sound_len: A mostly codec-agnostic library for reading the duration of an audio file.
 * sql: Asynchronous MySQL/MariaDB client library.
   * There are also two sub-features: `native_tls` and `rustls_tls`. `rustls_tls` is a default feature, while the former is not.
@@ -113,7 +114,6 @@ The default features are:
 Additional features are:
 * allow_non_32bit: Disables the forced compile errors on non-32bit targets. Only use this if you know exactly what you are doing.
 * batchnoise: Discrete Batched Perlin-like Noise, fast and multi-threaded - sent over once instead of having to query for every tile.
-* pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
 * poissonnoise: A way to generate a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * redis_reliablequeue: Library for using a reliable queue pattern through Redis.
