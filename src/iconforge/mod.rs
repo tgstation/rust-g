@@ -6,16 +6,18 @@ pub mod gags;
 pub mod icon_operations;
 pub mod image_cache;
 pub mod spritesheet;
+pub mod universal_icon;
 use crate::{
     error::Error,
     hash::{file_hash, string_hash},
+    iconforge::universal_icon::{UniversalIcon, UniversalIconData, Transform},
 };
 use dashmap::{DashMap, DashSet};
-use dmi::icon::{DmiVersion, Icon, IconState, Looping};
-use image::{DynamicImage, RgbaImage};
+use dmi::icon::{DmiVersion, Icon, IconState};
+use image::RgbaImage;
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::collections::HashSet;
 use std::sync::RwLock;
 use std::{
@@ -34,57 +36,6 @@ static SPRITES_TO_JSON: Lazy<Arc<Mutex<SpriteJsonMap>>> = Lazy::new(|| {
         XxHash64,
     >::default())))
 });
-
-#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
-pub struct UniversalIcon {
-    icon_file: String,
-    icon_state: String,
-    dir: Option<u8>,
-    frame: Option<u32>,
-    transform: Vec<Transform>,
-}
-
-#[derive(Clone)]
-pub struct UniversalIconData {
-    images: Vec<DynamicImage>,
-    frames: u32,
-    dirs: u8,
-    delay: Option<Vec<f32>>,
-    loop_flag: Looping,
-    rewind: bool,
-}
-
-impl std::fmt::Display for UniversalIcon {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "UniversalIcon(icon_file={}, icon_state={}, dir={:?}, frame={:?})",
-            self.icon_file, self.icon_state, self.dir, self.frame
-        )
-    }
-}
-
-impl UniversalIcon {
-    fn to_base(&self) -> Result<Self, Error> {
-        zone!("to_base");
-        Ok(UniversalIcon {
-            icon_file: self.icon_file.to_owned(),
-            icon_state: self.icon_state.to_owned(),
-            dir: self.dir,
-            frame: self.frame,
-            transform: Vec::new(),
-        })
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
-#[serde(tag = "type")]
-enum Transform {
-    BlendColor { color: String, blend_mode: u8 },
-    BlendIcon { icon: UniversalIcon, blend_mode: u8 },
-    Scale { width: u32, height: u32 },
-    Crop { x1: i32, y1: i32, x2: i32, y2: i32 },
-}
 
 #[derive(Serialize)]
 struct CacheResult {
@@ -131,7 +82,7 @@ fn cache_valid(input_hash: &str, dmi_hashes_in: &str, sprites_in: &str) -> Resul
         dmis = sprites
             .par_iter()
             .flat_map(|(_, icon)| {
-                icon_to_icons(icon)
+                icon.get_nested_icons(true)
                     .into_iter()
                     .map(|icon| icon.icon_file.clone())
                     .collect::<HashSet<String>>()
@@ -249,7 +200,7 @@ fn generate_spritesheet(
     sprites_map.par_iter().for_each(|(sprite_name, icon)| {
         zone!("sprite_to_icons");
 
-        icon_to_icons(icon).into_par_iter().for_each(|icon| {
+        icon.get_nested_icons(true).into_par_iter().for_each(|icon| {
             match image_cache::filepath_to_dmi(&icon.icon_file) {
                 Ok(_) => {
                     if hash_icons && !dmi_hashes.contains_key(&icon.icon_file) {
@@ -271,13 +222,7 @@ fn generate_spritesheet(
 
         {
             zone!("map_to_base");
-            let base = match icon.to_base() {
-                Ok(base) => base,
-                Err(err) => {
-                    error.lock().unwrap().push(err.to_string());
-                    return;
-                }
-            };
+            let base = icon.to_base();
             tree_bases
                 .lock()
                 .unwrap()
@@ -619,7 +564,7 @@ fn transform_leaves(
             .into_par_iter()
             .for_each(|(transform, mut associated_icons)| {
                 let altered_image_data =
-                    match transform_images(image_data.clone(), &transform, flatten) {
+                    match transform.apply(image_data.clone(), flatten) {
                         Ok(data) => Arc::new(data),
                         Err(err) => {
                             errors.lock().unwrap().push(err);
@@ -659,107 +604,4 @@ fn transform_leaves(
         return Err(errors.lock().unwrap().join("\n"));
     }
     Ok(())
-}
-
-/// Takes in an icon and gives a list of nested icons. Also returns a reference to the provided icon in the list.
-fn icon_to_icons(icon_in: &UniversalIcon) -> Vec<&UniversalIcon> {
-    zone!("icon_to_icons");
-    let mut icons: Vec<&UniversalIcon> = Vec::new();
-    icons.push(icon_in);
-    for transform in &icon_in.transform {
-        if let Transform::BlendIcon { icon, .. } = transform {
-            let nested = icon_to_icons(icon);
-            for icon in nested {
-                icons.push(icon)
-            }
-        }
-    }
-    icons
-}
-
-fn apply_all_transforms(
-    image_data: Arc<UniversalIconData>,
-    transforms: &Vec<Transform>,
-    flatten: bool,
-) -> Result<Arc<UniversalIconData>, String> {
-    let mut errors = Vec::<String>::new();
-    let mut last_image_data = image_data;
-    for transform in transforms {
-        match transform_images(last_image_data.clone(), transform, flatten) {
-            Ok(new_image_data) => last_image_data = Arc::new(new_image_data),
-            Err(error) => errors.push(error),
-        }
-    }
-    if !errors.is_empty() {
-        return Err(errors.join("\n"));
-    }
-    Ok(last_image_data)
-}
-
-/// Applies transforms to UniversalIconData.
-fn transform_images(
-    image_data: Arc<UniversalIconData>,
-    transform: &Transform,
-    flatten: bool,
-) -> Result<UniversalIconData, String> {
-    zone!("transform_images");
-    let images: Vec<DynamicImage>;
-    let mut frames = image_data.frames;
-    let mut dirs = image_data.dirs;
-    let mut delay = image_data.delay.to_owned();
-    let loop_flag = image_data.loop_flag;
-    let rewind = image_data.rewind;
-    match transform {
-        Transform::BlendColor { color, blend_mode } => {
-            let blend_mode = &blending::BlendMode::from_u8(blend_mode)?;
-            match icon_operations::blend_images_color(image_data.images.clone(), color, blend_mode)
-            {
-                Ok(result_images) => {
-                    images = result_images;
-                }
-                Err(err) => {
-                    return Err(err.to_string());
-                }
-            }
-        }
-        Transform::BlendIcon { icon, blend_mode } => {
-            zone!("blend_icon");
-            let (mut other_image_data, cached) = image_cache::universal_icon_to_images(
-                icon,
-                &format!("Transform blend_icon {icon}"),
-                true,
-                false,
-                flatten,
-            )?;
-
-            if !cached {
-                other_image_data =
-                    apply_all_transforms(other_image_data, &icon.transform, flatten)?;
-            };
-            let new_out = icon_operations::blend_images_other_universal(
-                image_data,
-                other_image_data.clone(),
-                &blending::BlendMode::from_u8(blend_mode)?,
-            )?;
-            images = new_out.images;
-            frames = new_out.frames;
-            dirs = new_out.dirs;
-            delay = new_out.delay;
-            image_cache::cache_transformed_images(icon, other_image_data);
-        }
-        Transform::Scale { width, height } => {
-            images = icon_operations::scale_images(image_data.images.clone(), *width, *height);
-        }
-        Transform::Crop { x1, y1, x2, y2 } => {
-            images = icon_operations::crop_images(image_data.images.clone(), *x1, *y1, *x2, *y2)?;
-        }
-    }
-    Ok(UniversalIconData {
-        images,
-        frames,
-        dirs,
-        delay,
-        loop_flag,
-        rewind,
-    })
 }

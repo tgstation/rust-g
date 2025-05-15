@@ -1,4 +1,4 @@
-use crate::iconforge::{UniversalIcon, UniversalIconData};
+use crate::iconforge::universal_icon::{UniversalIcon, UniversalIconData};
 use dashmap::DashMap;
 use dmi::dirs::{ALL_DIRS, CARDINAL_DIRS};
 use dmi::icon::{dir_to_dmi_index, Icon};
