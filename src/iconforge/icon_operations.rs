@@ -1,12 +1,13 @@
+use super::{
+    blending, image_cache,
+    universal_icon::{Transform, UniversalIconData},
+};
 use crate::error::Error;
-use crate::iconforge::blending;
 use dmi::icon::IconState;
 use image::{DynamicImage, Pixel, RgbaImage};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::sync::{Arc, Mutex};
 use tracy_full::zone;
-
-use super::UniversalIconData;
 
 pub fn blend_color(
     image: &mut RgbaImage,
@@ -469,4 +470,92 @@ pub fn blend_images_other(
         return Err(Error::IconForge(errors_unlock.join("\n")));
     }
     Ok(images_out)
+}
+
+impl Transform {
+    /// Applies this transform to UniversalIconData. Optionally flattens to only the first dir and frame.
+    pub fn apply(
+        &self,
+        image_data: Arc<UniversalIconData>,
+        flatten: bool,
+    ) -> Result<UniversalIconData, String> {
+        zone!("transform_apply");
+        let images: Vec<DynamicImage>;
+        let mut frames = image_data.frames;
+        let mut dirs = image_data.dirs;
+        let mut delay = image_data.delay.to_owned();
+        let loop_flag = image_data.loop_flag;
+        let rewind = image_data.rewind;
+        match &self {
+            Transform::BlendColor { color, blend_mode } => {
+                let blend_mode = &blending::BlendMode::from_u8(blend_mode)?;
+                match blend_images_color(image_data.images.clone(), color, blend_mode) {
+                    Ok(result_images) => {
+                        images = result_images;
+                    }
+                    Err(err) => {
+                        return Err(err.to_string());
+                    }
+                }
+            }
+            Transform::BlendIcon { icon, blend_mode } => {
+                zone!("blend_icon");
+                let (mut other_image_data, cached) = icon.get_image_data(
+                    &format!("Transform blend_icon {icon}"),
+                    true,
+                    false,
+                    flatten,
+                )?;
+
+                if !cached {
+                    other_image_data =
+                        apply_all_transforms(other_image_data, &icon.transform, flatten)?;
+                };
+                let new_out = blend_images_other_universal(
+                    image_data,
+                    other_image_data.clone(),
+                    &blending::BlendMode::from_u8(blend_mode)?,
+                )?;
+                images = new_out.images;
+                frames = new_out.frames;
+                dirs = new_out.dirs;
+                delay = new_out.delay;
+                image_cache::cache_transformed_images(icon, other_image_data);
+            }
+            Transform::Scale { width, height } => {
+                images = scale_images(image_data.images.clone(), *width, *height);
+            }
+            Transform::Crop { x1, y1, x2, y2 } => {
+                images = crop_images(image_data.images.clone(), *x1, *y1, *x2, *y2)?;
+            }
+        }
+        Ok(UniversalIconData {
+            images,
+            frames,
+            dirs,
+            delay,
+            loop_flag,
+            rewind,
+        })
+    }
+}
+
+/// Applies a list of Transforms to UniversalIconData immediately and sequentially, while handling any errors. Optionally flattens to only the first dir and frame.
+fn apply_all_transforms(
+    image_data: Arc<UniversalIconData>,
+    transforms: &Vec<Transform>,
+    flatten: bool,
+) -> Result<Arc<UniversalIconData>, String> {
+    let mut errors = Vec::<String>::new();
+    let mut last_image_data = image_data;
+    for transform in transforms {
+        match transform.apply(last_image_data.clone(), flatten) {
+            Ok(new_image_data) => last_image_data = Arc::new(new_image_data),
+            Err(error) => errors.push(error),
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors.join("\n"));
+    }
+    Ok(last_image_data)
 }

@@ -1,8 +1,5 @@
-use crate::{
-    byond::catch_panic,
-    iconforge::{cache_valid, gags, generate_spritesheet, image_cache},
-    jobs,
-};
+use super::{gags, image_cache, spritesheet};
+use crate::{byond::catch_panic, jobs};
 use tracy_full::frame;
 
 byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites, hash_icons, generate_dmi, flatten) {
@@ -12,7 +9,7 @@ byond_fn!(fn iconforge_generate(file_path, spritesheet_name, sprites, hash_icons
     let hash_icons = hash_icons.to_owned();
     let generate_dmi = generate_dmi.to_owned();
     let flatten = flatten.to_owned();
-    let result = Some(match catch_panic(|| generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons, &generate_dmi, &flatten)) {
+    let result = Some(match catch_panic(|| spritesheet::generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons, &generate_dmi, &flatten)) {
         Ok(o) => o.to_string(),
         Err(e) => e.to_string()
     });
@@ -28,7 +25,7 @@ byond_fn!(fn iconforge_generate_async(file_path, spritesheet_name, sprites, hash
     let generate_dmi = generate_dmi.to_owned();
     let flatten = flatten.to_owned();
     Some(jobs::start(move || {
-        let result = match catch_panic(|| generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons, &generate_dmi, &flatten)) {
+        let result = match catch_panic(|| spritesheet::generate_spritesheet(&file_path, &spritesheet_name, &sprites, &hash_icons, &generate_dmi, &flatten)) {
             Ok(o) => o.to_string(),
             Err(e) => e.to_string()
         };
@@ -53,7 +50,7 @@ byond_fn!(fn iconforge_cache_valid(input_hash, dmi_hashes, sprites) {
     let input_hash = input_hash.to_owned();
     let dmi_hashes = dmi_hashes.to_owned();
     let sprites = sprites.to_owned();
-    let result = Some(match catch_panic(|| cache_valid(&input_hash, &dmi_hashes, &sprites)) {
+    let result = Some(match catch_panic(|| spritesheet::cache_valid(&input_hash, &dmi_hashes, &sprites)) {
         Ok(o) => o.to_string(),
         Err(e) => e.to_string()
     });
@@ -66,7 +63,7 @@ byond_fn!(fn iconforge_cache_valid_async(input_hash, dmi_hashes, sprites) {
     let dmi_hashes = dmi_hashes.to_owned();
     let sprites = sprites.to_owned();
     let result = Some(jobs::start(move || {
-        match catch_panic(|| cache_valid(&input_hash, &dmi_hashes, &sprites)) {
+        match catch_panic(|| spritesheet::cache_valid(&input_hash, &dmi_hashes, &sprites)) {
             Ok(o) => o.to_string(),
             Err(e) => e.to_string()
         }

@@ -28,7 +28,7 @@ impl Rgba {
         }
     }
 
-    pub fn map_each<F, T>(color: &Rgba, color2: &Rgba, rgb_fn: F, a_fn: T) -> Rgba
+    fn map_each<F, T>(color: &Rgba, color2: &Rgba, rgb_fn: F, a_fn: T) -> Rgba
     where
         F: Fn(f32, f32) -> f32,
         T: Fn(f32, f32) -> f32,
@@ -41,7 +41,7 @@ impl Rgba {
         }
     }
 
-    pub fn map_each_a<F, T>(color: &Rgba, color2: &Rgba, rgb_fn: F, a_fn: T) -> Rgba
+    fn map_each_a<F, T>(color: &Rgba, color2: &Rgba, rgb_fn: F, a_fn: T) -> Rgba
     where
         F: Fn(f32, f32, f32, f32) -> f32,
         T: Fn(f32, f32) -> f32,

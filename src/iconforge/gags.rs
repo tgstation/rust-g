@@ -1,7 +1,5 @@
+use super::{blending, icon_operations, image_cache::filepath_to_dmi};
 use crate::error::Error;
-use crate::iconforge::blending;
-use crate::iconforge::icon_operations;
-use crate::iconforge::image_cache::filepath_to_dmi;
 use dashmap::DashMap;
 use dmi::icon::{DmiVersion, Icon, IconState};
 use image::DynamicImage;
