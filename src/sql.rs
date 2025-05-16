@@ -5,9 +5,9 @@ use mysql::{
     prelude::Queryable,
     OptsBuilder, Params, Pool, PoolConstraints, PoolOpts,
 };
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_json::{json, map::Map, Number};
+use std::sync::LazyLock;
 use std::{collections::HashMap, sync::atomic::AtomicUsize};
 use std::{error::Error, time::Duration};
 
@@ -106,7 +106,7 @@ byond_fn!(fn sql_check_query(id) {
 // ----------------------------------------------------------------------------
 // Main connect and query implementation
 
-static POOL: Lazy<DashMap<usize, Pool>> = Lazy::new(DashMap::new);
+static POOL: LazyLock<DashMap<usize, Pool>> = LazyLock::new(DashMap::new);
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Error>> {

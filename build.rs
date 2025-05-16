@@ -18,18 +18,20 @@ fn main() {
     let mut f = File::create("target/rust_g.dm").unwrap();
 
     // header
-    writeln!(
-        f,
-        "{}",
-        std::fs::read_to_string(feature_dm_file!("main")).unwrap()
-    )
-    .unwrap();
+    let header_content = std::fs::read_to_string(feature_dm_file!("main")).unwrap();
+    writeln!(f, "{header_content}").unwrap();
+
+    // jobs is a dependency of other features
+    if feature_dm_exists!("jobs") {
+        let jobs_content = std::fs::read_to_string(feature_dm_file!("jobs")).unwrap();
+        writeln!(f, "{jobs_content}").unwrap();
+    }
 
     for (key, _value) in std::env::vars() {
         // CARGO_FEATURE_<name> — For each activated feature of the package being built, this environment variable will be present where <name> is the name of the feature uppercased and having - translated to _.
         if let Some(uprfeature) = key.strip_prefix("CARGO_FEATURE_") {
             let feature = uprfeature.to_lowercase().replace('_', "-"); // actual proper name of the enabled feature
-            if feature_dm_exists!(&feature) {
+            if feature != "jobs" && feature_dm_exists!(&feature) {
                 writeln!(
                     f,
                     "{}",

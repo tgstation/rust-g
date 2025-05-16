@@ -44,10 +44,9 @@ gix = { version = "0.72", optional = true, default-features = false, features = 
 ] }
 noise = { version = "0.9", optional = true }
 redis = { version = "0.31", optional = true, features = ["ahash"] }
-ureq = { version = "2.12", optional = true }
+ureq = { version = "3.0", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
-once_cell = { version = "1.21", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
 zip = { version = "2.6", optional = true }
@@ -136,14 +135,13 @@ hash = [
     "serde",
     "serde_json",
 ]
-http = ["ureq", "serde", "serde_json", "once_cell", "jobs"]
+http = ["ureq", "serde", "serde_json", "jobs"]
 iconforge = [
     "dashmap",
     "dep:dmi",
     "hash",
     "image",
     "jobs",
-    "once_cell",
     "png",
     "rayon",
     "serde",
@@ -155,7 +153,7 @@ json = ["serde", "serde_json"]
 log = ["chrono"]
 sanitize = ["ammonia", "serde_json"]
 sound_len = ["symphonia"]
-sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
+sql = ["mysql", "serde", "serde_json", "dashmap", "jobs"]
 time = ["chrono"]
 toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]

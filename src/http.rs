@@ -1,28 +1,35 @@
-use crate::{error::Result, jobs};
-use once_cell::sync::Lazy;
+use crate::{error::Error, error::Result, jobs};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
-use std::io::Write;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::sync::LazyLock;
 use std::time::Duration;
+use ureq::http;
 
 // ----------------------------------------------------------------------------
-// Interface
+// DM Interface
 
 #[derive(Deserialize)]
 struct RequestOptions {
     #[serde(default)]
-    output_filename: Option<String>,
+    input_filename: Option<String>,
     #[serde(default)]
-    body_filename: Option<String>,
+    output_filename: Option<String>,
     #[serde(default)]
     timeout_seconds: Option<u64>,
 }
 
 #[derive(Serialize)]
-struct Response<'a> {
+struct Response {
+    /// Will be set to the HTTP status code if the request was sent.
     status_code: u16,
     headers: HashMap<String, String>,
-    body: Option<&'a str>,
+    /// If `body` is `Some`, the request was recieved. It might still be a 404 or 500.
+    body: Option<String>,
+    /// If `error` is `Some`, either there was a 4xx/5xx error, or the request failed to be sent.
+    /// If it's the former, `status_code` will be set.
+    error: Option<String>,
 }
 
 // If the response can be deserialized -> success.
@@ -61,94 +68,129 @@ byond_fn!(fn http_check_request(id) {
 });
 
 // ----------------------------------------------------------------------------
-// Shared HTTP client state
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+const TLS_FEATURE: &str = if cfg!(feature = "native_tls") {
+    "+native_tls"
+} else if cfg!(feature = "rustls_tls") {
+    "+rustls_tls"
+} else {
+    ""
+};
 
-pub static HTTP_CLIENT: Lazy<ureq::Agent> = Lazy::new(ureq::agent);
+// Shared HTTP client for all requests (except for those with a custom timeout).
+pub static HTTP_CLIENT: LazyLock<ureq::Agent> = LazyLock::new(|| {
+    ureq::Agent::new_with_config(
+        ureq::Agent::config_builder()
+            .http_status_as_error(false)
+            .user_agent(format!("{PKG_NAME}/{VERSION}{TLS_FEATURE}"))
+            .build(),
+    )
+});
 
 // ----------------------------------------------------------------------------
-// Request construction and execution
 
 struct RequestPrep {
-    req: ureq::Request,
-    output_filename: Option<String>,
-    body: Vec<u8>,
+    builder: http::request::Builder,
+    body: Option<Vec<u8>>,
+    request_options: RequestOptions,
 }
 
 fn construct_request(
     method: &str,
-    url: &str,
+    uri: &str,
     body: &str,
     headers: &str,
     options: &str,
 ) -> Result<RequestPrep> {
-    let mut req = match method {
-        "post" => HTTP_CLIENT.post(url),
-        "put" => HTTP_CLIENT.put(url),
-        "patch" => HTTP_CLIENT.patch(url),
-        "delete" => HTTP_CLIENT.delete(url),
-        "head" => HTTP_CLIENT.head(url),
-        _ => HTTP_CLIENT.get(url),
-    }
-    .set("User-Agent", &format!("{PKG_NAME}/{VERSION}"));
-
-    let mut final_body = body.as_bytes().to_vec();
+    let mut builder = http::request::Builder::new()
+        .method(method.parse().unwrap_or(http::Method::GET))
+        .uri(uri);
 
     if !headers.is_empty() {
         let headers: BTreeMap<&str, &str> = serde_json::from_str(headers)?;
         for (key, value) in headers {
-            req = req.set(key, value);
+            builder = builder.header(key, value);
         }
     }
 
-    let mut output_filename = None;
-    if !options.is_empty() {
-        let options: RequestOptions = serde_json::from_str(options)?;
-        output_filename = options.output_filename;
-        if let Some(fname) = options.body_filename {
-            final_body = std::fs::read(fname)?;
+    let options: RequestOptions = if !options.is_empty() {
+        serde_json::from_str(options)?
+    } else {
+        RequestOptions {
+            output_filename: None,
+            input_filename: None,
+            timeout_seconds: None,
         }
+    };
 
-        if let Some(timeout_seconds) = options.timeout_seconds {
-            req = req.timeout(Duration::from_secs(timeout_seconds));
-        }
-    }
+    let body_to_send = if let Some(fname) = options.input_filename.clone() {
+        Some(std::fs::read(fname)?)
+    } else if !body.is_empty() {
+        Some(body.as_bytes().to_vec())
+    } else {
+        None
+    };
 
     Ok(RequestPrep {
-        req,
-        output_filename,
-        body: final_body,
+        builder,
+        request_options: options,
+        body: body_to_send,
     })
 }
 
 fn submit_request(prep: RequestPrep) -> Result<String> {
-    let response = prep.req.send_bytes(&prep.body).map_err(Box::new)?;
+    let request = prep
+        .builder
+        .body(prep.body.unwrap_or_default())
+        .map_err(|e| Error::HttpParse(e.to_string()))?;
 
-    let body;
-    let mut resp = Response {
-        status_code: response.status(),
-        headers: HashMap::new(),
-        body: None,
+    // Use the default HTTP_CLIENT if no timeout is specified,
+    // otherwise create a new agent with the specified timeout
+    let mut response = match prep.request_options.timeout_seconds {
+        Some(timeout_seconds) => {
+            let agent = ureq::Agent::new_with_config(
+                ureq::Agent::config_builder()
+                    .http_status_as_error(false)
+                    .user_agent(format!("{PKG_NAME}/{VERSION}{TLS_FEATURE}"))
+                    .timeout_global(Some(Duration::from_secs(timeout_seconds)))
+                    .build(),
+            );
+            agent.run(request).map_err(Box::new)?
+        }
+        None => HTTP_CLIENT.run(request).map_err(Box::new)?,
     };
 
-    for key in response.headers_names() {
-        let Some(value) = response.header(&key) else {
-            continue;
-        };
+    let headers: HashMap<String, String> = response
+        .headers()
+        .iter()
+        .filter_map(|(k, v)| Some((k.to_string(), v.to_str().ok()?.to_owned())))
+        .collect();
 
-        resp.headers.insert(key, value.to_owned());
-    }
-
-    if let Some(output_filename) = prep.output_filename {
-        let mut writer = std::io::BufWriter::new(std::fs::File::create(output_filename)?);
-        std::io::copy(&mut response.into_reader(), &mut writer)?;
+    let body = if let Some(output_filename) = prep.request_options.output_filename {
+        let mut writer = BufWriter::new(File::create(output_filename)?);
+        let mut reader = response.body_mut().as_reader();
+        std::io::copy(&mut reader, &mut writer)?;
         writer.flush()?;
+        None
     } else {
-        body = response.into_string()?;
-        resp.body = Some(&body);
-    }
+        Some(response.body_mut().read_to_string().map_err(Box::new)?)
+    };
+
+    let status_code = response.status().as_u16();
+    let error = if (400..600).contains(&status_code) {
+        Some(format!("HTTP error: {status_code}"))
+    } else {
+        None
+    };
+
+    let resp = Response {
+        status_code,
+        headers,
+        body,
+        error,
+    };
 
     Ok(serde_json::to_string(&resp)?)
 }

@@ -52,6 +52,12 @@ fn run_dm_tests(name: &str) {
     };
     let rust_g = format!("target/{target_dir}/{profile}/{fname}");
 
+    // Remove test-only comment blocks in target/rust_g.dm
+    let dm_path = "target/rust_g.dm";
+    let mut rust_g_dm = std::fs::read_to_string(dm_path).unwrap();
+    rust_g_dm = rust_g_dm.replace("/***", "").replace("***/", "");
+    std::fs::write(dm_path, &rust_g_dm).unwrap();
+
     let output = Command::new("bash")
         .arg(&byondexec)
         .arg(&dream_maker)
