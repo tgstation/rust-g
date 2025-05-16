@@ -1,7 +1,7 @@
 [package]
 name = "rust-g"
 edition = "2021"
-version = "3.9.0"
+version = "3.10.0"
 authors = [
     "Bjorn Neergaard <bjorn@neersighted.com>",
     "Tad Hardesty <tad@platymuus.com>",
@@ -64,9 +64,7 @@ ammonia = { version = "4.1", optional = true }
 fast_poisson = { version = "=0.5.2", optional = true, features = [
     "single_precision",
 ] } # Higher versions have problems with x86 due to 'kiddo'.
-symphonia = { version = "0.5.4", optional = true, features = [
-    "all-codecs",
-] }
+symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
 
 [features]
 default = [
@@ -82,6 +80,7 @@ default = [
     "json",
     "log",
     "noise",
+    "pathfinder",
     "rustls_tls",
     "sanitize",
     "sound_len",
