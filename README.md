@@ -114,12 +114,12 @@ The default features are:
 Additional features are:
 * allow_non_32bit: Disables the forced compile errors on non-32bit targets. Only use this if you know exactly what you are doing.
 * batchnoise: Discrete Batched Perlin-like Noise, fast and multi-threaded - sent over once instead of having to query for every tile.
+* dice: Advanced replacement for `roll`, supporting expressive xdy dice notation.
 * poissonnoise: A way to generate a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * redis_reliablequeue: Library for using a reliable queue pattern through Redis.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
 * worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise.
-* dice: Advanced replacement for `roll`, supporting expressive xdy dice notation.
 
 Regarding rust-analyzer: If you are using a feature set other than the default, you will need to adjust `rust-analyzer.cargo.features`.
 
