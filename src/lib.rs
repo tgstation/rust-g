@@ -37,7 +37,7 @@ pub mod json;
 #[cfg(feature = "log")]
 pub mod log;
 #[cfg(feature = "noise")]
-pub mod noise_gen;
+pub mod noise;
 #[cfg(feature = "pathfinder")]
 pub mod pathfinder;
 #[cfg(feature = "poissonnoise")]

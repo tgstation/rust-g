@@ -20,7 +20,7 @@ byond_fn!(fn rg_git_commit_date(rev, format) {
         let rev = repo.rev_parse_single(rev).ok()?;
         let object = rev.object().ok()?;
         let commit = object.try_into_commit().ok()?;
-        let commit_time = commit.committer().ok()?.time;
+        let commit_time = commit.time().ok()?;
         let datetime = Utc.timestamp_opt(commit_time.seconds, 0).latest()?;
         Some(datetime.format(format).to_string())
     })
