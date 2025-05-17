@@ -118,7 +118,8 @@ Additional features are:
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * redis_reliablequeue: Library for using a reliable queue pattern through Redis.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
-* worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise
+* worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise.
+* dice: Advanced replacement for `roll`, supporting expressive xdy dice notation.
 
 Regarding rust-analyzer: If you are using a feature set other than the default, you will need to adjust `rust-analyzer.cargo.features`.
 
