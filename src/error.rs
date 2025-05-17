@@ -68,6 +68,9 @@ pub enum Error {
     #[cfg(feature = "iconforge")]
     #[error("IconForge error: {0}")]
     IconForge(String),
+    #[cfg(feature = "dice")]
+    #[error(transparent)]
+    DiceRoll(#[from] caith::RollError),
     #[error("Panic during function execution: {0}")]
     Panic(String),
 }
