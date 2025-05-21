@@ -291,8 +291,15 @@ pub fn blend_images_other_universal(
             }
             // Update the output IconState's frame count, because the values from the first state are used for the final result.
             frames_out = image_data_other.frames;
-            // Copy the delays as well
-            delay_out = image_data_other.delay.to_owned();
+            // Copy the delays as well, or create new ones
+            // sometimes DMIs can contain more delays than frames because they retain old data
+            delay_out = Some(
+                image_data_other
+                    .delay
+                    .clone()
+                    .unwrap_or_else(|| vec![1.0; frames_out as usize])[0..frames_out as usize]
+                    .to_owned(),
+            );
         } else {
             return Err(Error::IconForge(format!(
                 "Attempted to blend two icon states with different frame amounts - with {} and {} frames respectively.",

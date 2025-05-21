@@ -303,14 +303,15 @@ pub fn generate_spritesheet(
                         };
                         {
                             zone!("save_dmi");
-                            Icon {
+                            let dmi_icon = Icon {
                                 version: DmiVersion::default(),
                                 width: base_width,
                                 height: base_height,
                                 states: output_states.lock().unwrap().to_owned(),
+                            };
+                            if let Err(err) = dmi_icon.save(&mut output_file) {
+                                error.lock().unwrap().push(err.to_string());
                             }
-                            .save(&mut output_file)
-                            .err();
                         }
                     }
                 }
@@ -324,7 +325,9 @@ pub fn generate_spritesheet(
                 };
                 {
                     zone!("write_spritesheet_png");
-                    final_image.save(file_path).err();
+                    if let Err(err) = final_image.save(file_path) {
+                        error.lock().unwrap().push(err.to_string());
+                    }
                 }
             }
         });
@@ -393,11 +396,18 @@ fn create_dmi_output_states(
                 return;
             }
         };
+        // sometimes DMIs can contain more delays than frames because they retain old data
+        let new_delays = Some(
+            image_data.delay
+                .clone()
+                .unwrap_or_else(|| vec![1.0; image_data.frames as usize])[0..image_data.frames as usize]
+                .to_owned(),
+        );
         output_states.lock().unwrap().push(IconState {
             name: sprite_name.to_owned(),
             dirs: image_data.dirs,
             frames: image_data.frames,
-            delay: image_data.delay.clone(),
+            delay: new_delays,
             loop_flag: image_data.loop_flag,
             rewind: image_data.rewind,
             movement: false,
