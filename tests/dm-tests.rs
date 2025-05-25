@@ -32,6 +32,12 @@ fn dice() {
     run_dm_tests("dice", false);
 }
 
+#[cfg(feature = "iconforge")]
+#[test]
+fn iconforge() {
+    run_dm_tests("iconforge", false);
+}
+
 /**
  * Find a valid BYOND bin path on the system.
  */

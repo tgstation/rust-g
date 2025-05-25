@@ -1,0 +1,177 @@
+#include "common.dm"
+
+#define uni_icon(I, icon_state, rest...) new /datum/universal_icon(I, icon_state, ##rest)
+
+/datum/universal_icon
+	var/icon/icon_file
+	var/icon_state
+	var/dir
+	var/frame
+	var/datum/icon_transformer/transform = null
+
+/datum/universal_icon/New(icon/icon_file, icon_state="", dir=null, frame=null)
+	src.icon_file = icon_file
+	src.icon_state = icon_state
+	src.dir = dir
+	src.frame = frame
+
+/datum/universal_icon/proc/blend_color(color, blend_mode)
+	if(!transform)
+		transform = new
+	transform.blend_color(color, blend_mode)
+	return src
+
+/datum/universal_icon/proc/blend_icon(datum/universal_icon/icon_object, blend_mode)
+	if(!transform)
+		transform = new
+	transform.blend_icon(icon_object, blend_mode)
+	return src
+
+/datum/universal_icon/proc/scale(width, height)
+	if(!transform)
+		transform = new
+	transform.scale(width, height)
+	return src
+
+/datum/universal_icon/proc/crop(x1, y1, x2, y2)
+	if(!transform)
+		transform = new
+	transform.crop(x1, y1, x2, y2)
+	return src
+
+/datum/universal_icon/proc/to_list()
+	return list("icon_file" = "[icon_file]", "icon_state" = icon_state, "dir" = dir, "frame" = frame, "transform" = !isnull(transform) ? transform.to_list() : list())
+
+/datum/universal_icon/proc/to_json()
+	return json_encode(to_list())
+
+/datum/universal_icon/proc/to_icon()
+	var/icon/self = icon(src.icon_file, src.icon_state, dir=src.dir, frame=src.frame)
+	if(istype(src.transform))
+		src.transform.apply(self)
+	return self
+
+/datum/icon_transformer
+	var/list/transforms = null
+
+/datum/icon_transformer/New()
+	transforms = list()
+
+/datum/icon_transformer/proc/apply(icon/target)
+	for(var/transform in src.transforms)
+		switch(transform["type"])
+			if(RUSTG_ICONFORGE_BLEND_COLOR)
+				target.Blend(transform["color"], transform["blend_mode"])
+			if(RUSTG_ICONFORGE_BLEND_ICON)
+				var/datum/universal_icon/icon_object = transform["icon"]
+				target.Blend(icon_object.to_icon(), transform["blend_mode"])
+			if(RUSTG_ICONFORGE_SCALE)
+				target.Scale(transform["width"], transform["height"])
+			if(RUSTG_ICONFORGE_CROP)
+				target.Crop(transform["x1"], transform["y1"], transform["x2"], transform["y2"])
+	return target
+
+/datum/icon_transformer/proc/blend_color(color, blend_mode)
+	transforms += list(list("type" = RUSTG_ICONFORGE_BLEND_COLOR, "color" = color, "blend_mode" = blend_mode))
+
+/datum/icon_transformer/proc/blend_icon(datum/universal_icon/icon_object, blend_mode)
+	transforms += list(list("type" = RUSTG_ICONFORGE_BLEND_ICON, "icon" = icon_object, "blend_mode" = blend_mode))
+
+/datum/icon_transformer/proc/scale(width, height)
+	transforms += list(list("type" = RUSTG_ICONFORGE_SCALE, "width" = width, "height" = height))
+
+/datum/icon_transformer/proc/crop(x1, y1, x2, y2)
+	transforms += list(list("type" = RUSTG_ICONFORGE_CROP, "x1" = x1, "y1" = y1, "x2" = x2, "y2" = y2))
+
+/datum/icon_transformer/proc/to_list()
+	var/list/transforms_out = list()
+	var/list/transforms_original = src.transforms.Copy()
+	for(var/list/transform as anything in transforms_original)
+		var/list/this_transform = transform.Copy()
+		if(transform["type"] == RUSTG_ICONFORGE_BLEND_ICON)
+			var/datum/universal_icon/icon_object = this_transform["icon"]
+			this_transform["icon"] = icon_object.to_list()
+		transforms_out += list(this_transform)
+	return transforms_out
+
+
+/proc/dm_sheet_from_uni_icons(list/uni_icons)
+    var/icon/I = new()
+    for(var/entry_name in uni_icons)
+        var/datum/universal_icon/entry = uni_icons[entry_name]
+        var/icon/finished = entry.to_icon()
+        I.Insert(finished, icon_state=entry_name)
+    fcopy(I, "tmp/dm_output.dmi")
+
+/proc/rustg_sheet_from_uni_icons(list/uni_icons)
+    var/list/entries = list()
+    for(var/entry_name in uni_icons)
+        var/datum/universal_icon/entry = uni_icons[entry_name]
+        entries[entry_name] = entry.to_list()
+    var/output = rustg_iconforge_generate("tmp/", "rustg_output", json_encode(entries), FALSE, TRUE, FALSE)
+    var/output_decode = json_decode(output)
+    var/error = output_decode["error"]
+    world.log << "[error]"
+
+/proc/add_self_test_icon(list/uni_icons, name, icon_state, blend_mode)
+    add_other_test_icon(uni_icons, name, icon_state, icon_state, blend_mode)
+
+/proc/add_other_test_icon(list/uni_icons, name, icon_state, icon_state_other, blend_mode)
+    var/datum/universal_icon/self_test_icon = uni_icon('rsc/tests.dmi', icon_state)
+    self_test_icon.blend_icon(uni_icon('rsc/tests.dmi', icon_state_other), blend_mode)
+    uni_icons[name] = self_test_icon
+
+/proc/add_self_test_icons(list/uni_icons, icon_state)
+    add_self_test_icon(uni_icons, "blend_[icon_state]_self_ADD", icon_state, ICON_ADD)
+    add_self_test_icon(uni_icons, "blend_[icon_state]_self_SUBTRACT", icon_state, ICON_SUBTRACT)
+    add_self_test_icon(uni_icons, "blend_[icon_state]_self_MULTIPLY", icon_state, ICON_MULTIPLY)
+    add_self_test_icon(uni_icons, "blend_[icon_state]_self_OVERLAY", icon_state, ICON_OVERLAY)
+    add_self_test_icon(uni_icons, "blend_[icon_state]_self_UNDERLAY", icon_state, ICON_UNDERLAY)
+
+/proc/add_other_test_icons(list/uni_icons, icon_state, icon_state_other)
+    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_ADD", icon_state, icon_state_other, ICON_ADD)
+    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_SUBTRACT", icon_state, icon_state_other, ICON_SUBTRACT)
+    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_MULTIPLY", icon_state, icon_state_other, ICON_MULTIPLY)
+    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_OVERLAY", icon_state, icon_state_other, ICON_OVERLAY)
+    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_UNDERLAY", icon_state, icon_state_other, ICON_UNDERLAY)
+
+/test/proc/test_iconforge_consistency()
+    var/list/uni_icons = list()
+
+    // Self blend
+
+    add_self_test_icons(uni_icons, "dirs_1_frames_1")
+    add_self_test_icons(uni_icons, "dirs_4_frames_1")
+    add_self_test_icons(uni_icons, "dirs_8_frames_1")
+
+    add_self_test_icons(uni_icons, "dirs_1_frames_2")
+    add_self_test_icons(uni_icons, "dirs_4_frames_2")
+    add_self_test_icons(uni_icons, "dirs_8_frames_2")
+
+    add_self_test_icons(uni_icons, "dirs_1_frames_3")
+    add_self_test_icons(uni_icons, "dirs_4_frames_3")
+    add_self_test_icons(uni_icons, "dirs_8_frames_3")
+
+    // Mixed-frames
+
+    add_other_test_icons(uni_icons, "dirs_1_frames_1", "dirs_1_frames_2")
+    add_other_test_icons(uni_icons, "dirs_1_frames_1", "dirs_1_frames_3")
+    //add_other_test_icons(uni_icons, "dirs_1_frames_2", "dirs_1_frames_3")
+
+    //add_other_test_icons(uni_icons, "dirs_4_frames_1", "dirs_4_frames_2")
+    //add_other_test_icons(uni_icons, "dirs_4_frames_1", "dirs_4_frames_3")
+    //add_other_test_icons(uni_icons, "dirs_4_frames_2", "dirs_4_frames_3")
+
+    // Mixed-dirs - Decrease
+
+    //add_other_test_icons(uni_icons, "dirs_4_frames_1", "dirs_1_frames_1")
+
+    // Mixed-dirs - Increase (Unsupported)
+
+    //add_other_test_icons(uni_icons, "dirs_1_frames_1", "dirs_4_frames_1")
+
+    rustg_sheet_from_uni_icons(uni_icons)
+    dm_sheet_from_uni_icons(uni_icons)
+
+
+#undef uni_icon
