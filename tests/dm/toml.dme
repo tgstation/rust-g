@@ -13,17 +13,17 @@ var/test_json = @{"
 "}
 
 /test/proc/check_toml_file2json()
-    rustg_file_write(test_toml, "test.toml")
+    rustg_file_write(test_toml, "tmp/test.toml")
 
-    var/toml_output = rustg_read_toml_file("test.toml")
+    var/toml_output = rustg_read_toml_file("tmp/test.toml")
 
     if (toml_output ~! json_decode(test_json))
         CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
 
 /test/proc/check_rustg_toml_encode()
     var/json_value = json_decode(test_json)
-    rustg_file_write(rustg_toml_encode(json_value), "test_encode.toml")
-    var/toml_output = rustg_read_toml_file("test_encode.toml")
+    rustg_file_write(rustg_toml_encode(json_value), "tmp/test_encode.toml")
+    var/toml_output = rustg_read_toml_file("tmp/test_encode.toml")
 
     if (toml_output ~! json_value)
         CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
