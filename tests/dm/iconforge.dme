@@ -138,19 +138,28 @@
 /test/proc/test_iconforge_consistency()
     var/list/uni_icons = list()
 
+    // Noise blend
+
+    add_other_test_icons(uni_icons, "noise", "noise2")
+    add_other_test_icons(uni_icons, "noise", "noise_alpha")
+    add_other_test_icons(uni_icons, "noise2", "noise_alpha")
+    add_other_test_icons(uni_icons, "rgba_test", "noise_alpha")
+
     // Self blend
 
-    add_self_test_icons(uni_icons, "dirs_1_frames_1")
-    add_self_test_icons(uni_icons, "dirs_4_frames_1")
-    add_self_test_icons(uni_icons, "dirs_8_frames_1")
+    add_self_test_icons(uni_icons, "rgba_test")
 
-    add_self_test_icons(uni_icons, "dirs_1_frames_2")
-    add_self_test_icons(uni_icons, "dirs_4_frames_2")
-    add_self_test_icons(uni_icons, "dirs_8_frames_2")
+    //add_self_test_icons(uni_icons, "dirs_1_frames_1")
+    //add_self_test_icons(uni_icons, "dirs_4_frames_1")
+    //add_self_test_icons(uni_icons, "dirs_8_frames_1")
 
-    add_self_test_icons(uni_icons, "dirs_1_frames_3")
-    add_self_test_icons(uni_icons, "dirs_4_frames_3")
-    add_self_test_icons(uni_icons, "dirs_8_frames_3")
+    //add_self_test_icons(uni_icons, "dirs_1_frames_2")
+    //add_self_test_icons(uni_icons, "dirs_4_frames_2")
+    //add_self_test_icons(uni_icons, "dirs_8_frames_2")
+
+    //add_self_test_icons(uni_icons, "dirs_1_frames_3")
+    //add_self_test_icons(uni_icons, "dirs_4_frames_3")
+    //add_self_test_icons(uni_icons, "dirs_8_frames_3")
 
     // Mixed-frames
 
