@@ -95,92 +95,230 @@
 	return transforms_out
 
 
-/proc/dm_sheet_from_uni_icons(list/uni_icons)
-    var/icon/I = new()
-    for(var/entry_name in uni_icons)
-        var/datum/universal_icon/entry = uni_icons[entry_name]
-        var/icon/finished = entry.to_icon()
-        I.Insert(finished, icon_state=entry_name)
-    fcopy(I, "tmp/dm_output.dmi")
+/proc/dm_sheet_from_uni_icons(list/uni_icons, expected_size)
+	var/icon/I = new()
+	for(var/entry_name as anything in uni_icons)
+		var/datum/universal_icon/entry = uni_icons[entry_name]
+		var/icon/finished = entry.to_icon()
+		I.Insert(finished, icon_state=entry_name)
+	fcopy(I, "tmp/dm_[expected_size].dmi")
 
-/proc/rustg_sheet_from_uni_icons(list/uni_icons)
-    var/list/entries = list()
-    for(var/entry_name in uni_icons)
-        var/datum/universal_icon/entry = uni_icons[entry_name]
-        entries[entry_name] = entry.to_list()
-    var/output = rustg_iconforge_generate("tmp/", "rustg_output", json_encode(entries), FALSE, TRUE, FALSE)
-    var/output_decode = json_decode(output)
-    var/error = output_decode["error"]
-    world.log << "[error]"
+/proc/rustg_sheet_from_uni_icons(list/uni_icons, expected_size)
+	var/list/entries = list()
+	for(var/entry_name as anything in uni_icons)
+		var/datum/universal_icon/entry = uni_icons[entry_name]
+		entries[entry_name] = entry.to_list()
+	var/entries_json = json_encode(entries)
+	var/output = rustg_iconforge_generate("tmp/", "rustg", entries_json, FALSE, TRUE, FALSE)
+	if(!findtext(output, "{", 1, 2))
+		text2file(entries_json, "tmp/panic_data.json")
+		world.log << "runtime error: rustg PANICKED while generating sheet described by tmp/panic_data.json with error: [output]"
+		return
+	var/output_decode = json_decode(output)
+	var/error = output_decode["error"]
+	if(length(error) > 0)
+		world.log << "runtime error: [error]"
+	var/sizes = output_decode["sizes"]
+	if(length(sizes) > 1 || sizes[1] != expected_size)
+		var/sizes_joined = jointext(sizes, ",")
+		world.log << "runtime error: Invalid size output from rustg (expected: [expected_size], got: [sizes_joined])"
 
 /proc/add_self_test_icon(list/uni_icons, name, icon_state, blend_mode)
-    add_other_test_icon(uni_icons, name, icon_state, icon_state, blend_mode)
+	add_other_test_icon(uni_icons, name, icon_state, icon_state, blend_mode)
 
 /proc/add_other_test_icon(list/uni_icons, name, icon_state, icon_state_other, blend_mode)
-    var/datum/universal_icon/self_test_icon = uni_icon('rsc/tests.dmi', icon_state)
-    self_test_icon.blend_icon(uni_icon('rsc/tests.dmi', icon_state_other), blend_mode)
-    uni_icons[name] = self_test_icon
+	var/datum/universal_icon/self_test_icon = uni_icon('rsc/tests.dmi', icon_state)
+	self_test_icon.blend_icon(uni_icon('rsc/tests.dmi', icon_state_other), blend_mode)
+	uni_icons[name] = self_test_icon
+
+/proc/add_crop_test_icon(list/uni_icons, name, icon_state, x1, y1, x2, y2)
+	var/datum/universal_icon/crop_test_icon = uni_icon('rsc/tests.dmi', icon_state)
+	crop_test_icon.crop(x1, y1, x2, y2)
+	uni_icons[name] = crop_test_icon
+
+/proc/add_scale_test_icon(list/uni_icons, name, icon_state, width, height)
+	var/datum/universal_icon/scale_test_icon = uni_icon('rsc/tests.dmi', icon_state)
+	scale_test_icon.scale(width, height)
+	uni_icons[name] = scale_test_icon
+
+/proc/add_color_test_icon(list/uni_icons, name, icon_state, color, blend_mode)
+	var/datum/universal_icon/color_test_icon = uni_icon('rsc/tests.dmi', icon_state)
+	color_test_icon.blend_color(color, blend_mode)
+	uni_icons[name] = color_test_icon
 
 /proc/add_self_test_icons(list/uni_icons, icon_state)
-    add_self_test_icon(uni_icons, "blend_[icon_state]_self_ADD", icon_state, ICON_ADD)
-    add_self_test_icon(uni_icons, "blend_[icon_state]_self_SUBTRACT", icon_state, ICON_SUBTRACT)
-    add_self_test_icon(uni_icons, "blend_[icon_state]_self_MULTIPLY", icon_state, ICON_MULTIPLY)
-    add_self_test_icon(uni_icons, "blend_[icon_state]_self_OVERLAY", icon_state, ICON_OVERLAY)
-    add_self_test_icon(uni_icons, "blend_[icon_state]_self_UNDERLAY", icon_state, ICON_UNDERLAY)
+	add_self_test_icon(uni_icons, "blend_[icon_state]_self_ADD", icon_state, ICON_ADD)
+	add_self_test_icon(uni_icons, "blend_[icon_state]_self_SUBTRACT", icon_state, ICON_SUBTRACT)
+	add_self_test_icon(uni_icons, "blend_[icon_state]_self_MULTIPLY", icon_state, ICON_MULTIPLY)
+	add_self_test_icon(uni_icons, "blend_[icon_state]_self_OVERLAY", icon_state, ICON_OVERLAY)
+	add_self_test_icon(uni_icons, "blend_[icon_state]_self_UNDERLAY", icon_state, ICON_UNDERLAY)
 
 /proc/add_other_test_icons(list/uni_icons, icon_state, icon_state_other)
-    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_ADD", icon_state, icon_state_other, ICON_ADD)
-    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_SUBTRACT", icon_state, icon_state_other, ICON_SUBTRACT)
-    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_MULTIPLY", icon_state, icon_state_other, ICON_MULTIPLY)
-    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_OVERLAY", icon_state, icon_state_other, ICON_OVERLAY)
-    add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_UNDERLAY", icon_state, icon_state_other, ICON_UNDERLAY)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_ADD", icon_state, icon_state_other, ICON_ADD)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_SUBTRACT", icon_state, icon_state_other, ICON_SUBTRACT)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_MULTIPLY", icon_state, icon_state_other, ICON_MULTIPLY)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_OVERLAY", icon_state, icon_state_other, ICON_OVERLAY)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_UNDERLAY", icon_state, icon_state_other, ICON_UNDERLAY)
 
-/test/proc/test_iconforge_consistency()
-    var/list/uni_icons = list()
+/proc/add_color_blend_icons(list/uni_icons, icon_state, color)
+	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_ADD", icon_state, color, ICON_ADD)
+	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_SUBTRACT", icon_state, color, ICON_SUBTRACT)
+	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_MULTIPLY", icon_state, color, ICON_MULTIPLY)
+	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_OVERLAY", icon_state, color, ICON_OVERLAY)
+	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_UNDERLAY", icon_state, color, ICON_UNDERLAY)
 
-    // Noise blend
+/test/proc/generate_iconforge_comparison_sheets()
+	var/list/uni_icons_16_16 = list()
+	var/list/uni_icons_32_32 = list()
+	var/list/uni_icons_64_32 = list()
+	var/list/uni_icons_32_64 = list()
+	var/list/uni_icons_64_64 = list()
+	var/list/uni_icons_41_78 = list()
 
-    add_other_test_icons(uni_icons, "noise", "noise2")
-    add_other_test_icons(uni_icons, "noise", "noise_alpha")
-    add_other_test_icons(uni_icons, "noise2", "noise_alpha")
-    add_other_test_icons(uni_icons, "rgba_test", "noise_alpha")
+	// --- crop ---
 
-    // Self blend
+	// 64x32 expansion
 
-    add_self_test_icons(uni_icons, "rgba_test")
+	add_crop_test_icon(uni_icons_64_32, "crop_expand_px", "rgba_test", 1, 1, 64, 32)
+	add_crop_test_icon(uni_icons_64_32, "crop_expand_nx", "rgba_test", -31, 1, 32, 32)
 
-    //add_self_test_icons(uni_icons, "dirs_1_frames_1")
-    //add_self_test_icons(uni_icons, "dirs_4_frames_1")
-    //add_self_test_icons(uni_icons, "dirs_8_frames_1")
+	// 32x64 expansion
 
-    //add_self_test_icons(uni_icons, "dirs_1_frames_2")
-    //add_self_test_icons(uni_icons, "dirs_4_frames_2")
-    //add_self_test_icons(uni_icons, "dirs_8_frames_2")
+	add_crop_test_icon(uni_icons_32_64, "crop_expand_py", "rgba_test", 1, 1, 32, 64)
+	add_crop_test_icon(uni_icons_32_64, "crop_expand_ny", "rgba_test", 1, -31, 32, 32)
 
-    //add_self_test_icons(uni_icons, "dirs_1_frames_3")
-    //add_self_test_icons(uni_icons, "dirs_4_frames_3")
-    //add_self_test_icons(uni_icons, "dirs_8_frames_3")
+	// 41x78 expansion
 
-    // Mixed-frames
+	add_crop_test_icon(uni_icons_41_78, "crop_expand_odd1", "rgba_test", 7, 4, 47, 81)
+	add_crop_test_icon(uni_icons_41_78, "crop_expand_odd2", "rgba_test", 1, 1, 41, 78)
+	add_crop_test_icon(uni_icons_41_78, "crop_expand_odd3", "rgba_test", 1, 4, 41, 81)
+	add_crop_test_icon(uni_icons_41_78, "crop_expand_odd4", "rgba_test", -10, -5, 30, 72)
 
-    add_other_test_icons(uni_icons, "dirs_1_frames_1", "dirs_1_frames_2")
-    add_other_test_icons(uni_icons, "dirs_1_frames_1", "dirs_1_frames_3")
-    //add_other_test_icons(uni_icons, "dirs_1_frames_2", "dirs_1_frames_3")
+	// 16x16 crop
 
-    //add_other_test_icons(uni_icons, "dirs_4_frames_1", "dirs_4_frames_2")
-    //add_other_test_icons(uni_icons, "dirs_4_frames_1", "dirs_4_frames_3")
-    //add_other_test_icons(uni_icons, "dirs_4_frames_2", "dirs_4_frames_3")
+	add_crop_test_icon(uni_icons_16_16, "crop_shrink1", "rgba_test", 1, 1, 16, 16)
+	add_crop_test_icon(uni_icons_16_16, "crop_shrink2", "rgba_test", 17, 17, 32, 32)
+	add_crop_test_icon(uni_icons_16_16, "crop_shrink3", "rgba_test", 10, 10, 25, 25)
+	add_crop_test_icon(uni_icons_16_16, "crop_shrink_expand", "rgba_test", 27, 17, 42, 32)
 
-    // Mixed-dirs - Decrease
+	// 32x32 noop
 
-    //add_other_test_icons(uni_icons, "dirs_4_frames_1", "dirs_1_frames_1")
+	add_crop_test_icon(uni_icons_32_32, "crop_noop", "rgba_test", 1, 1, 32, 32)
 
-    // Mixed-dirs - Increase (Unsupported)
+	// 32x32 layer cropped icon
 
-    //add_other_test_icons(uni_icons, "dirs_1_frames_1", "dirs_4_frames_1")
+	var/datum/universal_icon/crop_blend_base = uni_icon('rsc/tests.dmi', "noise")
+	var/datum/universal_icon/crop_blend_layer = uni_icon('rsc/tests.dmi', "rgba_test")
+	crop_blend_layer.crop(17, 17, 32, 32)
+	crop_blend_base.blend_icon(crop_blend_layer, ICON_OVERLAY)
+	uni_icons_32_32["crop_layer"] = crop_blend_base
 
-    rustg_sheet_from_uni_icons(uni_icons)
-    dm_sheet_from_uni_icons(uni_icons)
+	// --- scale ---
+
+	// 64x32 expansion
+
+	add_scale_test_icon(uni_icons_64_32, "scale_expand_64_32", "rgba_test", 64, 32)
+
+	// 32x64 expansion
+
+	add_scale_test_icon(uni_icons_32_64, "scale_expand_32_64", "rgba_test", 32, 64)
+
+	// 64x64 expansion
+
+	add_scale_test_icon(uni_icons_64_64, "scale_expand_64_64", "rgba_test", 64, 64)
+
+	// 41x78 expansion
+
+	add_scale_test_icon(uni_icons_41_78, "scale_expand_41_78", "rgba_test", 41, 78)
+
+	// 16x16 shrink
+
+	add_scale_test_icon(uni_icons_16_16, "scale_shrink_16_16", "rgba_test", 16, 16)
+
+	// 32x32 noop
+
+	add_scale_test_icon(uni_icons_32_32, "scale_noop", "rgba_test", 32, 32)
+
+	// 32x32 layer scaled icon
+
+	var/datum/universal_icon/scale_blend_base = uni_icon('rsc/tests.dmi', "noise")
+	var/datum/universal_icon/scale_blend_layer = uni_icon('rsc/tests.dmi', "rgba_test")
+	scale_blend_layer.scale(16, 16)
+	scale_blend_base.blend_icon(scale_blend_layer, ICON_OVERLAY)
+	uni_icons_32_32["scale_layer"] = scale_blend_base
+
+	// -- color blending --
+
+	add_color_blend_icons(uni_icons_32_32, "noise", "#6ffe71")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#db8daa")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#6ffe71cc")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#db8daacc")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#6ffe7122")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#db8daa22")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#000000")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#ffffff")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#000000cc")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#ffffffcc")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#00000022")
+	add_color_blend_icons(uni_icons_32_32, "noise", "#ffffff22")
+
+	// --- icon blending ---
+
+	// Simple
+
+	add_other_test_icons(uni_icons_32_32, "noise", "noise2")
+	add_other_test_icons(uni_icons_32_32, "noise", "noise_alpha")
+	add_other_test_icons(uni_icons_32_32, "noise2", "noise_alpha")
+	add_other_test_icons(uni_icons_32_32, "rgba_test", "noise_alpha")
+	add_self_test_icons(uni_icons_32_32, "rgba_test")
+
+	// Simple Multi
+
+	add_self_test_icons(uni_icons_32_32, "dirs_4_frames_1")
+	add_self_test_icons(uni_icons_32_32, "dirs_8_frames_1")
+	add_self_test_icons(uni_icons_32_32, "dirs_4_frames_3")
+	add_self_test_icons(uni_icons_32_32, "dirs_8_frames_3")
+
+	// Mixed-frames w/ mixed-delays
+
+	// Single-multi
+	add_other_test_icons(uni_icons_32_32, "dirs_1_frames_1", "dirs_1_frames_2")
+	add_other_test_icons(uni_icons_32_32, "dirs_1_frames_1", "dirs_1_frames_3")
+	// Multi-multi (Unsupported)
+	//add_other_test_icons(uni_icons_32_32, "dirs_4_frames_2", "dirs_4_frames_3")
+
+	// Mixed-dirs
+
+	// Decrease
+	add_other_test_icons(uni_icons_32_32, "dirs_4_frames_1", "dirs_1_frames_1")
+	// Increase (Unsupported)
+	//add_other_test_icons(uni_icons_32_32, "dirs_1_frames_1", "dirs_4_frames_1")
+
+	generate_sheets(uni_icons_32_32, "32x32")
+	generate_sheets(uni_icons_32_64, "32x64")
+	generate_sheets(uni_icons_64_32, "64x32")
+	generate_sheets(uni_icons_64_64, "64x64")
+	generate_sheets(uni_icons_41_78, "41x78")
+	generate_sheets(uni_icons_16_16, "16x16")
+
+/proc/generate_sheets(list/uni_icons, expected_size)
+	world.log << "Generating dm_[expected_size].dmi..."
+	rustg_time_reset("dm_[expected_size]")
+	dm_sheet_from_uni_icons(uni_icons, expected_size)
+	var/icon/dm_output = icon(file("tmp/dm_[expected_size].dmi"))
+	var/actual_width = dm_output.Width()
+	var/actual_height = dm_output.Height()
+	var/list/expected_sizes = splittext(expected_size,"x")
+	if("[actual_width]" != expected_sizes[1] || "[actual_height]" != expected_sizes[2])
+		world.log << "runtime error: DMI size differs from expected size for tmp/dm_[expected_size].dmi! Size was found to be [actual_width]x[actual_height]!"
+	var/duration = rustg_time_milliseconds("dm_[expected_size]")
+	world.log << "Elapsed [duration]ms\n"
+	world.log << "Generating rustg_[expected_size].dmi..."
+	rustg_time_reset("rustg_[expected_size]")
+	rustg_sheet_from_uni_icons(uni_icons, expected_size)
+	duration = rustg_time_milliseconds("rustg_[expected_size]")
+	world.log << "Elapsed [duration]ms\n"
+
 
 
 #undef uni_icon

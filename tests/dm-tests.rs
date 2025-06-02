@@ -33,10 +33,7 @@ fn dice() {
 }
 
 #[cfg(feature = "iconforge")]
-#[test]
-fn iconforge() {
-    run_dm_tests("iconforge", false);
-}
+pub mod iconforge;
 
 /**
  * Find a valid BYOND bin path on the system.
