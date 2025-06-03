@@ -151,6 +151,8 @@
 	add_self_test_icon(uni_icons, "blend_[icon_state]_self_SUBTRACT", icon_state, ICON_SUBTRACT)
 	add_self_test_icon(uni_icons, "blend_[icon_state]_self_MULTIPLY", icon_state, ICON_MULTIPLY)
 	add_self_test_icon(uni_icons, "blend_[icon_state]_self_OVERLAY", icon_state, ICON_OVERLAY)
+	add_self_test_icon(uni_icons, "blend_[icon_state]_self_AND", icon_state, ICON_AND)
+	add_self_test_icon(uni_icons, "blend_[icon_state]_self_OR", icon_state, ICON_OR)
 	add_self_test_icon(uni_icons, "blend_[icon_state]_self_UNDERLAY", icon_state, ICON_UNDERLAY)
 
 /proc/add_other_test_icons(list/uni_icons, icon_state, icon_state_other)
@@ -158,6 +160,8 @@
 	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_SUBTRACT", icon_state, icon_state_other, ICON_SUBTRACT)
 	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_MULTIPLY", icon_state, icon_state_other, ICON_MULTIPLY)
 	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_OVERLAY", icon_state, icon_state_other, ICON_OVERLAY)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_AND", icon_state, icon_state_other, ICON_AND)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_OR", icon_state, icon_state_other, ICON_OR)
 	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_UNDERLAY", icon_state, icon_state_other, ICON_UNDERLAY)
 
 /proc/add_color_blend_icons(list/uni_icons, icon_state, color)
@@ -165,6 +169,8 @@
 	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_SUBTRACT", icon_state, color, ICON_SUBTRACT)
 	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_MULTIPLY", icon_state, color, ICON_MULTIPLY)
 	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_OVERLAY", icon_state, color, ICON_OVERLAY)
+	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_AND", icon_state, color, ICON_AND)
+	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_OR", icon_state, color, ICON_OR)
 	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_UNDERLAY", icon_state, color, ICON_UNDERLAY)
 
 /test/proc/generate_iconforge_comparison_sheets()

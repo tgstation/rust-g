@@ -46,7 +46,7 @@ noise = { version = "0.9", optional = true }
 redis = { version = "0.32", optional = true, features = ["ahash"] }
 ureq = { version = "2.12", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
-serde_json = { version = "1.0", optional = true }
+serde_json = { version = "1.0", optional = true, features = ["preserve_order"] }
 once_cell = { version = "1.21", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
@@ -66,6 +66,7 @@ fast_poisson = { version = "1.0.2", optional = true, features = [
 ] }
 symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
+indexmap = { version = "2.9.0", optional = true, features = ["serde", "rayon"] }
 
 [features]
 default = [
@@ -144,6 +145,7 @@ iconforge = [
     "dep:dmi",
     "hash",
     "image",
+    "indexmap",
     "jobs",
     "once_cell",
     "png",

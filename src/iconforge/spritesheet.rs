@@ -9,6 +9,7 @@ use crate::{
 use dashmap::{DashMap, DashSet};
 use dmi::icon::{DmiVersion, Icon, IconState};
 use image::RgbaImage;
+use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::Serialize;
@@ -21,7 +22,7 @@ use std::{
 use tracy_full::zone;
 use twox_hash::XxHash64;
 
-type SpriteJsonMap = HashMap<String, HashMap<String, UniversalIcon>, BuildHasherDefault<XxHash64>>;
+type SpriteJsonMap = HashMap<String, IndexMap<String, UniversalIcon>, BuildHasherDefault<XxHash64>>;
 /// This is used to save time decoding 'sprites' a second time between the cache step and the generate step.
 static SPRITES_TO_JSON: Lazy<Arc<Mutex<SpriteJsonMap>>> = Lazy::new(|| {
     Arc::new(Mutex::new(HashMap::with_hasher(BuildHasherDefault::<
@@ -85,7 +86,7 @@ pub fn generate_spritesheet(
         Some(sprites) => sprites.clone(),
         None => {
             zone!("from_json_sprites"); // byondapi, save us
-            serde_json::from_str::<HashMap<String, UniversalIcon>>(sprites)?
+            serde_json::from_str::<IndexMap<String, UniversalIcon>>(sprites)?
         }
     };
 
@@ -269,22 +270,13 @@ pub fn generate_spritesheet(
                 .unwrap();
 
             if generate_dmi {
-                let output_states = match create_dmi_output_states(sprite_entries) {
+                let output_states = match create_dmi_output_states(sprite_entries, &sprites_map) {
                     Ok(output_states) => output_states,
                     Err(err) => {
                         error.lock().unwrap().push(err);
                         return;
                     }
                 };
-                {
-                    zone!("spritesheet_dmi_sort_states");
-                    // This is important, because it allows the outputted DMI to be used in IconForge's own cache - they will output in the same order between runs.
-                    // PNGs don't need these because they're only usable in the UI, but these DMI icons are potentially persistent (they may be used at compile time!!)
-                    output_states
-                        .lock()
-                        .unwrap()
-                        .sort_unstable_by(|state1, state2| state1.name.cmp(&state2.name))
-                }
                 {
                     zone!("write_spritesheet_dmi");
                     {
@@ -382,9 +374,12 @@ fn create_png_image(
 
 fn create_dmi_output_states(
     sprite_entries: &Vec<(&String, &UniversalIcon)>,
+    sprites_map: &IndexMap<String, UniversalIcon>,
 ) -> Result<Arc<Mutex<Vec<IconState>>>, String> {
     zone!("create_dmi_output_states");
-    let output_states = Arc::new(Mutex::new(Vec::<IconState>::new()));
+    let output_states = Arc::new(Mutex::new(Vec::<IconState>::with_capacity(
+        sprite_entries.len(),
+    )));
     let errors = Mutex::new(Vec::<String>::new());
     sprite_entries.par_iter().for_each(|sprite_entry| {
         zone!("create_output_state_dmi");
@@ -421,6 +416,13 @@ fn create_dmi_output_states(
     if !errors.lock().unwrap().is_empty() {
         return Err(errors.lock().unwrap().join("\n"));
     }
+    // Sort the output states in the relative order of their existence in the input sprites object.
+    // This is important for consistency with DM behavior, and it allows the outputted DMI to be used in IconForge's own cache - they will output in the same order between runs.
+    // PNGs don't need these because they're only usable in the UI, but these DMI icons are potentially persistent (they may be used at compile time!!)
+    output_states
+        .lock()
+        .unwrap()
+        .sort_unstable_by_key(|state| sprites_map.get_index_of(&state.name).unwrap_or(1000));
     Ok(output_states)
 }
 
@@ -527,7 +529,7 @@ pub fn cache_valid(
     }
     let mut sprites_json: std::sync::MutexGuard<
         '_,
-        HashMap<String, HashMap<String, UniversalIcon>, BuildHasherDefault<XxHash64>>,
+        HashMap<String, IndexMap<String, UniversalIcon>, BuildHasherDefault<XxHash64>>,
     > = SPRITES_TO_JSON.lock().unwrap();
     let sprites = match sprites_json.get(&sprites_hash) {
         Some(sprites) => sprites,
@@ -536,7 +538,7 @@ pub fn cache_valid(
             {
                 sprites_json.insert(
                     sprites_hash.clone(),
-                    serde_json::from_str::<HashMap<String, UniversalIcon>>(sprites_in)?,
+                    serde_json::from_str::<IndexMap<String, UniversalIcon>>(sprites_in)?,
                 );
             }
             sprites_json.get(&sprites_hash).unwrap()

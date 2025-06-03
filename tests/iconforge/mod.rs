@@ -12,6 +12,19 @@ use std::{
 
 #[test]
 fn iconforge() {
+    // Delete existing icons
+    let tmp_files = read_dir("tests/dm/tmp/").unwrap();
+    for tmp_entry in tmp_files {
+        if let Ok(entry) = tmp_entry {
+            if let Some(file_name) = entry.file_name().to_str() {
+                if (file_name.starts_with("dm_") || file_name.starts_with("rustg_"))
+                    && file_name.ends_with(".dmi")
+                {
+                    let _ = std::fs::remove_file(entry.path());
+                }
+            }
+        }
+    }
     // Generate icons for comparison
     run_dm_tests("iconforge", false);
     // Compare said icons
@@ -76,6 +89,19 @@ fn compare_dmis(dm_path: &Path, rustg_path: &Path) -> Option<String> {
             ));
         }
     }
+    if dm_icon
+        .states
+        .iter()
+        .map(|state| &state.name)
+        .collect::<Vec<&String>>()
+        != rustg_icon
+            .states
+            .iter()
+            .map(|state| &state.name)
+            .collect::<Vec<&String>>()
+    {
+        differences.push(String::from("icon state order differs\n"));
+    }
     for rustg_state in &rustg_icon.states {
         if let None = dm_icon
             .states
@@ -130,6 +156,13 @@ fn compare_states(dm_state: &IconState, rustg_state: &IconState) -> Option<Strin
         differences.push(format!(
             "LOOP FLAG: dm: {:?} - rustg: {:?}",
             dm_state.loop_flag, rustg_state.loop_flag
+        ));
+    }
+
+    if dm_state.delay != rustg_state.delay {
+        differences.push(format!(
+            "DELAYS: dm: {:?} - rustg: {:?}",
+            dm_state.delay, rustg_state.delay
         ));
     }
 

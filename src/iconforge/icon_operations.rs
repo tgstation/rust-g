@@ -35,7 +35,7 @@ pub fn blend_color(
     }
     let image_buf: &mut [u8] = image.as_mut();
     image_buf.par_chunks_exact_mut(4).for_each(|px| {
-        let blended = blending::Rgba::blend_u8(px, &color2, blend_mode);
+        let blended = blend_mode.blend_u8(px, &color2);
         px.copy_from_slice(&blended);
     });
     Ok(())
@@ -77,7 +77,7 @@ pub fn blend_icon(
             let px1 = &mut image_buf[target_index..target_index + 4];
             let px2 = &other_buf[source_index..source_index + 4];
 
-            let blended = blending::Rgba::blend_u8(px1, px2, blend_mode);
+            let blended = blend_mode.blend_u8(px1, px2);
             px1.copy_from_slice(&blended);
         }
     }
@@ -375,15 +375,23 @@ pub fn blend_images_other_universal(
             }
             // Update the output IconState's frame count, because the values from the first state are used for the final result.
             frames_out = image_data_other.frames;
-            // Copy the delays as well, or create new ones
-            // sometimes DMIs can contain more delays than frames because they retain old data
-            delay_out = Some(
-                image_data_other
-                    .delay
-                    .clone()
-                    .unwrap_or_else(|| vec![1.0; frames_out as usize])[0..frames_out as usize]
-                    .to_owned(),
-            );
+            // Update delays
+            let mut new_delays = image_data
+                .delay
+                .clone()
+                .unwrap_or(vec![1.0; frames_out as usize]);
+            let delay_diff = frames_out as i32 - new_delays.len() as i32;
+            // Extend the number of delays to match frames by copying the first delay
+            if delay_diff > 0 {
+                new_delays.extend(vec![
+                    *new_delays.get(0).unwrap_or(&1.0);
+                    delay_diff as usize
+                ]);
+            } else if delay_diff < 0 {
+                // sometimes DMIs can contain more delays than frames because they retain old data
+                new_delays = new_delays[0..frames_out as usize].to_vec()
+            }
+            delay_out = Some(new_delays);
         } else {
             return Err(Error::IconForge(format!(
                 "Attempted to blend two icon states with different frame amounts - with {} and {} frames respectively.",
@@ -514,8 +522,24 @@ pub fn blend_images_other(
             }
             // Update the output IconState's frame count, because the values from the first state are used for the final result.
             base_icon_state.frames = blending_icon_state.frames;
-            // Copy the delays as well
-            base_icon_state.delay = blending_icon_state.delay.to_owned();
+            // Update delays
+            let mut new_delays =
+                base_icon_state
+                    .delay
+                    .clone()
+                    .unwrap_or(vec![1.0; base_icon_state.frames as usize]);
+            let delay_diff = base_icon_state.frames as i32 - new_delays.len() as i32;
+            // Extend the number of delays to match frames by copying the first delay
+            if delay_diff > 0 {
+                new_delays.extend(vec![
+                    *new_delays.get(0).unwrap_or(&1.0);
+                    delay_diff as usize
+                ]);
+            } else if delay_diff < 0 {
+                // sometimes DMIs can contain more delays than frames because they retain old data
+                new_delays = new_delays[0..base_icon_state.frames as usize].to_vec()
+            }
+            base_icon_state.delay = Some(new_delays);
         } else {
             return Err(Error::IconForge(format!(
                 "Attempted to blend two icon states with different frame amounts - {} and {}, with {} and {} frames respectively.",

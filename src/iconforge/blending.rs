@@ -20,123 +20,6 @@ pub static ALPHA_TABLE: Lazy<[u8; 256 * 256]> = Lazy::new(|| {
     table
 });
 
-#[derive(Clone)]
-pub struct Rgba {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
-}
-
-impl Rgba {
-    pub fn into_array(self) -> [u8; 4] {
-        [
-            self.r.round() as u8,
-            self.g.round() as u8,
-            self.b.round() as u8,
-            self.a.round() as u8,
-        ]
-    }
-
-    pub fn from_array(rgba: &[u8]) -> Rgba {
-        Self {
-            r: rgba[0] as f32,
-            g: rgba[1] as f32,
-            b: rgba[2] as f32,
-            a: rgba[3] as f32,
-        }
-    }
-
-    fn map_each<F, T>(color: &Rgba, color2: &Rgba, rgb_fn: F, a_fn: T) -> Rgba
-    where
-        F: Fn(f32, f32) -> f32,
-        T: Fn(f32, f32) -> f32,
-    {
-        Rgba {
-            r: rgb_fn(color.r, color2.r),
-            g: rgb_fn(color.g, color2.g),
-            b: rgb_fn(color.b, color2.b),
-            a: a_fn(color.a, color2.a),
-        }
-    }
-
-    fn map_each_a<F, T>(color: &Rgba, color2: &Rgba, rgb_fn: F, a_fn: T) -> Rgba
-    where
-        F: Fn(f32, f32, f32, f32) -> f32,
-        T: Fn(f32, f32) -> f32,
-    {
-        Rgba {
-            r: rgb_fn(color.r, color2.r, color.a, color2.a),
-            g: rgb_fn(color.g, color2.g, color.a, color2.a),
-            b: rgb_fn(color.b, color2.b, color.a, color2.a),
-            a: a_fn(color.a, color2.a),
-        }
-    }
-
-    /// Takes two [u8; 4]s, converts them to Rgba structs, then blends them according to blend_mode by calling blend().
-    pub fn blend_u8(color: &[u8], other_color: &[u8], blend_mode: &BlendMode) -> [u8; 4] {
-        Rgba::from_array(color)
-            .blend(&Rgba::from_array(other_color), blend_mode)
-            .into_array()
-    }
-
-    /// Blends two colors according to blend_mode.
-    pub fn blend(&self, other_color: &Rgba, blend_mode: &BlendMode) -> Rgba {
-        match blend_mode {
-            BlendMode::Add => Rgba::map_each(
-                self,
-                other_color,
-                |c1, c2| (c1 + c2).min(255.0),
-                |a1, a2| ALPHA_TABLE[a2 as usize + (a1 as usize) * 256] as f32,
-            ),
-            BlendMode::Subtract => Rgba::map_each(
-                self,
-                other_color,
-                |c1, c2| (c1 - c2).max(0.0),
-                |a1, a2| ALPHA_TABLE[a2 as usize + (a1 as usize) * 256] as f32,
-            ),
-            BlendMode::Multiply => Rgba::map_each(
-                self,
-                other_color,
-                |c1, c2| c1 * c2 / 255.0,
-                |a1, a2| ALPHA_TABLE[a2 as usize + (a1 as usize) * 256] as f32,
-            ),
-            BlendMode::Overlay => Rgba::map_each_a(
-                self,
-                other_color,
-                |c1, c2, c1_a, c2_a| {
-                    if c1_a == 0.0 {
-                        return c2;
-                    }
-                    c1 + (c2 - c1) * c2_a / 255.0
-                },
-                |a1, a2| {
-                    let a_src_f = a1 / 255.0;
-                    let a_dst_f = a2 / 255.0;
-                    let out = (a_src_f) + a_dst_f * (1.0 - a_src_f);
-                    (out * 255.0).round().clamp(0.0, 255.0)
-                },
-            ),
-            BlendMode::Underlay => Rgba::map_each_a(
-                other_color,
-                self,
-                |c1, c2, c1_a, c2_a| {
-                    if c1_a == 0.0 {
-                        return c2;
-                    }
-                    c1 + (c2 - c1) * c2_a / 255.0
-                },
-                |a1, a2| {
-                    let a_src_f = a1 / 255.0;
-                    let a_dst_f = a2 / 255.0;
-                    let out = (a_src_f) + a_dst_f * (1.0 - a_src_f);
-                    (out * 255.0).round().clamp(0.0, 255.0)
-                },
-            ),
-        }
-    }
-}
-
 // The numbers correspond to BYOND ICON_X blend modes. https://www.byond.com/docs/ref/#/icon/proc/Blend
 #[derive(Clone, Hash, Eq, PartialEq, Serialize)]
 #[repr(u8)]
@@ -145,6 +28,8 @@ pub enum BlendMode {
     Subtract = 1,
     Multiply = 2,
     Overlay = 3,
+    And = 4,
+    Or = 5,
     Underlay = 6,
 }
 
@@ -155,8 +40,92 @@ impl BlendMode {
             1 => Ok(BlendMode::Subtract),
             2 => Ok(BlendMode::Multiply),
             3 => Ok(BlendMode::Overlay),
+            4 => Ok(BlendMode::And),
+            5 => Ok(BlendMode::Or),
             6 => Ok(BlendMode::Underlay),
             _ => Err(format!("blend_mode '{blend_mode}' is not supported!")),
+        }
+    }
+
+    pub fn blend_u8(&self, color: &[u8], other_color: &[u8]) -> [u8; 4] {
+        let (r1, g1, b1, a1) = (color[0], color[1], color[2], color[3]);
+        let (r2, g2, b2, a2) = (
+            other_color[0],
+            other_color[1],
+            other_color[2],
+            other_color[3],
+        );
+
+        let add_channel = |c_src: u8, c_dst: u8| c_src.saturating_add(c_dst);
+        let subtract_channel = |c_src: u8, c_dst: u8| c_src.saturating_sub(c_dst);
+        let multiply_channel = |c_src: u8, c_dst: u8| ((c_src as u16 * c_dst as u16) / 255) as u8;
+        let overlay_channel = |c_src: u8, c_dst: u8, a_src: u8, a_dst: u8| {
+            if a_src == 0 {
+                c_dst
+            } else {
+                let delta = (c_dst as i32 - c_src as i32) * a_dst as i32 / 255;
+                (c_src as i32 + delta).clamp(0, 255) as u8
+            }
+        };
+        let overlay_alpha = |a_src: u8, a_dst: u8| {
+            let a_src = a_src as f32 / 255.0;
+            let a_dst = a_dst as f32 / 255.0;
+            ((a_src + a_dst * (1.0 - a_src)) * 255.0)
+                .round()
+                .clamp(0.0, 255.0) as u8
+        };
+
+        let alpha_lookup =
+            |a_src: u8, a_dst: u8| ALPHA_TABLE[a_dst as usize + (a_src as usize) * 256];
+
+        match self {
+            BlendMode::Add | BlendMode::And => [
+                add_channel(r1, r2),
+                add_channel(g1, g2),
+                add_channel(b1, b2),
+                alpha_lookup(a1, a2),
+            ],
+            BlendMode::Subtract => [
+                subtract_channel(r1, r2),
+                subtract_channel(g1, g2),
+                subtract_channel(b1, b2),
+                alpha_lookup(a1, a2),
+            ],
+            BlendMode::Multiply => [
+                multiply_channel(r1, r2),
+                multiply_channel(g1, g2),
+                multiply_channel(b1, b2),
+                alpha_lookup(a1, a2),
+            ],
+            BlendMode::Overlay => [
+                overlay_channel(r1, r2, a1, a2),
+                overlay_channel(g1, g2, a1, a2),
+                overlay_channel(b1, b2, a1, a2),
+                overlay_alpha(a1, a2),
+            ],
+            BlendMode::Or => {
+                if a1 == 0 {
+                    return [r2, g2, b2, a2];
+                }
+                if a2 == 0 {
+                    return [r1, g1, b1, a1];
+                }
+                [
+                    add_channel(r1, r2),
+                    add_channel(g1, g2),
+                    add_channel(b1, b2),
+                    !ALPHA_TABLE[0x10000usize
+                        .wrapping_sub(a1 as usize)
+                        .wrapping_sub(a2 as usize * 256)
+                        .min(65535)],
+                ]
+            }
+            BlendMode::Underlay => [
+                overlay_channel(r2, r1, a2, a1),
+                overlay_channel(g2, g1, a2, a1),
+                overlay_channel(b2, b1, a2, a1),
+                overlay_alpha(a2, a1),
+            ],
         }
     }
 }
@@ -170,6 +139,8 @@ impl FromStr for BlendMode {
             "subtract" => Ok(BlendMode::Subtract),
             "multiply" => Ok(BlendMode::Multiply),
             "overlay" => Ok(BlendMode::Overlay),
+            "and" => Ok(BlendMode::And),
+            "or" => Ok(BlendMode::Or),
             "underlay" => Ok(BlendMode::Underlay),
             _ => Err(format!("blend_mode '{blend_mode}' is not supported!")),
         }
