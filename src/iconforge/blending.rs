@@ -1,5 +1,24 @@
+use once_cell::sync::Lazy;
 use serde::Serialize;
 use std::str::FromStr;
+
+pub static ALPHA_TABLE: Lazy<[u8; 256 * 256]> = Lazy::new(|| {
+    let mut table = [0u8; 256 * 256];
+
+    for dst in 0..256 {
+        for src in 0..256 {
+            let index = dst * 256 + src;
+            let value = ((src as f32) * (dst as f32 / 255.0) + 0.5).floor() as i32;
+            table[index] = if (0..256).contains(&value) {
+                value as u8
+            } else {
+                0xFF
+            };
+        }
+    }
+
+    table
+});
 
 #[derive(Clone)]
 pub struct Rgba {
@@ -64,13 +83,23 @@ impl Rgba {
     /// Blends two colors according to blend_mode.
     pub fn blend(&self, other_color: &Rgba, blend_mode: &BlendMode) -> Rgba {
         match blend_mode {
-            BlendMode::Add => Rgba::map_each(self, other_color, |c1, c2| c1 + c2, f32::min),
-            BlendMode::Subtract => Rgba::map_each(self, other_color, |c1, c2| c1 - c2, f32::min),
+            BlendMode::Add => Rgba::map_each(
+                self,
+                other_color,
+                |c1, c2| (c1 + c2).min(255.0),
+                |a1, a2| ALPHA_TABLE[a2 as usize + (a1 as usize) * 256] as f32,
+            ),
+            BlendMode::Subtract => Rgba::map_each(
+                self,
+                other_color,
+                |c1, c2| (c1 - c2).max(0.0),
+                |a1, a2| ALPHA_TABLE[a2 as usize + (a1 as usize) * 256] as f32,
+            ),
             BlendMode::Multiply => Rgba::map_each(
                 self,
                 other_color,
                 |c1, c2| c1 * c2 / 255.0,
-                |a1: f32, a2: f32| a1 * a2 / 255.0,
+                |a1, a2| ALPHA_TABLE[a2 as usize + (a1 as usize) * 256] as f32,
             ),
             BlendMode::Overlay => Rgba::map_each_a(
                 self,
@@ -82,9 +111,10 @@ impl Rgba {
                     c1 + (c2 - c1) * c2_a / 255.0
                 },
                 |a1, a2| {
-                    let high = f32::max(a1, a2);
-                    let low = f32::min(a1, a2);
-                    high + (high * low / 255.0)
+                    let a_src_f = a1 / 255.0;
+                    let a_dst_f = a2 / 255.0;
+                    let out = (a_src_f) + a_dst_f * (1.0 - a_src_f);
+                    (out * 255.0).round().clamp(0.0, 255.0)
                 },
             ),
             BlendMode::Underlay => Rgba::map_each_a(
@@ -97,9 +127,10 @@ impl Rgba {
                     c1 + (c2 - c1) * c2_a / 255.0
                 },
                 |a1, a2| {
-                    let high = f32::max(a1, a2);
-                    let low = f32::min(a1, a2);
-                    high + (high * low / 255.0)
+                    let a_src_f = a1 / 255.0;
+                    let a_dst_f = a2 / 255.0;
+                    let out = (a_src_f) + a_dst_f * (1.0 - a_src_f);
+                    (out * 255.0).round().clamp(0.0, 255.0)
                 },
             ),
         }

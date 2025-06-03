@@ -174,39 +174,34 @@
 	var/list/uni_icons_32_64 = list()
 	var/list/uni_icons_64_64 = list()
 	var/list/uni_icons_41_78 = list()
+	var/list/uni_icons_16_78 = list()
 
 	// --- crop ---
 
 	// 64x32 expansion
-
 	add_crop_test_icon(uni_icons_64_32, "crop_expand_px", "rgba_test", 1, 1, 64, 32)
 	add_crop_test_icon(uni_icons_64_32, "crop_expand_nx", "rgba_test", -31, 1, 32, 32)
 
 	// 32x64 expansion
-
 	add_crop_test_icon(uni_icons_32_64, "crop_expand_py", "rgba_test", 1, 1, 32, 64)
 	add_crop_test_icon(uni_icons_32_64, "crop_expand_ny", "rgba_test", 1, -31, 32, 32)
 
 	// 41x78 expansion
-
 	add_crop_test_icon(uni_icons_41_78, "crop_expand_odd1", "rgba_test", 7, 4, 47, 81)
 	add_crop_test_icon(uni_icons_41_78, "crop_expand_odd2", "rgba_test", 1, 1, 41, 78)
 	add_crop_test_icon(uni_icons_41_78, "crop_expand_odd3", "rgba_test", 1, 4, 41, 81)
 	add_crop_test_icon(uni_icons_41_78, "crop_expand_odd4", "rgba_test", -10, -5, 30, 72)
 
 	// 16x16 crop
-
 	add_crop_test_icon(uni_icons_16_16, "crop_shrink1", "rgba_test", 1, 1, 16, 16)
 	add_crop_test_icon(uni_icons_16_16, "crop_shrink2", "rgba_test", 17, 17, 32, 32)
 	add_crop_test_icon(uni_icons_16_16, "crop_shrink3", "rgba_test", 10, 10, 25, 25)
 	add_crop_test_icon(uni_icons_16_16, "crop_shrink_expand", "rgba_test", 27, 17, 42, 32)
 
 	// 32x32 noop
-
 	add_crop_test_icon(uni_icons_32_32, "crop_noop", "rgba_test", 1, 1, 32, 32)
 
 	// 32x32 layer cropped icon
-
 	var/datum/universal_icon/crop_blend_base = uni_icon('rsc/tests.dmi', "noise")
 	var/datum/universal_icon/crop_blend_layer = uni_icon('rsc/tests.dmi', "rgba_test")
 	crop_blend_layer.crop(17, 17, 32, 32)
@@ -216,31 +211,32 @@
 	// --- scale ---
 
 	// 64x32 expansion
-
 	add_scale_test_icon(uni_icons_64_32, "scale_expand_64_32", "rgba_test", 64, 32)
 
 	// 32x64 expansion
-
 	add_scale_test_icon(uni_icons_32_64, "scale_expand_32_64", "rgba_test", 32, 64)
 
 	// 64x64 expansion
-
 	add_scale_test_icon(uni_icons_64_64, "scale_expand_64_64", "rgba_test", 64, 64)
 
 	// 41x78 expansion
-
 	add_scale_test_icon(uni_icons_41_78, "scale_expand_41_78", "rgba_test", 41, 78)
 
-	// 16x16 shrink
+	// 16x78 odd
+	add_scale_test_icon(uni_icons_16_78, "scale_odd_16_78", "rgba_test", 16, 78)
 
+	// 16x16 shrink
 	add_scale_test_icon(uni_icons_16_16, "scale_shrink_16_16", "rgba_test", 16, 16)
 
-	// 32x32 noop
+	// 8x19 shrink
+	// --- Excluded: Not BYOND-compatible. Diminishing returns. ---
+	// A few pixels off from BYOND and not worth fixing
+	//add_scale_test_icon(uni_icons_8_19, "scale_shrink_8_19", "rgba_test", 8, 19)
 
+	// 32x32 noop
 	add_scale_test_icon(uni_icons_32_32, "scale_noop", "rgba_test", 32, 32)
 
 	// 32x32 layer scaled icon
-
 	var/datum/universal_icon/scale_blend_base = uni_icon('rsc/tests.dmi', "noise")
 	var/datum/universal_icon/scale_blend_layer = uni_icon('rsc/tests.dmi', "rgba_test")
 	scale_blend_layer.scale(16, 16)
@@ -285,6 +281,7 @@
 	add_other_test_icons(uni_icons_32_32, "dirs_1_frames_1", "dirs_1_frames_2")
 	add_other_test_icons(uni_icons_32_32, "dirs_1_frames_1", "dirs_1_frames_3")
 	// Multi-multi (Unsupported)
+	// DM Behavior: Fill empty frames with the corresponding dir and first frame of the first image, then blend
 	//add_other_test_icons(uni_icons_32_32, "dirs_4_frames_2", "dirs_4_frames_3")
 
 	// Mixed-dirs
@@ -292,13 +289,21 @@
 	// Decrease
 	add_other_test_icons(uni_icons_32_32, "dirs_4_frames_1", "dirs_1_frames_1")
 	// Increase (Unsupported)
+	// DM Behavior: Fill empty frames with the SOUTH direction then blend
 	//add_other_test_icons(uni_icons_32_32, "dirs_1_frames_1", "dirs_4_frames_1")
+	// Double whammy! (Very unsupported)
+	// DM Behavior:
+	// Fill empty dirs on existing frames with the SOUTH direction of the corresponding frame
+	// Fill empty frames with the corresponding direction of the first frame
+	// Fill empty frames AND dirs (no corresponding) with the SOUTH direction of the first frame
+	//add_other_test_icons(uni_icons_32_32, "dirs_4_frames_2", "dirs_8_frames_3")
 
 	generate_sheets(uni_icons_32_32, "32x32")
 	generate_sheets(uni_icons_32_64, "32x64")
 	generate_sheets(uni_icons_64_32, "64x32")
 	generate_sheets(uni_icons_64_64, "64x64")
 	generate_sheets(uni_icons_41_78, "41x78")
+	generate_sheets(uni_icons_16_78, "16x78")
 	generate_sheets(uni_icons_16_16, "16x16")
 
 /proc/generate_sheets(list/uni_icons, expected_size)

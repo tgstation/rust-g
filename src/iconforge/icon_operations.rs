@@ -4,8 +4,11 @@ use super::{
 };
 use crate::error::Error;
 use dmi::icon::IconState;
-use image::{DynamicImage, Pixel, RgbaImage};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use image::{DynamicImage, Rgba, RgbaImage};
+use rayon::{
+    iter::{IntoParallelIterator, ParallelIterator},
+    slice::ParallelSliceMut,
+};
 use std::sync::{Arc, Mutex};
 use tracy_full::zone;
 
@@ -30,15 +33,11 @@ pub fn blend_color(
             return Err(format!("Decoding hex color {color} failed: {err}"));
         }
     }
-    for x in 0..image.width() {
-        for y in 0..image.height() {
-            let px = image.get_pixel_mut(x, y);
-            let pixel = px.channels();
-            let blended = blending::Rgba::blend_u8(pixel, &color2, blend_mode);
-
-            *px = image::Rgba::<u8>(blended);
-        }
-    }
+    let image_buf: &mut [u8] = image.as_mut();
+    image_buf.par_chunks_exact_mut(4).for_each(|px| {
+        let blended = blending::Rgba::blend_u8(px, &color2, blend_mode);
+        px.copy_from_slice(&blended);
+    });
     Ok(())
 }
 
@@ -46,18 +45,40 @@ pub fn blend_icon(
     image: &mut RgbaImage,
     other_image: &RgbaImage,
     blend_mode: &blending::BlendMode,
+    offset: Option<(i32, i32)>,
 ) -> Result<(), String> {
-    zone!("blend_icon");
-    for x in 0..std::cmp::min(image.width(), other_image.width()) {
-        for y in 0..std::cmp::min(image.height(), other_image.height()) {
-            let px1 = image.get_pixel_mut(x, y);
-            let px2 = other_image.get_pixel(x, y);
-            let pixel_1 = px1.channels();
-            let pixel_2 = px2.channels();
+    let (x_byond_offset, y_byond_offset) = offset.unwrap_or((1, 1));
+    let (x_offset, y_offset) = convert_byond_image_offset(x_byond_offset, y_byond_offset);
 
-            let blended = blending::Rgba::blend_u8(pixel_1, pixel_2, blend_mode);
+    let image_width = image.width() as i32;
+    let image_height = image.height() as i32;
+    let other_width = other_image.width() as i32;
+    let other_height = other_image.height() as i32;
 
-            *px1 = image::Rgba::<u8>(blended);
+    // Convert from bottom-left Y to top-left Y
+    let y_offset_adjusted = image_height.saturating_sub(other_height + y_offset);
+
+    let image_buf: &mut [u8] = image.as_mut();
+    let other_buf = other_image.as_flat_samples().samples;
+
+    for y in 0..other_height {
+        for x in 0..other_width {
+            let target_x = x + x_offset;
+            let target_y = y + y_offset_adjusted;
+
+            // Skip all out-of-bounds blending
+            if target_x < 0 || target_x >= image_width || target_y < 0 || target_y >= image_height {
+                continue;
+            }
+
+            let target_index = ((target_y * image_width + target_x) * 4) as usize;
+            let source_index = ((y * other_width + x) * 4) as usize;
+
+            let px1 = &mut image_buf[target_index..target_index + 4];
+            let px2 = &other_buf[source_index..source_index + 4];
+
+            let blended = blending::Rgba::blend_u8(px1, px2, blend_mode);
+            px1.copy_from_slice(&blended);
         }
     }
     Ok(())
@@ -76,7 +97,7 @@ pub fn crop(image: &mut RgbaImage, x1: i32, y1: i32, x2: i32, y2: i32) -> Result
     }
 
     let (mut x1, mut y1, mut x2, mut y2) =
-        byond_crop_to_image_coords(i_height as i32, x1, y1, x2, y2);
+        convert_byond_crop_image_coords(i_height as i32, x1, y1, x2, y2);
 
     // Check for silly expansion crops and add transparency in the gaps.
     if x1 < 0 || x2 > i_width as i32 || y1 < 0 || y2 > i_height as i32 {
@@ -127,7 +148,11 @@ pub fn crop(image: &mut RgbaImage, x1: i32, y1: i32, x2: i32, y2: i32) -> Result
     Ok(())
 }
 
-pub fn byond_crop_to_image_coords(
+pub fn convert_byond_image_offset(x_offset: i32, y_offset: i32) -> (i32, i32) {
+    (x_offset - 1, y_offset - 1)
+}
+
+pub fn convert_byond_crop_image_coords(
     image_height: i32,
     x1: i32,
     y1: i32,
@@ -141,21 +166,80 @@ pub fn byond_crop_to_image_coords(
     (x1 - 1, image_height - y2, x2, image_height - (y1 - 1))
 }
 
-pub fn scale(image: &mut RgbaImage, width: u32, height: u32) {
+pub fn scale(image: &mut RgbaImage, target_width: u32, target_height: u32) {
     zone!("scale");
-    let old_width = image.width() as usize;
-    let old_height = image.height() as usize;
-    let x_ratio = old_width as f32 / width as f32;
-    let y_ratio = old_height as f32 / height as f32;
-    let mut new_image = RgbaImage::new(width, height);
-    for x in 0..width {
-        for y in 0..height {
-            let old_x = (x as f32 * x_ratio).floor() as u32;
-            let old_y = (y as f32 * y_ratio).floor() as u32;
-            new_image.put_pixel(x, y, *image.get_pixel(old_x, old_y));
+    let original_width = image.width();
+    let original_height = image.height();
+    if target_width == original_width && target_height == original_height {
+        return;
+    }
+    let upscale_x = target_width >= original_width;
+    let upscale_y = target_height >= original_height;
+
+    let mut output = RgbaImage::new(target_width, target_height);
+
+    for ty in 0..target_height {
+        for tx in 0..target_width {
+            let (x0, x1) = if upscale_x {
+                let sx = (tx as f32 * original_width as f32 / target_width as f32).floor() as u32;
+                (sx, sx + 1)
+            } else {
+                let sx0 = (tx as f32 * original_width as f32 / target_width as f32).floor() as u32;
+                let sx1 = ((((tx + 1) as f32 * original_width as f32) / target_width as f32).ceil()
+                    as u32)
+                    .min(original_width);
+                (sx0, sx1)
+            };
+
+            let (y0, y1) = if upscale_y {
+                let sy = (ty as f32 * original_height as f32 / target_height as f32).floor() as u32;
+                (sy, sy + 1)
+            } else {
+                let sy0 =
+                    (ty as f32 * original_height as f32 / target_height as f32).floor() as u32;
+                let sy1 = ((((ty + 1) as f32 * original_height as f32) / target_height as f32)
+                    .ceil() as u32)
+                    .min(original_height);
+                (sy0, sy1)
+            };
+
+            let mut acc_r = 0u32;
+            let mut acc_g = 0u32;
+            let mut acc_b = 0u32;
+            let mut acc_a = 0u32;
+            let mut contributing = 0u32;
+
+            for y in y0..y1.min(original_height) {
+                for x in x0..x1.min(original_width) {
+                    let [r, g, b, a] = image.get_pixel(x, y).0;
+                    if a > 0 {
+                        acc_r += r as u32;
+                        acc_g += g as u32;
+                        acc_b += b as u32;
+                        acc_a += a as u32;
+                        contributing += 1;
+                    }
+                }
+            }
+
+            let area = (x1 - x0).max(1) * (y1 - y0).max(1);
+
+            let pixel = if contributing > 0 {
+                Rgba([
+                    (acc_r / contributing) as u8,
+                    (acc_g / contributing) as u8,
+                    (acc_b / contributing) as u8,
+                    (acc_a / area) as u8,
+                ])
+            } else {
+                Rgba([0, 0, 0, 0])
+            };
+
+            output.put_pixel(tx, ty, pixel);
         }
     }
-    *image = new_image;
+
+    *image = output
 }
 
 /// Scales a set of images.
@@ -315,7 +399,7 @@ pub fn blend_images_other_universal(
             .map(|image| {
                 zone!("blend_image_other_simple");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &first_image, blend_mode) {
+                match blend_icon(&mut new_image, &first_image, blend_mode, None) {
                     Ok(_) => (),
                     Err(error) => {
                         errors.lock().unwrap().push(error);
@@ -330,7 +414,7 @@ pub fn blend_images_other_universal(
             .map(|(image, image2)| {
                 zone!("blend_image_other");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode) {
+                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, None) {
                     Ok(_) => (),
                     Err(error) => {
                         errors.lock().unwrap().push(error);
@@ -447,7 +531,7 @@ pub fn blend_images_other(
             .map(|image| {
                 zone!("blend_image_other_simple");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &first_image, blend_mode) {
+                match blend_icon(&mut new_image, &first_image, blend_mode, None) {
                     Ok(_) => (),
                     Err(error) => {
                         errors.lock().unwrap().push(error);
@@ -462,7 +546,7 @@ pub fn blend_images_other(
             .map(|(image, image2)| {
                 zone!("blend_image_other");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode) {
+                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, None) {
                     Ok(_) => (),
                     Err(error) => {
                         errors.lock().unwrap().push(error);
