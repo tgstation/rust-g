@@ -5,6 +5,7 @@ use super::{
 use crate::error::Error;
 use dmi::icon::IconState;
 use image::{DynamicImage, Rgba, RgbaImage};
+use ordered_float::OrderedFloat;
 use rayon::{
     iter::{IntoParallelIterator, ParallelIterator},
     slice::ParallelSliceMut,
@@ -242,6 +243,53 @@ pub fn scale(image: &mut RgbaImage, target_width: u32, target_height: u32) {
     *image = output
 }
 
+#[rustfmt::skip]
+pub fn map_colors(
+    image: &mut RgbaImage,
+    rr: f32, rg: f32, rb: f32, ra: Option<f32>,
+    gr: f32, gg: f32, gb: f32, ga: Option<f32>,
+    br: f32, bg: f32, bb: f32, ba: Option<f32>,
+    ar: Option<f32>, ag: Option<f32>, ab: Option<f32>, aa: Option<f32>,
+    r0: Option<f32>, g0: Option<f32>, b0: Option<f32>, a0: Option<f32>,
+) {
+    let ra = ra.unwrap_or(0.0);
+    let ga = ga.unwrap_or(0.0);
+    let ba = ba.unwrap_or(0.0);
+
+    let r0 = r0.unwrap_or(0.0);
+    let g0 = g0.unwrap_or(0.0);
+    let b0 = b0.unwrap_or(0.0);
+    let a0 = a0.unwrap_or(0.0);
+
+    let ar = ar.unwrap_or(0.0);
+    let ag = ag.unwrap_or(0.0);
+    let ab = ab.unwrap_or(0.0);
+    let aa = aa.unwrap_or(1.0);
+    #[rustfmt::unskip]
+    image.par_chunks_mut(4).for_each(|pixel| {
+        let r = pixel[0] as f32 / 255.0;
+        let g = pixel[1] as f32 / 255.0;
+        let b = pixel[2] as f32 / 255.0;
+        let a = pixel[3] as f32 / 255.0;
+
+        let nr = rr * r + gr * g + br * b + ar * a + r0;
+        let ng = rg * r + gg * g + bg * b + ag * a + g0;
+        let nb = rb * r + gb * g + bb * b + ab * a + b0;
+        let na = ra * r
+                    + ga * g
+                    + ba * b
+                    + aa * a
+                    + a0;
+
+        let clamp = |x: f32| x.max(0.0).min(1.0);
+
+        pixel[0] = (clamp(nr) * 255.0).round() as u8;
+        pixel[1] = (clamp(ng) * 255.0).round() as u8;
+        pixel[2] = (clamp(nb) * 255.0).round() as u8;
+        pixel[3] = (clamp(na) * 255.0).round() as u8;
+    });
+}
+
 /// Scales a set of images.
 pub fn scale_images(images: Vec<DynamicImage>, width: u32, height: u32) -> Vec<DynamicImage> {
     zone!("scale_images");
@@ -274,6 +322,69 @@ pub fn crop_images(
             if let Err(err) = crop(&mut new_image, x1, y1, x2, y2) {
                 errors.lock().unwrap().push(err);
             }
+            DynamicImage::ImageRgba8(new_image)
+        })
+        .collect();
+    let errors_unlock = errors.lock().unwrap();
+    if !errors_unlock.is_empty() {
+        return Err(Error::IconForge(errors_unlock.join("\n")));
+    }
+    Ok(images_out)
+}
+
+pub fn map_images_colors(
+    images: Vec<DynamicImage>,
+    rr: f32,
+    rg: f32,
+    rb: f32,
+    ra: Option<f32>,
+    gr: f32,
+    gg: f32,
+    gb: f32,
+    ga: Option<f32>,
+    br: f32,
+    bg: f32,
+    bb: f32,
+    ba: Option<f32>,
+    ar: Option<f32>,
+    ag: Option<f32>,
+    ab: Option<f32>,
+    aa: Option<f32>,
+    r0: Option<f32>,
+    g0: Option<f32>,
+    b0: Option<f32>,
+    a0: Option<f32>,
+) -> Result<Vec<DynamicImage>, Error> {
+    zone!("map_images_colors");
+    let errors = Arc::new(Mutex::new(Vec::<String>::new()));
+    let images_out = images
+        .into_par_iter()
+        .map(|image| {
+            zone!("map_image_colors");
+            let mut new_image = image.clone().into_rgba8();
+            map_colors(
+                &mut new_image,
+                rr,
+                rg,
+                rb,
+                ra,
+                gr,
+                gg,
+                gb,
+                ga,
+                br,
+                bg,
+                bb,
+                ba,
+                ar,
+                ag,
+                ab,
+                aa,
+                r0,
+                g0,
+                b0,
+                a0,
+            );
             DynamicImage::ImageRgba8(new_image)
         })
         .collect();
@@ -642,6 +753,52 @@ impl Transform {
             }
             Transform::Crop { x1, y1, x2, y2 } => {
                 images = crop_images(image_data.images.clone(), *x1, *y1, *x2, *y2)?;
+            }
+            Transform::MapColors {
+                rr,
+                rg,
+                rb,
+                ra,
+                gr,
+                gg,
+                gb,
+                ga,
+                br,
+                bg,
+                bb,
+                ba,
+                ar,
+                ag,
+                ab,
+                aa,
+                r0,
+                g0,
+                b0,
+                a0,
+            } => {
+                images = map_images_colors(
+                    image_data.images.clone(),
+                    rr.into_inner(),
+                    rg.into_inner(),
+                    rb.into_inner(),
+                    ra.map(OrderedFloat::into_inner),
+                    gr.into_inner(),
+                    gg.into_inner(),
+                    gb.into_inner(),
+                    ga.map(OrderedFloat::into_inner),
+                    br.into_inner(),
+                    bg.into_inner(),
+                    bb.into_inner(),
+                    ba.map(OrderedFloat::into_inner),
+                    ar.map(OrderedFloat::into_inner),
+                    ag.map(OrderedFloat::into_inner),
+                    ab.map(OrderedFloat::into_inner),
+                    aa.map(OrderedFloat::into_inner),
+                    r0.map(OrderedFloat::into_inner),
+                    g0.map(OrderedFloat::into_inner),
+                    b0.map(OrderedFloat::into_inner),
+                    a0.map(OrderedFloat::into_inner),
+                )?;
             }
         }
         Ok(UniversalIconData {

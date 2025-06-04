@@ -67,6 +67,7 @@ fast_poisson = { version = "1.0.2", optional = true, features = [
 symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
 indexmap = { version = "2.9.0", optional = true, features = ["serde", "rayon"] }
+ordered-float = { version = "5.0.0", optional = true, features = ["serde"] }
 
 [features]
 default = [
@@ -148,6 +149,7 @@ iconforge = [
     "indexmap",
     "jobs",
     "once_cell",
+    "ordered-float",
     "png",
     "rayon",
     "serde",

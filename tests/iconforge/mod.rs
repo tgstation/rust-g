@@ -54,6 +54,15 @@ fn iconforge() {
             }
         }
     }
+    if let Some(diff) = compare_dmis(
+        Path::new("tests/dm/rsc/gags_real_output.dmi"),
+        Path::new("tests/dm/tmp/gags_test_output.dmi"),
+    ) {
+        differences.push(format!(
+            "icon tests/dm/tmp/gags_test_output.dmi differs from tests/dm/rsc/gags_real_output.dmi:\n{}",
+            diff
+        ));
+    }
     if !differences.is_empty() {
         panic!(
             "icons were found to differ:\n\n---\n{}",

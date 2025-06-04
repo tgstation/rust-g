@@ -1,0 +1,42 @@
+{
+    "color_matrix": [
+        {
+            "type": "icon_state",
+            "icon_state": "rgba_test",
+            "blend_mode": "overlay",
+            "color_ids": [1]
+        },
+        {
+            "type": "color_matrix",
+            "blend_mode": "overlay",
+            "color_matrix": [
+                [0.3, 0.3, 0.3, 0],
+                [0.59, 0.59, 0.59, 0],
+                [0.11, 0.11, 0.11, 0],
+                [0, 0, 0, 1],
+                [0, 0, 0, 0]
+            ]
+        }
+    ],
+    "reference": [
+        {
+            "type": "icon_state",
+            "icon_state": "rgba_test",
+            "blend_mode": "overlay",
+            "color_ids": [1]
+        },
+        [
+            {
+                "type": "reference",
+                "reference_type": "test_referenced",
+                "blend_mode": "overlay",
+                "color_ids": ["#ffffcc"]
+            },
+            {
+                "type": "icon_state",
+                "icon_state": "noise_alpha",
+                "blend_mode": "multiply"
+            }
+        ]
+    ]
+}

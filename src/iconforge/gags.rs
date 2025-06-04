@@ -422,8 +422,33 @@ fn generate_layer_for_iconstate(
         }
         GAGSLayer::ColorMatrix {
             blend_mode: _,
-            color_matrix: _,
-        } => new_images, // unsupported! TROLLED!
+            color_matrix,
+        } => match last_matched_state.as_ref().map(|o| o.images.clone()) {
+            Some(images) => Some(icon_operations::map_images_colors(
+                images,
+                color_matrix[0][0],
+                color_matrix[0][1],
+                color_matrix[0][2],
+                Some(color_matrix[0][3]),
+                color_matrix[1][0],
+                color_matrix[1][1],
+                color_matrix[1][2],
+                Some(color_matrix[1][3]),
+                color_matrix[2][0],
+                color_matrix[2][1],
+                color_matrix[2][2],
+                Some(color_matrix[2][3]),
+                Some(color_matrix[3][0]),
+                Some(color_matrix[3][1]),
+                Some(color_matrix[3][2]),
+                Some(color_matrix[3][3]),
+                Some(color_matrix[4][0]),
+                Some(color_matrix[4][1]),
+                Some(color_matrix[4][2]),
+                Some(color_matrix[4][3]),
+            )?),
+            None => None,
+        },
     };
 
     match images_result {

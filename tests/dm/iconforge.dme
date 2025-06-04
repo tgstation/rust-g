@@ -1,6 +1,7 @@
 #include "common.dm"
 
 #define uni_icon(I, icon_state, rest...) new /datum/universal_icon(I, icon_state, ##rest)
+#define hex2num(X) text2num(X, 16)
 
 /datum/universal_icon
 	var/icon/icon_file
@@ -39,6 +40,72 @@
 	transform.crop(x1, y1, x2, y2)
 	return src
 
+
+/datum/universal_icon/proc/map_colors_rgba(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
+	if(!transform)
+		transform = new
+	transform.map_colors(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0, g0, b0, a0)
+	return src
+
+/datum/universal_icon/proc/map_colors_rgb(rr, rg, rb, gr, gg, gb, br, bg, bb, r0=0, g0=0, b0=0)
+	if(!transform)
+		transform = new
+	transform.map_colors(rr, rg, rb, 0, gr, gg, gb, 0, br, bg, bb, 0, 0, 0, 0, 1, r0, g0, b0, 0)
+	return src
+
+/datum/universal_icon/proc/map_colors_rgb_hex(r_rgb, g_rgb, b_rgb, rgb0=rgb(0,0,0))
+	if(!transform)
+		transform = new
+	var/rr = hex2num(copytext(r_rgb, 2, 4)) / 255
+	var/rg = hex2num(copytext(r_rgb, 4, 6)) / 255
+	var/rb = hex2num(copytext(r_rgb, 6, 8)) / 255
+
+	var/gr = hex2num(copytext(g_rgb, 2, 4)) / 255
+	var/gg = hex2num(copytext(g_rgb, 4, 6)) / 255
+	var/gb = hex2num(copytext(g_rgb, 6, 8)) / 255
+
+	var/br = hex2num(copytext(b_rgb, 2, 4)) / 255
+	var/bg = hex2num(copytext(b_rgb, 4, 6)) / 255
+	var/bb = hex2num(copytext(b_rgb, 6, 8)) / 255
+
+	var/r0 = hex2num(copytext(rgb0, 2, 4)) / 255
+	var/b0 = hex2num(copytext(rgb0, 4, 6)) / 255
+	var/g0 = hex2num(copytext(rgb0, 6, 8)) / 255
+
+	transform.map_colors(rr, rg, rb, 0, gr, gg, gb, 0, br, bg, bb, 0, 0, 0, 0, 1, r0, b0, g0, 0)
+	return src
+
+/datum/universal_icon/proc/map_colors_rgba_hex(r_rgba, g_rgba, b_rgba, a_rgba, rgba0="#00000000")
+	if(!transform)
+		transform = new
+	var/rr = hex2num(copytext(r_rgba, 2, 4)) / 255
+	var/rg = hex2num(copytext(r_rgba, 4, 6)) / 255
+	var/rb = hex2num(copytext(r_rgba, 6, 8)) / 255
+	var/ra = hex2num(copytext(r_rgba, 8, 10)) / 255
+
+	var/gr = hex2num(copytext(g_rgba, 2, 4)) / 255
+	var/gg = hex2num(copytext(g_rgba, 4, 6)) / 255
+	var/gb = hex2num(copytext(g_rgba, 6, 8)) / 255
+	var/ga = hex2num(copytext(g_rgba, 8, 10)) / 255
+
+	var/br = hex2num(copytext(b_rgba, 2, 4)) / 255
+	var/bg = hex2num(copytext(b_rgba, 4, 6)) / 255
+	var/bb = hex2num(copytext(b_rgba, 6, 8)) / 255
+	var/ba = hex2num(copytext(b_rgba, 8, 10)) / 255
+
+	var/ar = hex2num(copytext(a_rgba, 2, 4)) / 255
+	var/ag = hex2num(copytext(a_rgba, 4, 6)) / 255
+	var/ab = hex2num(copytext(a_rgba, 6, 8)) / 255
+	var/aa = hex2num(copytext(a_rgba, 8, 10)) / 255
+
+	var/r0 = hex2num(copytext(rgba0, 2, 4)) / 255
+	var/b0 = hex2num(copytext(rgba0, 4, 6)) / 255
+	var/g0 = hex2num(copytext(rgba0, 6, 8)) / 255
+	var/a0 = hex2num(copytext(rgba0, 8, 10)) / 255
+
+	transform.map_colors(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0, b0, g0, a0)
+	return src
+
 /datum/universal_icon/proc/to_list()
 	return list("icon_file" = "[icon_file]", "icon_state" = icon_state, "dir" = dir, "frame" = frame, "transform" = !isnull(transform) ? transform.to_list() : list())
 
@@ -69,6 +136,14 @@
 				target.Scale(transform["width"], transform["height"])
 			if(RUSTG_ICONFORGE_CROP)
 				target.Crop(transform["x1"], transform["y1"], transform["x2"], transform["y2"])
+			if(RUSTG_ICONFORGE_MAP_COLORS)
+				target.MapColors(
+					transform["rr"], transform["rg"], transform["rb"], transform["ra"],
+					transform["gr"], transform["gg"], transform["gb"], transform["ga"],
+					transform["br"], transform["bg"], transform["bb"], transform["ba"],
+					transform["ar"], transform["ag"], transform["ab"], transform["aa"],
+					transform["r0"], transform["g0"], transform["b0"], transform["a0"],
+				)
 	return target
 
 /datum/icon_transformer/proc/blend_color(color, blend_mode)
@@ -82,6 +157,16 @@
 
 /datum/icon_transformer/proc/crop(x1, y1, x2, y2)
 	transforms += list(list("type" = RUSTG_ICONFORGE_CROP, "x1" = x1, "y1" = y1, "x2" = x2, "y2" = y2))
+
+/datum/icon_transformer/proc/map_colors(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
+	transforms += list(list(
+		"type" = RUSTG_ICONFORGE_MAP_COLORS,
+		"rr" = rr, "rg" = rg, "rb" = rb, "ra" = ra,
+		"gr" = gr, "gg" = gg, "gb" = gb, "ga" = ga,
+		"br" = br, "bg" = bg, "bb" = bb, "ba" = ba,
+		"ar" = ar, "ag" = ag, "ab" = ab, "aa" = aa,
+		"r0" = r0, "g0" = g0, "b0" = b0, "a0" = a0,
+	))
 
 /datum/icon_transformer/proc/to_list()
 	var/list/transforms_out = list()
@@ -264,6 +349,40 @@
 	add_color_blend_icons(uni_icons_32_32, "noise", "#00000022")
 	add_color_blend_icons(uni_icons_32_32, "noise", "#ffffff22")
 
+	// -- map colors --
+
+	var/datum/universal_icon/map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon.map_colors_rgb(0.2,0.05,0.05, 0.1,0.3,0.2, 0.1,0.1,0.4, 0,0,0)
+	uni_icons_32_32["map_moonlight_num"] = map_color_test_icon
+
+	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon.map_colors_rgb_hex(rgb(51,13,13), rgb(26,77,51), rgb(26,26,102), rgb(0,0,0))
+	uni_icons_32_32["map_moonlight_hex"] = map_color_test_icon
+
+	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon.map_colors_rgb(0.3,0.3,0.3, 0.59,0.59,0.59, 0.11,0.11,0.11, 0,0,0)
+	uni_icons_32_32["map_greyscale_num"] = map_color_test_icon
+
+	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon.map_colors_rgb_hex(rgb(77,77,77), rgb(150,150,150), rgb(28,28,28), rgb(0,0,0))
+	uni_icons_32_32["map_greyscale_hex"] = map_color_test_icon
+
+	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon.map_colors_rgba_hex("#ccddee66", "#aa556633", "#dd2299aa", "#00000000")
+	uni_icons_32_32["map_rgba_test_hex"] = map_color_test_icon
+
+	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon.map_colors_rgb(-1,0,0, 0,-1,0, 0,0,-1, 1,1,1)
+	uni_icons_32_32["map_invert_num"] = map_color_test_icon
+
+	map_color_test_icon = uni_icon('rsc/tests.dmi', "noise_alpha")
+	map_color_test_icon.map_colors_rgba(-1,0,0,0.24, 0,-1,0,0.86, 0,0,-1,0.21, 0.2,0.9,0.7,0.8, 1,1,1,1)
+	uni_icons_32_32["map_invert_alpha_test_num"] = map_color_test_icon
+
+	map_color_test_icon = uni_icon('rsc/tests.dmi', "noise_alpha")
+	map_color_test_icon.map_colors_rgba(-1,0,0,0.24, 0,-1,0,0.86, 0,0,-1,0.21, 0.2,0.9,0.7,0.8, 0.2,0.3,0.4,0.5)
+	uni_icons_32_32["map_invert_alpha_rgb0_test_num"] = map_color_test_icon
+
 	// --- icon blending ---
 
 	// Simple
@@ -333,3 +452,17 @@
 
 
 #undef uni_icon
+#undef hex2num
+
+/test/proc/gags_generation()
+	var/res = rustg_iconforge_load_gags_config("test_referenced", rustg_file_read("rsc/gags_test_config_referenced.json"), "rsc/tests.dmi")
+	if(res != "OK")
+		world.log << "runtime error: Error loading GAGS config rsc/gags_test_config_referenced.json: [res]"
+
+	res = rustg_iconforge_load_gags_config("test", rustg_file_read("rsc/gags_test_config.json"), "rsc/tests.dmi")
+	if(res != "OK")
+		world.log << "runtime error: Error loading GAGS config rsc/gags_test_config.json: [res]"
+
+	res = rustg_iconforge_gags("test", "#ffffff", "tmp/gags_test_output.dmi")
+	if(res != "OK")
+		world.log << "runtime error: Error generating GAGS icon: [res]"
