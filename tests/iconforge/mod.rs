@@ -10,50 +10,55 @@ use std::{
     path::Path,
 };
 
-#[test]
-fn iconforge() {
-    // Delete existing icons
-    let tmp_files = read_dir("tests/dm/tmp/").unwrap();
-    for tmp_entry in tmp_files {
-        if let Ok(entry) = tmp_entry {
-            if let Some(file_name) = entry.file_name().to_str() {
-                if (file_name.starts_with("dm_") || file_name.starts_with("rustg_"))
-                    && file_name.ends_with(".dmi")
-                {
-                    let _ = std::fs::remove_file(entry.path());
-                }
+fn tmp_cleanup() {
+    let dir = match read_dir("tests/dm/tmp/") {
+        Ok(dir) => dir,
+        Err(_) => {
+            let _ = std::fs::create_dir_all("tests/dm/tmp/");
+            return;
+        }
+    };
+    for entry in dir.filter(Result::is_ok).map(Result::unwrap) {
+        if let Some(file_name) = entry.file_name().to_str() {
+            if (file_name.starts_with("dm_") || file_name.starts_with("rustg_") || file_name.starts_with("gags_"))
+                && file_name.ends_with(".dmi")
+            {
+                let _ = std::fs::remove_file(entry.path());
             }
         }
     }
+}
+
+#[test]
+fn iconforge() {
+    tmp_cleanup();
     // Generate icons for comparison
     run_dm_tests("iconforge", false);
     // Compare said icons
     std::env::set_var("RUST_BACKTRACE", "1");
     let mut differences: Vec<String> = Vec::new();
-    let tmp_files = read_dir("tests/dm/tmp/").unwrap();
-    for tmp_entry in tmp_files {
-        if let Ok(entry) = tmp_entry {
-            if let Some(file_name) = entry.file_name().to_str() {
-                if !file_name.starts_with("dm_") || !file_name.ends_with(".dmi") {
-                    continue;
-                }
-                let size = file_name.replace("dm_", "").replace(".dmi", "");
-                let rustg_path_str = format!("tests/dm/tmp/rustg_{size}.dmi");
-                let rustg_path = Path::new(&rustg_path_str);
-                if !std::fs::exists(rustg_path).unwrap() {
-                    panic!("Could not find corresponding rustg_{size}.dmi for dm_{size}.dmi!")
-                }
-                if let Some(diff) = compare_dmis(entry.path().as_path(), rustg_path) {
-                    differences.push(format!(
-                        "icon {} differs from {}:\n{}",
-                        rustg_path.display(),
-                        entry.path().display(),
-                        diff
-                    ));
-                }
+    for entry in read_dir("tests/dm/tmp/").unwrap().filter(Result::is_ok).map(Result::unwrap) {
+        if let Some(file_name) = entry.file_name().to_str() {
+            if !file_name.starts_with("dm_") || !file_name.ends_with(".dmi") {
+                continue;
+            }
+            let size = file_name.replace("dm_", "").replace(".dmi", "");
+            let rustg_path_str = format!("tests/dm/tmp/rustg_{size}.dmi");
+            let rustg_path = Path::new(&rustg_path_str);
+            if !std::fs::exists(rustg_path).unwrap() {
+                panic!("Could not find corresponding rustg_{size}.dmi for dm_{size}.dmi!")
+            }
+            if let Some(diff) = compare_dmis(entry.path().as_path(), rustg_path) {
+                differences.push(format!(
+                    "icon {} differs from {}:\n{}",
+                    rustg_path.display(),
+                    entry.path().display(),
+                    diff
+                ));
             }
         }
     }
+    // Compare gags icons
     if let Some(diff) = compare_dmis(
         Path::new("tests/dm/rsc/gags_real_output.dmi"),
         Path::new("tests/dm/tmp/gags_test_output.dmi"),
@@ -70,6 +75,7 @@ fn iconforge() {
         )
     } else {
         println!("no icons differ!");
+        tmp_cleanup();
     }
 }
 
