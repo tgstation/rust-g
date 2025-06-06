@@ -20,8 +20,7 @@ fn tmp_cleanup() {
     };
     for entry in dir.filter(Result::is_ok).map(Result::unwrap) {
         if let Some(file_name) = entry.file_name().to_str() {
-            if file_name.starts_with("iconforge_")  && file_name.ends_with(".dmi")
-            {
+            if file_name.starts_with("iconforge_") && file_name.ends_with(".dmi") {
                 let _ = std::fs::remove_file(entry.path());
             }
         }
@@ -36,7 +35,11 @@ fn iconforge() {
     // Compare said icons
     std::env::set_var("RUST_BACKTRACE", "1");
     let mut differences: Vec<String> = Vec::new();
-    for entry in read_dir("tests/dm/tmp/").unwrap().filter(Result::is_ok).map(Result::unwrap) {
+    for entry in read_dir("tests/dm/tmp/")
+        .unwrap()
+        .filter(Result::is_ok)
+        .map(Result::unwrap)
+    {
         if let Some(file_name) = entry.file_name().to_str() {
             if !file_name.starts_with("iconforge_dm_") || !file_name.ends_with(".dmi") {
                 continue;
