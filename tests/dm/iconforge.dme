@@ -40,6 +40,11 @@
 	transform.crop(x1, y1, x2, y2)
 	return src
 
+/datum/universal_icon/proc/flip(dir)
+	if(!transform)
+		transform = new
+	transform.flip(dir)
+	return src
 
 /datum/universal_icon/proc/map_colors_rgba(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	if(!transform)
@@ -144,6 +149,8 @@
 					transform["ar"], transform["ag"], transform["ab"], transform["aa"],
 					transform["r0"], transform["g0"], transform["b0"], transform["a0"],
 				)
+			if(RUSTG_ICONFORGE_FLIP)
+				target.Flip(transform["dir"])
 	return target
 
 /datum/icon_transformer/proc/blend_color(color, blend_mode)
@@ -157,6 +164,9 @@
 
 /datum/icon_transformer/proc/crop(x1, y1, x2, y2)
 	transforms += list(list("type" = RUSTG_ICONFORGE_CROP, "x1" = x1, "y1" = y1, "x2" = x2, "y2" = y2))
+
+/datum/icon_transformer/proc/flip(dir)
+	transforms += list(list("type" = RUSTG_ICONFORGE_FLIP, "dir" = dir))
 
 /datum/icon_transformer/proc/map_colors(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	transforms += list(list(
@@ -363,6 +373,13 @@
 	map_color_test_icon.map_colors_rgba(-1,0,0,0.24, 0,-1,0,0.86, 0,0,-1,0.21, 0.2,0.9,0.7,0.8, 0.2,0.3,0.4,0.5)
 	uni_icons_32_32["map_invert_alpha_rgb0_test_num"] = map_color_test_icon
 
+	// --- flip ---
+
+	for(var/dir in list(SOUTH, WEST, EAST, NORTH, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST))
+		var/datum/universal_icon/flip_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
+		flip_test_icon.flip(dir)
+		uni_icons_32_32["flip_[dir]"] = flip_test_icon
+
 	// --- icon blending ---
 
 	// Simple
@@ -441,7 +458,7 @@
 		var/entries_json = json_encode(entries)
 		var/job_id = rustg_iconforge_generate_async("tmp/", "iconforge_rustg", entries_json, FALSE, TRUE, FALSE)
 		job_ids[job_id] = list("entries_json" = entries_json, "expected_size" = expected_size)
-	while(!check_jobs(job_ids)) sleep(0)
+	while(!check_jobs(job_ids)) sleep(-1)
 	duration = rustg_time_milliseconds("iconforge_rustg")
 	world.log << "rustg: Elapsed [duration]ms\n"
 
