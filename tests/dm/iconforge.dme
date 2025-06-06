@@ -22,10 +22,10 @@
 	transform.blend_color(color, blend_mode)
 	return src
 
-/datum/universal_icon/proc/blend_icon(datum/universal_icon/icon_object, blend_mode)
+/datum/universal_icon/proc/blend_icon(datum/universal_icon/icon_object, blend_mode, x=1, y=1)
 	if(!transform)
 		transform = new
-	transform.blend_icon(icon_object, blend_mode)
+	transform.blend_icon(icon_object, blend_mode, x, y)
 	return src
 
 /datum/universal_icon/proc/scale(width, height)
@@ -142,7 +142,7 @@
 				target.Blend(transform["color"], transform["blend_mode"])
 			if(RUSTG_ICONFORGE_BLEND_ICON)
 				var/datum/universal_icon/icon_object = transform["icon"]
-				target.Blend(icon_object.to_icon(), transform["blend_mode"])
+				target.Blend(icon_object.to_icon(), transform["blend_mode"], transform["x"] || 1, transform["y"] || 1)
 			if(RUSTG_ICONFORGE_SCALE)
 				target.Scale(transform["width"], transform["height"])
 			if(RUSTG_ICONFORGE_CROP)
@@ -164,8 +164,8 @@
 /datum/icon_transformer/proc/blend_color(color, blend_mode)
 	transforms += list(list("type" = RUSTG_ICONFORGE_BLEND_COLOR, "color" = color, "blend_mode" = blend_mode))
 
-/datum/icon_transformer/proc/blend_icon(datum/universal_icon/icon_object, blend_mode)
-	transforms += list(list("type" = RUSTG_ICONFORGE_BLEND_ICON, "icon" = icon_object, "blend_mode" = blend_mode))
+/datum/icon_transformer/proc/blend_icon(datum/universal_icon/icon_object, blend_mode, x=1, y=1)
+	transforms += list(list("type" = RUSTG_ICONFORGE_BLEND_ICON, "icon" = icon_object, "blend_mode" = blend_mode, "x" = x, "y" = y))
 
 /datum/icon_transformer/proc/scale(width, height)
 	transforms += list(list("type" = RUSTG_ICONFORGE_SCALE, "width" = width, "height" = height))
@@ -212,9 +212,9 @@
 /proc/add_self_test_icon(list/uni_icons, name, icon_state, blend_mode)
 	add_other_test_icon(uni_icons, name, icon_state, icon_state, blend_mode)
 
-/proc/add_other_test_icon(list/uni_icons, name, icon_state, icon_state_other, blend_mode)
+/proc/add_other_test_icon(list/uni_icons, name, icon_state, icon_state_other, blend_mode, x=1, y=1)
 	var/datum/universal_icon/self_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
-	self_test_icon.blend_icon(uni_icon('rsc/iconforge_tests.dmi', icon_state_other), blend_mode)
+	self_test_icon.blend_icon(uni_icon('rsc/iconforge_tests.dmi', icon_state_other), blend_mode, x, y)
 	uni_icons[name] = self_test_icon
 
 /proc/add_crop_test_icon(list/uni_icons, name, icon_state, x1, y1, x2, y2)
@@ -241,14 +241,14 @@
 	add_self_test_icon(uni_icons, "blend_[icon_state]_self_OR", icon_state, ICON_OR)
 	add_self_test_icon(uni_icons, "blend_[icon_state]_self_UNDERLAY", icon_state, ICON_UNDERLAY)
 
-/proc/add_other_test_icons(list/uni_icons, icon_state, icon_state_other)
-	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_ADD", icon_state, icon_state_other, ICON_ADD)
-	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_SUBTRACT", icon_state, icon_state_other, ICON_SUBTRACT)
-	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_MULTIPLY", icon_state, icon_state_other, ICON_MULTIPLY)
-	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_OVERLAY", icon_state, icon_state_other, ICON_OVERLAY)
-	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_AND", icon_state, icon_state_other, ICON_AND)
-	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_OR", icon_state, icon_state_other, ICON_OR)
-	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_UNDERLAY", icon_state, icon_state_other, ICON_UNDERLAY)
+/proc/add_other_test_icons(list/uni_icons, icon_state, icon_state_other, x=1, y=1)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_[x],[y]_ADD", icon_state, icon_state_other, ICON_ADD, x, y)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_[x],[y]_SUBTRACT", icon_state, icon_state_other, ICON_SUBTRACT, x, y)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_[x],[y]_MULTIPLY", icon_state, icon_state_other, ICON_MULTIPLY, x, y)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_[x],[y]_OVERLAY", icon_state, icon_state_other, ICON_OVERLAY, x, y)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_[x],[y]_AND", icon_state, icon_state_other, ICON_AND, x, y)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_[x],[y]_OR", icon_state, icon_state_other, ICON_OR, x, y)
+	add_other_test_icon(uni_icons, "blend_[icon_state]_[icon_state_other]_[x],[y]_UNDERLAY", icon_state, icon_state_other, ICON_UNDERLAY, x, y)
 
 /proc/add_color_blend_icons(list/uni_icons, icon_state, color)
 	add_color_test_icon(uni_icons, "blend_[icon_state]_[color]_ADD", icon_state, color, ICON_ADD)
@@ -408,6 +408,13 @@
 	add_other_test_icons(uni_icons_32_32, "noise", "noise_alpha")
 	add_other_test_icons(uni_icons_32_32, "noise2", "noise_alpha")
 	add_other_test_icons(uni_icons_32_32, "rgba_test", "noise_alpha")
+
+	// Offsets
+
+	add_other_test_icons(uni_icons_32_32, "noise", "rgba_test", 15, -10)
+	add_other_test_icons(uni_icons_32_32, "noise", "rgba_test", 7, 1)
+	add_other_test_icons(uni_icons_32_32, "noise", "rgba_test", -7, 1)
+
 	add_self_test_icons(uni_icons_32_32, "rgba_test")
 
 	// Simple Multi

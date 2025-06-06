@@ -49,9 +49,9 @@ pub fn blend_icon(
     image: &mut RgbaImage,
     other_image: &RgbaImage,
     blend_mode: &blending::BlendMode,
-    offset: Option<(i32, i32)>,
+    position: Option<(i32, i32)>,
 ) -> Result<(), String> {
-    let (x_byond_offset, y_byond_offset) = offset.unwrap_or((1, 1));
+    let (x_byond_offset, y_byond_offset) = position.unwrap_or((1, 1));
     let (x_offset, y_offset) = convert_byond_image_offset(x_byond_offset, y_byond_offset);
 
     let image_width = image.width() as i32;
@@ -496,6 +496,7 @@ pub fn blend_images_other_universal(
     image_data: Arc<UniversalIconData>,
     image_data_other: Arc<UniversalIconData>,
     blend_mode: &blending::BlendMode,
+    position: Option<(i32, i32)>,
 ) -> Result<UniversalIconData, Error> {
     zone!("blend_images_other_universal");
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -587,7 +588,7 @@ pub fn blend_images_other_universal(
             .map(|image| {
                 zone!("blend_image_other_simple");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &first_image, blend_mode, None) {
+                match blend_icon(&mut new_image, &first_image, blend_mode, position) {
                     Ok(_) => (),
                     Err(error) => {
                         errors.lock().unwrap().push(error);
@@ -602,7 +603,7 @@ pub fn blend_images_other_universal(
             .map(|(image, image2)| {
                 zone!("blend_image_other");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, None) {
+                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, position) {
                     Ok(_) => (),
                     Err(error) => {
                         errors.lock().unwrap().push(error);
@@ -793,7 +794,7 @@ impl Transform {
                     }
                 }
             }
-            Transform::BlendIcon { icon, blend_mode } => {
+            Transform::BlendIcon { icon, blend_mode, x, y } => {
                 zone!("blend_icon");
                 let (mut other_image_data, cached) = icon.get_image_data(
                     &format!("Transform blend_icon {icon}"),
@@ -806,10 +807,12 @@ impl Transform {
                     other_image_data =
                         apply_all_transforms(other_image_data, &icon.transform, flatten)?;
                 };
+                let position = Some((x.unwrap_or(1),y.unwrap_or(1)));
                 let new_out = blend_images_other_universal(
                     image_data,
                     other_image_data.clone(),
                     &blending::BlendMode::from_u8(blend_mode)?,
+                    position
                 )?;
                 images = new_out.images;
                 frames = new_out.frames;

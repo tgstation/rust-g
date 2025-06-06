@@ -64,6 +64,8 @@ pub enum Transform {
     BlendIcon {
         icon: UniversalIcon,
         blend_mode: u8,
+        x: Option<i32>,
+        y: Option<i32>,
     },
     Scale {
         width: u32,
