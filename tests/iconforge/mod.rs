@@ -20,8 +20,7 @@ fn tmp_cleanup() {
     };
     for entry in dir.filter(Result::is_ok).map(Result::unwrap) {
         if let Some(file_name) = entry.file_name().to_str() {
-            if (file_name.starts_with("dm_") || file_name.starts_with("rustg_") || file_name.starts_with("gags_"))
-                && file_name.ends_with(".dmi")
+            if file_name.starts_with("iconforge_")  && file_name.ends_with(".dmi")
             {
                 let _ = std::fs::remove_file(entry.path());
             }
@@ -39,14 +38,14 @@ fn iconforge() {
     let mut differences: Vec<String> = Vec::new();
     for entry in read_dir("tests/dm/tmp/").unwrap().filter(Result::is_ok).map(Result::unwrap) {
         if let Some(file_name) = entry.file_name().to_str() {
-            if !file_name.starts_with("dm_") || !file_name.ends_with(".dmi") {
+            if !file_name.starts_with("iconforge_dm_") || !file_name.ends_with(".dmi") {
                 continue;
             }
-            let size = file_name.replace("dm_", "").replace(".dmi", "");
-            let rustg_path_str = format!("tests/dm/tmp/rustg_{size}.dmi");
+            let size = file_name.replace("iconforge_dm_", "").replace(".dmi", "");
+            let rustg_path_str = format!("tests/dm/tmp/iconforge_rustg_{size}.dmi");
             let rustg_path = Path::new(&rustg_path_str);
             if !std::fs::exists(rustg_path).unwrap() {
-                panic!("Could not find corresponding rustg_{size}.dmi for dm_{size}.dmi!")
+                panic!("Could not find corresponding iconforge_rustg_{size}.dmi for iconforge_dm_{size}.dmi!")
             }
             if let Some(diff) = compare_dmis(entry.path().as_path(), rustg_path) {
                 differences.push(format!(
@@ -60,11 +59,11 @@ fn iconforge() {
     }
     // Compare gags icons
     if let Some(diff) = compare_dmis(
-        Path::new("tests/dm/rsc/gags_real_output.dmi"),
-        Path::new("tests/dm/tmp/gags_test_output.dmi"),
+        Path::new("tests/dm/rsc/iconforge_gags_dm.dmi"),
+        Path::new("tests/dm/tmp/iconforge_gags_rustg.dmi"),
     ) {
         differences.push(format!(
-            "icon tests/dm/tmp/gags_test_output.dmi differs from tests/dm/rsc/gags_real_output.dmi:\n{}",
+            "icon tests/dm/tmp/iconforge_gags_rustg.dmi differs from tests/dm/rsc/iconforge_gags_dm.dmi:\n{}",
             diff
         ));
     }

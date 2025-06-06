@@ -28,7 +28,7 @@
         [
             {
                 "type": "reference",
-                "reference_type": "test_referenced",
+                "reference_type": "iconforge_gags_reference_config",
                 "blend_mode": "overlay",
                 "color_ids": ["#ffffcc"]
             },

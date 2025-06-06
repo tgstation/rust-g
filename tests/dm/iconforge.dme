@@ -186,48 +186,28 @@
 		var/datum/universal_icon/entry = uni_icons[entry_name]
 		var/icon/finished = entry.to_icon()
 		I.Insert(finished, icon_state=entry_name)
-	fcopy(I, "tmp/dm_[expected_size].dmi")
-
-/proc/rustg_sheet_from_uni_icons(list/uni_icons, expected_size)
-	var/list/entries = list()
-	for(var/entry_name as anything in uni_icons)
-		var/datum/universal_icon/entry = uni_icons[entry_name]
-		entries[entry_name] = entry.to_list()
-	var/entries_json = json_encode(entries)
-	var/output = rustg_iconforge_generate("tmp/", "rustg", entries_json, FALSE, TRUE, FALSE)
-	if(!findtext(output, "{", 1, 2))
-		text2file(entries_json, "tmp/panic_data.json")
-		world.log << "runtime error: rustg PANICKED while generating sheet described by tmp/panic_data.json with error: [output]"
-		return
-	var/output_decode = json_decode(output)
-	var/error = output_decode["error"]
-	if(length(error) > 0)
-		world.log << "runtime error: [error]"
-	var/sizes = output_decode["sizes"]
-	if(length(sizes) > 1 || sizes[1] != expected_size)
-		var/sizes_joined = jointext(sizes, ",")
-		world.log << "runtime error: Invalid size output from rustg (expected: [expected_size], got: [sizes_joined])"
+	fcopy(I, "tmp/iconforge_dm_[expected_size].dmi")
 
 /proc/add_self_test_icon(list/uni_icons, name, icon_state, blend_mode)
 	add_other_test_icon(uni_icons, name, icon_state, icon_state, blend_mode)
 
 /proc/add_other_test_icon(list/uni_icons, name, icon_state, icon_state_other, blend_mode)
-	var/datum/universal_icon/self_test_icon = uni_icon('rsc/tests.dmi', icon_state)
-	self_test_icon.blend_icon(uni_icon('rsc/tests.dmi', icon_state_other), blend_mode)
+	var/datum/universal_icon/self_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
+	self_test_icon.blend_icon(uni_icon('rsc/iconforge_tests.dmi', icon_state_other), blend_mode)
 	uni_icons[name] = self_test_icon
 
 /proc/add_crop_test_icon(list/uni_icons, name, icon_state, x1, y1, x2, y2)
-	var/datum/universal_icon/crop_test_icon = uni_icon('rsc/tests.dmi', icon_state)
+	var/datum/universal_icon/crop_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
 	crop_test_icon.crop(x1, y1, x2, y2)
 	uni_icons[name] = crop_test_icon
 
 /proc/add_scale_test_icon(list/uni_icons, name, icon_state, width, height)
-	var/datum/universal_icon/scale_test_icon = uni_icon('rsc/tests.dmi', icon_state)
+	var/datum/universal_icon/scale_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
 	scale_test_icon.scale(width, height)
 	uni_icons[name] = scale_test_icon
 
 /proc/add_color_test_icon(list/uni_icons, name, icon_state, color, blend_mode)
-	var/datum/universal_icon/color_test_icon = uni_icon('rsc/tests.dmi', icon_state)
+	var/datum/universal_icon/color_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
 	color_test_icon.blend_color(color, blend_mode)
 	uni_icons[name] = color_test_icon
 
@@ -293,8 +273,8 @@
 	add_crop_test_icon(uni_icons_32_32, "crop_noop", "rgba_test", 1, 1, 32, 32)
 
 	// 32x32 layer cropped icon
-	var/datum/universal_icon/crop_blend_base = uni_icon('rsc/tests.dmi', "noise")
-	var/datum/universal_icon/crop_blend_layer = uni_icon('rsc/tests.dmi', "rgba_test")
+	var/datum/universal_icon/crop_blend_base = uni_icon('rsc/iconforge_tests.dmi', "noise")
+	var/datum/universal_icon/crop_blend_layer = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 	crop_blend_layer.crop(17, 17, 32, 32)
 	crop_blend_base.blend_icon(crop_blend_layer, ICON_OVERLAY)
 	uni_icons_32_32["crop_layer"] = crop_blend_base
@@ -328,8 +308,8 @@
 	add_scale_test_icon(uni_icons_32_32, "scale_noop", "rgba_test", 32, 32)
 
 	// 32x32 layer scaled icon
-	var/datum/universal_icon/scale_blend_base = uni_icon('rsc/tests.dmi', "noise")
-	var/datum/universal_icon/scale_blend_layer = uni_icon('rsc/tests.dmi', "rgba_test")
+	var/datum/universal_icon/scale_blend_base = uni_icon('rsc/iconforge_tests.dmi', "noise")
+	var/datum/universal_icon/scale_blend_layer = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 	scale_blend_layer.scale(16, 16)
 	scale_blend_base.blend_icon(scale_blend_layer, ICON_OVERLAY)
 	uni_icons_32_32["scale_layer"] = scale_blend_base
@@ -351,35 +331,35 @@
 
 	// -- map colors --
 
-	var/datum/universal_icon/map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	var/datum/universal_icon/map_color_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 	map_color_test_icon.map_colors_rgb(0.2,0.05,0.05, 0.1,0.3,0.2, 0.1,0.1,0.4, 0,0,0)
 	uni_icons_32_32["map_moonlight_num"] = map_color_test_icon
 
-	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 	map_color_test_icon.map_colors_rgb_hex(rgb(51,13,13), rgb(26,77,51), rgb(26,26,102), rgb(0,0,0))
 	uni_icons_32_32["map_moonlight_hex"] = map_color_test_icon
 
-	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 	map_color_test_icon.map_colors_rgb(0.3,0.3,0.3, 0.59,0.59,0.59, 0.11,0.11,0.11, 0,0,0)
 	uni_icons_32_32["map_greyscale_num"] = map_color_test_icon
 
-	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 	map_color_test_icon.map_colors_rgb_hex(rgb(77,77,77), rgb(150,150,150), rgb(28,28,28), rgb(0,0,0))
 	uni_icons_32_32["map_greyscale_hex"] = map_color_test_icon
 
-	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 	map_color_test_icon.map_colors_rgba_hex("#ccddee66", "#aa556633", "#dd2299aa", "#00000000")
 	uni_icons_32_32["map_rgba_test_hex"] = map_color_test_icon
 
-	map_color_test_icon = uni_icon('rsc/tests.dmi', "rgba_test")
+	map_color_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 	map_color_test_icon.map_colors_rgb(-1,0,0, 0,-1,0, 0,0,-1, 1,1,1)
 	uni_icons_32_32["map_invert_num"] = map_color_test_icon
 
-	map_color_test_icon = uni_icon('rsc/tests.dmi', "noise_alpha")
+	map_color_test_icon = uni_icon('rsc/iconforge_tests.dmi', "noise_alpha")
 	map_color_test_icon.map_colors_rgba(-1,0,0,0.24, 0,-1,0,0.86, 0,0,-1,0.21, 0.2,0.9,0.7,0.8, 1,1,1,1)
 	uni_icons_32_32["map_invert_alpha_test_num"] = map_color_test_icon
 
-	map_color_test_icon = uni_icon('rsc/tests.dmi', "noise_alpha")
+	map_color_test_icon = uni_icon('rsc/iconforge_tests.dmi', "noise_alpha")
 	map_color_test_icon.map_colors_rgba(-1,0,0,0.24, 0,-1,0,0.86, 0,0,-1,0.21, 0.2,0.9,0.7,0.8, 0.2,0.3,0.4,0.5)
 	uni_icons_32_32["map_invert_alpha_rgb0_test_num"] = map_color_test_icon
 
@@ -423,46 +403,87 @@
 	// Fill empty frames AND dirs (no corresponding) with the SOUTH direction of the first frame
 	//add_other_test_icons(uni_icons_32_32, "dirs_4_frames_2", "dirs_8_frames_3")
 
-	generate_sheets(uni_icons_32_32, "32x32")
-	generate_sheets(uni_icons_32_64, "32x64")
-	generate_sheets(uni_icons_64_32, "64x32")
-	generate_sheets(uni_icons_64_64, "64x64")
-	generate_sheets(uni_icons_41_78, "41x78")
-	generate_sheets(uni_icons_16_78, "16x78")
-	generate_sheets(uni_icons_16_16, "16x16")
+	var/list/sizes = list(
+		"32x32" = uni_icons_32_32,
+		"32x64" = uni_icons_32_64,
+		"64x32" = uni_icons_64_32,
+		"64x64" = uni_icons_64_64,
+		"41x78" = uni_icons_41_78,
+		"16x78" = uni_icons_16_78,
+		"16x16" = uni_icons_16_16,
+	)
 
-/proc/generate_sheets(list/uni_icons, expected_size)
-	world.log << "Generating dm_[expected_size].dmi..."
-	rustg_time_reset("dm_[expected_size]")
-	dm_sheet_from_uni_icons(uni_icons, expected_size)
-	var/icon/dm_output = icon(file("tmp/dm_[expected_size].dmi"))
-	var/actual_width = dm_output.Width()
-	var/actual_height = dm_output.Height()
-	var/list/expected_sizes = splittext(expected_size,"x")
-	if("[actual_width]" != expected_sizes[1] || "[actual_height]" != expected_sizes[2])
-		world.log << "runtime error: DMI size differs from expected size for tmp/dm_[expected_size].dmi! Size was found to be [actual_width]x[actual_height]!"
-	var/duration = rustg_time_milliseconds("dm_[expected_size]")
-	world.log << "Elapsed [duration]ms\n"
-	world.log << "Generating rustg_[expected_size].dmi..."
-	rustg_time_reset("rustg_[expected_size]")
-	rustg_sheet_from_uni_icons(uni_icons, expected_size)
-	duration = rustg_time_milliseconds("rustg_[expected_size]")
-	world.log << "Elapsed [duration]ms\n"
+	generate_sheets(sizes)
 
+/proc/generate_sheets(list/sizes)
+	world.log << "Generating DM sheets..."
+	rustg_time_reset("iconforge_dm")
+	for(var/expected_size in sizes)
+		var/list/uni_icons = sizes[expected_size]
+		dm_sheet_from_uni_icons(uni_icons, expected_size)
+		var/icon/dm_output = icon(file("tmp/iconforge_dm_[expected_size].dmi"))
+		var/actual_width = dm_output.Width()
+		var/actual_height = dm_output.Height()
+		var/list/expected_sizes = splittext(expected_size,"x")
+		if("[actual_width]" != expected_sizes[1] || "[actual_height]" != expected_sizes[2])
+			world.log << "runtime error: DMI size differs from expected size for tmp/iconforge_dm_[expected_size].dmi! Size was found to be [actual_width]x[actual_height]!"
+	var/duration = rustg_time_milliseconds("iconforge_dm")
+	world.log << "DM: Elapsed [duration]ms\n"
+	world.log << "Generating rustg sheets asynchronously..."
+	rustg_time_reset("iconforge_rustg")
+	var/list/job_ids = list()
+	for(var/expected_size in sizes)
+		var/list/uni_icons = sizes[expected_size]
+		var/list/entries = list()
+		for(var/entry_name as anything in uni_icons)
+			var/datum/universal_icon/entry = uni_icons[entry_name]
+			entries[entry_name] = entry.to_list()
+		var/entries_json = json_encode(entries)
+		var/job_id = rustg_iconforge_generate_async("tmp/", "iconforge_rustg", entries_json, FALSE, TRUE, FALSE)
+		job_ids[job_id] = list("entries_json" = entries_json, "expected_size" = expected_size)
+	while(!check_jobs(job_ids)) sleep(0)
+	duration = rustg_time_milliseconds("iconforge_rustg")
+	world.log << "rustg: Elapsed [duration]ms\n"
+
+/proc/check_jobs(list/job_ids)
+	for(var/job in job_ids)
+		var/list/job_data = job_ids[job]
+		var/entries_json = job_data["entries_json"]
+		var/expected_size = job_data["expected_size"]
+		var/result = rustg_iconforge_check(job)
+		if(result == RUSTG_JOB_NO_RESULTS_YET)
+			return FALSE
+		if(!findtext(result, "{", 1, 2))
+			text2file(entries_json, "tmp/iconforge_panic_data.json")
+			world.log << "runtime error: rustg PANICKED while generating sheet described by tmp/iconforge_panic_data.json with error: [result]"
+			job_ids -= job
+			continue
+		var/output_decode = json_decode(result)
+		var/error = output_decode["error"]
+		if(length(error) > 0)
+			world.log << "runtime error: [error]"
+			job_ids -= job
+			continue
+		var/sizes = output_decode["sizes"]
+		if(length(sizes) > 1 || sizes[1] != expected_size)
+			var/sizes_joined = jointext(sizes, ",")
+			world.log << "runtime error: Invalid size output from rustg (expected: [expected_size], got: [sizes_joined])"
+		job_ids -= job
+	return TRUE
 
 
 #undef uni_icon
 #undef hex2num
 
 /test/proc/gags_generation()
-	var/res = rustg_iconforge_load_gags_config("test_referenced", rustg_file_read("rsc/gags_test_config_referenced.json"), "rsc/tests.dmi")
+	var/res = rustg_iconforge_load_gags_config("iconforge_gags_reference_config", rustg_file_read("rsc/iconforge_gags_reference_config.json"), "rsc/iconforge_tests.dmi")
 	if(res != "OK")
-		world.log << "runtime error: Error loading GAGS config rsc/gags_test_config_referenced.json: [res]"
+		world.log << "runtime error: Error loading GAGS config rsc/iconforge_gags_reference_config.json: [res]"
 
-	res = rustg_iconforge_load_gags_config("test", rustg_file_read("rsc/gags_test_config.json"), "rsc/tests.dmi")
+	res = rustg_iconforge_load_gags_config("iconforge_gags_config", rustg_file_read("rsc/iconforge_gags_config.json"), "rsc/iconforge_tests.dmi")
 	if(res != "OK")
-		world.log << "runtime error: Error loading GAGS config rsc/gags_test_config.json: [res]"
+		world.log << "runtime error: Error loading GAGS config rsc/iconforge_gags_config.json: [res]"
 
-	res = rustg_iconforge_gags("test", "#ffffff", "tmp/gags_test_output.dmi")
+	res = rustg_iconforge_gags("iconforge_gags_config", "#ffffff", "tmp/iconforge_gags_rustg.dmi")
 	if(res != "OK")
 		world.log << "runtime error: Error generating GAGS icon: [res]"
