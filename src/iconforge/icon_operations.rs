@@ -10,7 +10,7 @@ use dmi::{
 use image::{imageops, DynamicImage, Rgba, RgbaImage};
 use ordered_float::OrderedFloat;
 use rayon::{
-    iter::{IntoParallelIterator, ParallelIterator},
+    iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
     slice::ParallelSliceMut,
 };
 use std::sync::{Arc, Mutex};
@@ -266,6 +266,58 @@ pub fn flip(image: &mut RgbaImage, dir: Dirs) {
     }
 }
 
+pub fn turn(image: &mut RgbaImage, angle: f32) {
+    // Optimized rotations
+    match angle {
+        -360.0 | 360.0 | 0.0 => {
+            return;
+        }
+        90.0 | -270.0 => {
+            *image = imageops::rotate90(image);
+            return;
+        },
+        270.0 | -90.0 => {
+            *image = imageops::rotate270(image);
+            return;
+        },
+        -180.0 | 180.0 => {
+            *image = imageops::rotate180(image);
+            return;
+        }
+        _ => {}
+    }
+    // Arbitrary rotations
+    let rad = -angle.to_radians();
+    let sin_rad = rad.sin();
+    let cos_rad = rad.cos();
+    let image_width = image.width();
+    let image_height = image.height();
+    let center_x = (image_width - 1) as f32 / 2.0;
+    let center_y = (image_height - 1) as f32 / 2.0;
+    let src_buf = image.as_raw();
+    let mut output = RgbaImage::new(image_width, image_height);
+    let output_buf: &mut [u8] = output.as_mut();
+
+    output_buf
+        .par_chunks_exact_mut(4)
+        .enumerate()
+        .for_each(|(i, out_pixel)| {
+            let dst_x = (i % image_width as usize) as f32;
+            let dst_y = (i / image_width as usize) as f32;
+            let dx = dst_x - center_x;
+            let dy = dst_y - center_y;
+            let src_x = (dx * cos_rad - dy * sin_rad + center_x).round() as i32;
+            let src_y = (dx * sin_rad + dy * cos_rad + center_y).round() as i32;
+            if src_x >= 0 && src_x < image_width as i32 && src_y >= 0 && src_y < image_height as i32 {
+                let src_i = (src_y as usize * image_width as usize + src_x as usize) * 4;
+                out_pixel.copy_from_slice(&src_buf[src_i..src_i + 4]);
+            } else {
+                out_pixel.copy_from_slice(&[0, 0, 0, 0]);
+            }
+        });
+    *image = output
+}
+
 #[rustfmt::skip]
 pub fn map_colors(
     image: &mut RgbaImage,
@@ -363,6 +415,20 @@ pub fn flip_images(images: Vec<DynamicImage>, dir: Dirs) -> Result<Vec<DynamicIm
             zone!("flip_image");
             let mut new_image = image.clone().into_rgba8();
             flip(&mut new_image, dir);
+            DynamicImage::ImageRgba8(new_image)
+        })
+        .collect();
+    Ok(images_out)
+}
+
+pub fn turn_images(images: Vec<DynamicImage>, angle: f32) -> Result<Vec<DynamicImage>, Error> {
+    zone!("turn_images");
+    let images_out = images
+        .into_par_iter()
+        .map(|image| {
+            zone!("turn_images");
+            let mut new_image = image.clone().into_rgba8();
+            turn(&mut new_image, angle);
             DynamicImage::ImageRgba8(new_image)
         })
         .collect();
@@ -788,6 +854,9 @@ impl Transform {
                     None => return Err(format!("Invalid dir specified for Flip: {dir}")),
                 };
                 images = flip_images(image_data.images.clone(), dir)?;
+            }
+            Transform::Turn { angle } => {
+                images = turn_images(image_data.images.clone(), angle.into_inner())?;
             }
             _ => {
                 images = image_data.images.clone();

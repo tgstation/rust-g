@@ -87,7 +87,7 @@ pub enum Transform {
         dir: u8,
     },
     Turn {
-        angle: i16,
+        angle: OrderedFloat<f32>,
     },
     Shift {
         dir: u8,

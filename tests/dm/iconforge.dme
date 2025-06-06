@@ -46,6 +46,12 @@
 	transform.flip(dir)
 	return src
 
+/datum/universal_icon/proc/rotate(angle)
+	if(!transform)
+		transform = new
+	transform.rotate(angle)
+	return src
+
 /datum/universal_icon/proc/map_colors_rgba(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	if(!transform)
 		transform = new
@@ -151,6 +157,8 @@
 				)
 			if(RUSTG_ICONFORGE_FLIP)
 				target.Flip(transform["dir"])
+			if(RUSTG_ICONFORGE_TURN)
+				target.Turn(transform["angle"])
 	return target
 
 /datum/icon_transformer/proc/blend_color(color, blend_mode)
@@ -167,6 +175,9 @@
 
 /datum/icon_transformer/proc/flip(dir)
 	transforms += list(list("type" = RUSTG_ICONFORGE_FLIP, "dir" = dir))
+
+/datum/icon_transformer/proc/rotate(angle)
+	transforms += list(list("type" = RUSTG_ICONFORGE_TURN, "angle" = angle))
 
 /datum/icon_transformer/proc/map_colors(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	transforms += list(list(
@@ -379,6 +390,15 @@
 		var/datum/universal_icon/flip_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 		flip_test_icon.flip(dir)
 		uni_icons_32_32["flip_[dir]"] = flip_test_icon
+
+	// --- turn ---
+
+	// Not an exact match for any non 90-degree divisible rotation, but damn close
+	// Could try using some type of image similarity algorithm to test them in the future, but we know they're fine for now.
+	for(var/angle in list(360, -360, 0, 90, -90, 270, -270, 180, -180/*, 15, -15, 48.21, -48.21, 872.533*/))
+		var/datum/universal_icon/turn_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
+		turn_test_icon.rotate(angle)
+		uni_icons_32_32["turn_[angle]"] = turn_test_icon
 
 	// --- icon blending ---
 
