@@ -318,6 +318,45 @@ pub fn turn(image: &mut RgbaImage, angle: f32) {
     *image = output
 }
 
+pub fn shift(image: &mut RgbaImage, dir: Dirs, offset: i32, wrap: bool) {
+    if offset == 0 {
+        return;
+    }
+    let image_width = image.width();
+    let image_height = image.height();
+    let off_x = match dir {
+        Dirs::EAST | Dirs::NORTHEAST | Dirs::SOUTHEAST => -1,
+        Dirs::WEST | Dirs::NORTHWEST | Dirs::SOUTHWEST => 1,
+        _ => 0,
+    } * offset;
+    let off_y = match dir {
+        Dirs::NORTH | Dirs::NORTHEAST | Dirs::NORTHWEST => 1,
+        Dirs::SOUTH | Dirs::SOUTHEAST | Dirs::SOUTHWEST => -1,
+        _ => 0,
+    } * offset;
+    let mut output = RgbaImage::new(image_width, image_height);
+    let output_buf: &mut [u8] = output.as_mut();
+    let src_buf = image.as_raw();
+    output_buf.par_chunks_exact_mut(4).enumerate().for_each(|(i, px)| {
+        let dst_x = i as i32 % image_width as i32;
+        let dst_y = i as i32 / image_width as i32;
+        let mut src_x = dst_x + off_x;
+        let mut src_y = dst_y + off_y;
+        if src_x < 0 || src_x >= image_width as i32 || src_y < 0 || src_y >= image_height as i32 {
+            if wrap {
+                src_x = src_x.rem_euclid(image_width as i32);
+                src_y = src_y.rem_euclid(image_height as i32);
+            } else {
+                px.copy_from_slice(&[0, 0, 0, 0]);
+                return;
+            }
+        }
+        let src_i = (src_y as usize * image_width as usize + src_x as usize) * 4;
+        px.copy_from_slice(&src_buf[src_i..src_i+4]);
+    });
+    *image = output
+}
+
 #[rustfmt::skip]
 pub fn map_colors(
     image: &mut RgbaImage,
@@ -426,9 +465,23 @@ pub fn turn_images(images: Vec<DynamicImage>, angle: f32) -> Result<Vec<DynamicI
     let images_out = images
         .into_par_iter()
         .map(|image| {
-            zone!("turn_images");
+            zone!("turn_image");
             let mut new_image = image.clone().into_rgba8();
             turn(&mut new_image, angle);
+            DynamicImage::ImageRgba8(new_image)
+        })
+        .collect();
+    Ok(images_out)
+}
+
+pub fn shift_images(images: Vec<DynamicImage>, dir: Dirs, offset: i32, wrap: bool) -> Result<Vec<DynamicImage>, Error> {
+    zone!("shift_images");
+    let images_out = images
+        .into_par_iter()
+        .map(|image| {
+            zone!("shift_image");
+            let mut new_image = image.clone().into_rgba8();
+            shift(&mut new_image, dir, offset, wrap);
             DynamicImage::ImageRgba8(new_image)
         })
         .collect();
@@ -861,8 +914,12 @@ impl Transform {
             Transform::Turn { angle } => {
                 images = turn_images(image_data.images.clone(), angle.into_inner())?;
             }
-            _ => {
-                images = image_data.images.clone();
+            Transform::Shift { dir, offset, wrap} => {
+                let dir = match dmi::dirs::Dirs::from_bits(*dir) {
+                    Some(dir) => dir,
+                    None => return Err(format!("Invalid dir specified for Shift: {dir}")),
+                };
+                images = shift_images(image_data.images.clone(), dir, *offset, *wrap != 0)?;
             }
         }
         Ok(UniversalIconData {

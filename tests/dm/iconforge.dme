@@ -52,6 +52,12 @@
 	transform.rotate(angle)
 	return src
 
+/datum/universal_icon/proc/shift(dir, offset, wrap=0)
+	if(!transform)
+		transform = new
+	transform.shift(dir, offset, wrap)
+	return src
+
 /datum/universal_icon/proc/map_colors_rgba(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	if(!transform)
 		transform = new
@@ -159,6 +165,8 @@
 				target.Flip(transform["dir"])
 			if(RUSTG_ICONFORGE_TURN)
 				target.Turn(transform["angle"])
+			if(RUSTG_ICONFORGE_SHIFT)
+				target.Shift(transform["dir"], transform["offset"], transform["wrap"])
 	return target
 
 /datum/icon_transformer/proc/blend_color(color, blend_mode)
@@ -178,6 +186,9 @@
 
 /datum/icon_transformer/proc/rotate(angle)
 	transforms += list(list("type" = RUSTG_ICONFORGE_TURN, "angle" = angle))
+
+/datum/icon_transformer/proc/shift(dir, offset, wrap=0)
+	transforms += list(list("type" = RUSTG_ICONFORGE_SHIFT, "dir" = dir, "offset" = offset, "wrap" = wrap))
 
 /datum/icon_transformer/proc/map_colors(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	transforms += list(list(
@@ -399,6 +410,35 @@
 		var/datum/universal_icon/turn_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 		turn_test_icon.rotate(angle)
 		uni_icons_32_32["turn_[angle]"] = turn_test_icon
+
+	// --- shift ---
+
+	for(var/dir in list(SOUTH, WEST, EAST, NORTH, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST))
+		var/datum/universal_icon/shift_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
+		shift_test_icon.shift(dir, 12, TRUE)
+		uni_icons_32_32["shift_[dir]_12_wrap"] = shift_test_icon
+
+		shift_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
+		shift_test_icon.shift(dir, 12, FALSE)
+		uni_icons_32_32["shift_[dir]_12_nowrap"] = shift_test_icon
+
+		// Underflows
+		shift_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
+		shift_test_icon.shift(dir, -12, TRUE)
+		uni_icons_32_32["shift_[dir]_-12_wrap"] = shift_test_icon
+
+		shift_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
+		shift_test_icon.shift(dir, -12, FALSE)
+		uni_icons_32_32["shift_[dir]_-12_nowrap"] = shift_test_icon
+
+		// Overflows
+		shift_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
+		shift_test_icon.shift(dir, 36, TRUE)
+		uni_icons_32_32["shift_[dir]_36_wrap"] = shift_test_icon
+
+		shift_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
+		shift_test_icon.shift(dir, 36, FALSE)
+		uni_icons_32_32["shift_[dir]_36_nowrap"] = shift_test_icon
 
 	// --- icon blending ---
 
