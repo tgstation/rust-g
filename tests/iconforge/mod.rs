@@ -4,28 +4,12 @@ use dmi::{
     icon::{Icon, IconState},
 };
 use image::{DynamicImage, GenericImageView};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{
     fs::{read_dir, File},
     io::BufReader,
-    path::Path,
+    path::Path, sync::{Arc, Mutex},
 };
-
-fn tmp_cleanup() {
-    let dir = match read_dir("tests/dm/tmp/") {
-        Ok(dir) => dir,
-        Err(_) => {
-            let _ = std::fs::create_dir_all("tests/dm/tmp/");
-            return;
-        }
-    };
-    for entry in dir.filter(Result::is_ok).map(Result::unwrap) {
-        if let Some(file_name) = entry.file_name().to_str() {
-            if file_name.starts_with("iconforge_") && file_name.ends_with(".dmi") {
-                let _ = std::fs::remove_file(entry.path());
-            }
-        }
-    }
-}
 
 #[test]
 fn iconforge() {
@@ -81,31 +65,48 @@ fn iconforge() {
     }
 }
 
+fn tmp_cleanup() {
+    let dir = match read_dir("tests/dm/tmp/") {
+        Ok(dir) => dir,
+        Err(_) => {
+            let _ = std::fs::create_dir_all("tests/dm/tmp/");
+            return;
+        }
+    };
+    for entry in dir.filter(Result::is_ok).map(Result::unwrap) {
+        if let Some(file_name) = entry.file_name().to_str() {
+            if file_name.starts_with("iconforge_") && file_name.ends_with(".dmi") {
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
+}
+
 fn compare_dmis(dm_path: &Path, rustg_path: &Path) -> Option<String> {
     println!(
         "Comparing {} and {}",
         dm_path.display(),
         rustg_path.display()
     );
-    let mut differences: Vec<String> = Vec::new();
+    let differences: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
     let dm_icon = dmi_from_path(dm_path).unwrap();
     let rustg_icon = dmi_from_path(rustg_path).unwrap();
-    for dm_state in &dm_icon.states {
+    dm_icon.states.par_iter().for_each(|dm_state| {
         if let Some(rustg_state) = rustg_icon
             .states
             .iter()
             .find(|rustg_state| rustg_state.name == dm_state.name)
         {
             if let Some(diff) = compare_states(dm_state, rustg_state) {
-                differences.push(format!("icon state {}:\n{diff}\n", dm_state.name));
+                differences.lock().unwrap().push(format!("icon state {}:\n{diff}\n", dm_state.name));
             }
         } else {
-            differences.push(format!(
+            differences.lock().unwrap().push(format!(
                 "icon state {}:\ndoes not exist in rustg\n",
                 dm_state.name
             ));
         }
-    }
+    });
     if dm_icon
         .states
         .iter()
@@ -117,7 +118,7 @@ fn compare_dmis(dm_path: &Path, rustg_path: &Path) -> Option<String> {
             .map(|state| &state.name)
             .collect::<Vec<&String>>()
     {
-        differences.push(String::from("icon state order differs\n"));
+        differences.lock().unwrap().push(String::from("icon state order differs\n"));
     }
     for rustg_state in &rustg_icon.states {
         if let None = dm_icon
@@ -125,16 +126,17 @@ fn compare_dmis(dm_path: &Path, rustg_path: &Path) -> Option<String> {
             .iter()
             .find(|dm_state| dm_state.name == rustg_state.name)
         {
-            differences.push(format!(
+            differences.lock().unwrap().push(format!(
                 "icon state {}:\ndoes not exist in dm",
                 rustg_state.name
             ));
         }
     }
-    if differences.is_empty() {
+    let diffs_unlocked = differences.lock().unwrap();
+    if diffs_unlocked.is_empty() {
         None
     } else {
-        Some(differences.join("\n"))
+        Some(diffs_unlocked.join("\n"))
     }
 }
 
@@ -212,8 +214,8 @@ fn compare_images(
     rustg_images: &Vec<DynamicImage>,
     dirs: u8,
 ) {
-    let mut image_index = 0;
-    for (dm_image, rustg_image) in std::iter::zip(dm_images, rustg_images) {
+    let safe_diffs = Arc::new(Mutex::new(Vec::<String>::new()));
+    dm_images.par_iter().zip(rustg_images).enumerate().for_each(|(image_index, (dm_image, rustg_image))| {
         let mut image_differences: Vec<String> = Vec::new();
         let mut break_now = false;
         for x in 0..dm_image.width() {
@@ -251,13 +253,13 @@ fn compare_images(
         }
         if !image_differences.is_empty() {
             let all_coordinates = image_differences.join(";");
-            differences.push(format!(
+            safe_diffs.lock().unwrap().push(format!(
                 "{} at pixels: {all_coordinates}",
                 image_name_from_index(image_index, dirs)
             ));
         }
-        image_index += 1;
-    }
+    });
+    differences.append(&mut safe_diffs.lock().unwrap().clone());
 }
 
 fn image_name_from_index(index: usize, dirs: u8) -> String {
