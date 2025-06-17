@@ -47,7 +47,6 @@ enum GAGSLayer {
         #[serde(default)]
         color_ids: Vec<GAGSColorID>,
     },
-    // Unsupported, but exists nonetheless.
     ColorMatrix {
         blend_mode: String,
         color_matrix: [[f32; 4]; 5],

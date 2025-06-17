@@ -412,14 +412,7 @@ pub fn swap_color(
         });
 }
 
-pub fn draw_box(
-    image: &mut RgbaImage,
-    color: [u8; 4],
-    x1: i32,
-    y1: i32,
-    x2: i32,
-    y2: i32,
-) {
+pub fn draw_box(image: &mut RgbaImage, color: [u8; 4], x1: i32, y1: i32, x2: i32, y2: i32) {
     zone!("draw_box");
 
     let image_width = image.width();
@@ -862,7 +855,13 @@ impl Transform {
                     swap_color(image, src_color_opt.rgb, src_color_opt.a, dst_color_rgba)
                 });
             }
-            Transform::DrawBox { color, x1, y1, x2, y2 } => {
+            Transform::DrawBox {
+                color,
+                x1,
+                y1,
+                x2,
+                y2,
+            } => {
                 let x1 = *x1;
                 let y1 = *y1;
                 let x2 = x2.unwrap_or(x1);
@@ -874,7 +873,8 @@ impl Transform {
                 }
                 let hex = color.clone().unwrap_or_else(|| String::from("#00000000"));
                 let rgba = hex_to_rgba(&hex)?;
-                images = image_data.map_cloned_images(|image| draw_box(image, rgba, x1, y1, x2, y2));
+                images =
+                    image_data.map_cloned_images(|image| draw_box(image, rgba, x1, y1, x2, y2));
             }
         }
         Ok(UniversalIconData {
