@@ -55,26 +55,39 @@ fn find_byond() -> String {
     };
 }
 
+fn use_byond_executable<F>(byond_bin: &str, windows: &str, linux: &str, command: F) -> Output
+where
+    F: Fn(&mut Command) -> &mut Command,
+{
+    if cfg!(target_os = "linux") {
+        let byondexec = format!("{byond_bin}/byondexec");
+        let linux_full = format!("{byond_bin}/{linux}");
+        return command(&mut Command::new("bash").arg(&byondexec).arg(&linux_full))
+            .output()
+            .unwrap();
+    } else {
+        let windows_full = format!("{byond_bin}/{windows}");
+        return command(&mut Command::new(&windows_full)).output().unwrap();
+    }
+}
+
 fn compile_and_run_dme(name: &str, rust_g_lib_path: &str, chdir: Option<&str>) -> Output {
     let byond_bin = find_byond();
-    let dream_maker = format!("{byond_bin}/dm");
-    let dream_daemon = format!("{byond_bin}/dd");
 
     let dme = format!("tests/dm/{name}.dme");
     let dmb = format!("tests/dm/{name}.dmb");
 
-    let output = Command::new(&dream_maker).arg(&dme).output().unwrap();
+    let output = use_byond_executable(&byond_bin, "dm", "DreamMaker", |c| c.arg(&dme));
     dump(&output);
     generic_check(&output);
 
-    let output = Command::new(&dream_daemon)
-        .arg(&dmb)
-        .arg("-trusted")
-        .arg("-cd")
-        .arg(if let Some(dir) = chdir { dir } else { "." })
-        .env("RUST_G", rust_g_lib_path)
-        .output()
-        .unwrap();
+    let output = use_byond_executable(&byond_bin, "dd", "DreamDaemon", |c| {
+        c.arg(&dmb)
+            .arg("-trusted")
+            .arg("-cd")
+            .arg(if let Some(dir) = chdir { dir } else { "." })
+            .env("RUST_G", rust_g_lib_path)
+    });
 
     // Cleanup
     let _ = std::fs::remove_file(&dmb);
