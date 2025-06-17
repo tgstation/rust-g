@@ -412,6 +412,35 @@ pub fn swap_color(
         });
 }
 
+pub fn draw_box(
+    image: &mut RgbaImage,
+    color: [u8; 4],
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+) {
+    zone!("draw_box");
+
+    let image_width = image.width();
+    let image_height = image.height();
+
+    let (x1, y1, x2, y2) = convert_byond_crop_image_coords(image_height as i32, x1, y1, x2, y2);
+
+    let image_buf: &mut [u8] = image.as_mut();
+    image_buf
+        .par_chunks_exact_mut(4)
+        .enumerate()
+        .filter(|(i, _)| {
+            let x = *i as i32 % image_width as i32;
+            let y: i32 = *i as i32 / image_width as i32;
+            x >= x1 && x < x2 && y >= y1 && y < y2
+        })
+        .for_each(|(_, px)| {
+            px.copy_from_slice(&color);
+        });
+}
+
 #[rustfmt::skip]
 pub fn map_colors(
     image: &mut RgbaImage,
@@ -833,8 +862,19 @@ impl Transform {
                     swap_color(image, src_color_opt.rgb, src_color_opt.a, dst_color_rgba)
                 });
             }
-            _ => {
-                images = image_data.images.clone();
+            Transform::DrawBox { color, x1, y1, x2, y2 } => {
+                let x1 = *x1;
+                let y1 = *y1;
+                let x2 = x2.unwrap_or(x1);
+                let y2 = y2.unwrap_or(y1);
+                if x2 <= (x1 - 1) || y2 <= (y1 - 1) {
+                    return Err(format!(
+                        "Invalid bounds {x1} {y1} to {x2} {y2} in DrawBox transform"
+                    ));
+                }
+                let hex = color.clone().unwrap_or_else(|| String::from("#00000000"));
+                let rgba = hex_to_rgba(&hex)?;
+                images = image_data.map_cloned_images(|image| draw_box(image, rgba, x1, y1, x2, y2));
             }
         }
         Ok(UniversalIconData {

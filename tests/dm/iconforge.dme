@@ -64,6 +64,12 @@
 	transform.swap_color(src_color, dst_color)
 	return src
 
+/datum/universal_icon/proc/draw_box(color, x1, y1, x2=x1, y2=y1)
+	if(!transform)
+		transform = new
+	transform.draw_box(color, x1, y1, x2, y2)
+	return src
+
 /datum/universal_icon/proc/map_colors_rgba(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	if(!transform)
 		transform = new
@@ -154,7 +160,7 @@
 				target.Blend(transform["color"], transform["blend_mode"])
 			if(RUSTG_ICONFORGE_BLEND_ICON)
 				var/datum/universal_icon/icon_object = transform["icon"]
-				target.Blend(icon_object.to_icon(), transform["blend_mode"], transform["x"] || 1, transform["y"] || 1)
+				target.Blend(icon_object.to_icon(), transform["blend_mode"], transform["x"], transform["y"])
 			if(RUSTG_ICONFORGE_SCALE)
 				target.Scale(transform["width"], transform["height"])
 			if(RUSTG_ICONFORGE_CROP)
@@ -175,6 +181,8 @@
 				target.Shift(transform["dir"], transform["offset"], transform["wrap"])
 			if(RUSTG_ICONFORGE_SWAP_COLOR)
 				target.SwapColor(transform["src_color"], transform["dst_color"])
+			if(RUSTG_ICONFORGE_DRAW_BOX)
+				target.DrawBox(transform["color"], transform["x1"], transform["y1"], transform["x2"], transform["y2"])
 	return target
 
 /datum/icon_transformer/proc/blend_color(color, blend_mode)
@@ -200,6 +208,9 @@
 
 /datum/icon_transformer/proc/swap_color(src_color, dst_color)
 	transforms += list(list("type" = RUSTG_ICONFORGE_SWAP_COLOR, "src_color" = src_color, "dst_color" = dst_color))
+
+/datum/icon_transformer/proc/draw_box(color, x1, y1, x2=x1, y2=y1)
+	transforms += list(list("type" = RUSTG_ICONFORGE_DRAW_BOX, "color" = color, "x1" = x1, "y1" = y1, "x2" = x2, "y2" = y2))
 
 /datum/icon_transformer/proc/map_colors(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	transforms += list(list(
@@ -258,6 +269,11 @@
 	var/datum/universal_icon/swap_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
 	swap_test_icon.swap_color(src_color, dst_color)
 	uni_icons["swap_[icon_state]_[src_color]_[dst_color]"] = swap_test_icon
+
+/proc/add_box_test_icon(list/uni_icons, icon_state, color, x1, y1, x2=x1, y2=y1)
+	var/datum/universal_icon/box_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
+	box_test_icon.draw_box(color, x1, y1, x2, y2)
+	uni_icons["box_[icon_state]_[color]_[x1]_[y1]_[x2]_[y2]"] = box_test_icon
 
 /proc/add_self_test_icons(list/uni_icons, icon_state)
 	add_self_test_icon(uni_icons, "blend_[icon_state]_self_ADD", icon_state, ICON_ADD)
@@ -477,6 +493,26 @@
 	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00000000")
 	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00ff00")
 	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00ff00ff")
+
+	// --- draw box ---
+
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#deadbeef", 8, 16, 12, 32)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#deadbeef", 2, 2)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#deadbeef", 21, 52)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#deadbeef", -8, -16, 12, 1)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#00000000", 2, 2, 5, 5)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#ff0000", 8, 8, 16, 8)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#ff0000", 32, 32)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#ff0000", 1, 1)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#ff0000cc", 8, 8, 16, 8)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#ff0000cc", 32, 32)
+	add_box_test_icon(uni_icons_32_32, "rgba_test", "#ff0000cc", 1, 1)
+
+	add_box_test_icon(uni_icons_32_32, "noise_alpha", "#0000ff", 1, 1, 32, 32)
+	add_box_test_icon(uni_icons_32_32, "noise_alpha", "#0000ff55", 1, 1, 32, 32)
+	add_box_test_icon(uni_icons_32_32, "noise_alpha", "#00000000", 1, 1, 32, 32)
+
+	add_box_test_icon(uni_icons_32_32, "noise", null, 1, 1, 32, 32)
 
 	// --- icon blending ---
 
