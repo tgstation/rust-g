@@ -62,7 +62,6 @@ fn compile_and_run_dme(name: &str, rust_g_lib_path: &str, chdir: Option<&str>) -
 
     let dme = format!("tests/dm/{name}.dme");
     let dmb = format!("tests/dm/{name}.dmb");
-    let rsc = format!("tests/dm/{name}.rsc");
 
     let output = Command::new(&dream_maker).arg(&dme).output().unwrap();
     dump(&output);
@@ -76,8 +75,13 @@ fn compile_and_run_dme(name: &str, rust_g_lib_path: &str, chdir: Option<&str>) -
         .env("RUST_G", rust_g_lib_path)
         .output()
         .unwrap();
+
+    // Cleanup
     let _ = std::fs::remove_file(&dmb);
-    let _ = std::fs::remove_file(&rsc);
+    let _ = std::fs::remove_file(&format!("tests/dm/{name}.rsc"));
+    let _ = std::fs::remove_file(&format!("tests/dm/{name}.dyn.rsc"));
+    let _ = std::fs::remove_file(&format!("tests/dm/{name}.lk"));
+    let _ = std::fs::remove_file(&format!("tests/dm/{name}.int"));
 
     dump(&output);
     generic_check(&output);
