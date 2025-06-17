@@ -3,10 +3,7 @@ use super::{
     universal_icon::{Transform, UniversalIconData},
 };
 use crate::error::Error;
-use dmi::{
-    dirs::Dirs,
-    icon::IconState,
-};
+use dmi::{dirs::Dirs, icon::IconState};
 use image::{imageops, DynamicImage, Rgba, RgbaImage};
 use ordered_float::OrderedFloat;
 use rayon::{
@@ -16,33 +13,13 @@ use rayon::{
 use std::sync::{Arc, Mutex};
 use tracy_full::zone;
 
-pub fn blend_color(
-    image: &mut RgbaImage,
-    color: &String,
-    blend_mode: &blending::BlendMode,
-) -> Result<(), String> {
+pub fn blend_color(image: &mut RgbaImage, color: [u8; 4], blend_mode: &blending::BlendMode) {
     zone!("blend_color");
-    let mut color2: [u8; 4] = [0, 0, 0, 255];
-    {
-        zone!("from_hex");
-        let mut hex: String = color.to_owned();
-        if hex.starts_with('#') {
-            hex = hex[1..].to_string();
-        }
-        if hex.len() == 6 {
-            hex += "ff";
-        }
-
-        if let Err(err) = hex::decode_to_slice(hex, &mut color2) {
-            return Err(format!("Decoding hex color {color} failed: {err}"));
-        }
-    }
     let image_buf: &mut [u8] = image.as_mut();
     image_buf.par_chunks_exact_mut(4).for_each(|px| {
-        let blended = blend_mode.blend_u8(px, &color2);
+        let blended = blend_mode.blend_u8(px, &color);
         px.copy_from_slice(&blended);
     });
-    Ok(())
 }
 
 pub fn blend_icon(
@@ -50,7 +27,8 @@ pub fn blend_icon(
     other_image: &RgbaImage,
     blend_mode: &blending::BlendMode,
     position: Option<(i32, i32)>,
-) -> Result<(), String> {
+) {
+    zone!("blend_icon");
     let (x_byond_offset, y_byond_offset) = position.unwrap_or((1, 1));
     let (x_offset, y_offset) = convert_byond_image_offset(x_byond_offset, y_byond_offset);
 
@@ -85,20 +63,13 @@ pub fn blend_icon(
             px1.copy_from_slice(&blended);
         }
     }
-    Ok(())
 }
 
-pub fn crop(image: &mut RgbaImage, x1: i32, y1: i32, x2: i32, y2: i32) -> Result<(), String> {
+pub fn crop(image: &mut RgbaImage, x1: i32, y1: i32, x2: i32, y2: i32) {
     zone!("crop");
 
     let i_width = image.width();
     let i_height = image.height();
-
-    if x2 <= (x1 - 1) || y2 <= (y1 - 1) {
-        return Err(format!(
-            "Invalid bounds {x1} {y1} to {x2} {y2} in crop transform"
-        ));
-    }
 
     let (mut x1, mut y1, mut x2, mut y2) =
         convert_byond_crop_image_coords(i_height as i32, x1, y1, x2, y2);
@@ -149,7 +120,6 @@ pub fn crop(image: &mut RgbaImage, x1: i32, y1: i32, x2: i32, y2: i32) -> Result
         )
         .to_image();
     }
-    Ok(())
 }
 
 pub fn convert_byond_image_offset(x_offset: i32, y_offset: i32) -> (i32, i32) {
@@ -168,6 +138,32 @@ pub fn convert_byond_crop_image_coords(
     // Convert from BYOND (0,0 is bottom left) to Rust (0,0 is top left)
     // BYOND also includes the upper bound
     (x1 - 1, image_height - y2, x2, image_height - (y1 - 1))
+}
+
+pub fn hex_to_rgba(hex_in: &String) -> Result<[u8; 4], Error> {
+    zone!("hex_to_rgba");
+    let mut color: [u8; 4] = [0, 0, 0, 0];
+    let mut hex = hex_in.clone();
+    if hex_in.starts_with('#') {
+        hex = hex_in[1..].to_string();
+    }
+    if hex.len() == 3 {
+        hex = format!(
+            "{0}{0}{1}{1}{2}{2}",
+            hex_in[0..1].to_string(),
+            hex_in[1..2].to_string(),
+            hex_in[2..3].to_string()
+        )
+    }
+    if hex.len() == 6 {
+        hex += "ff";
+    }
+    if let Err(err) = hex::decode_to_slice(hex, &mut color) {
+        return Err(Error::IconForge(format!(
+            "Decoding hex color '{hex_in}' failed: {err}"
+        )));
+    }
+    Ok(color)
 }
 
 pub fn scale(image: &mut RgbaImage, target_width: u32, target_height: u32) {
@@ -247,6 +243,7 @@ pub fn scale(image: &mut RgbaImage, target_width: u32, target_height: u32) {
 }
 
 pub fn flip(image: &mut RgbaImage, dir: Dirs) {
+    zone!("flip");
     match dir {
         Dirs::NORTHEAST | Dirs::SOUTHWEST => {
             *image = imageops::rotate90(image);
@@ -267,6 +264,7 @@ pub fn flip(image: &mut RgbaImage, dir: Dirs) {
 }
 
 pub fn turn(image: &mut RgbaImage, angle: f32) {
+    zone!("turn");
     // Optimized rotations
     match angle {
         -360.0 | 360.0 | 0.0 => {
@@ -275,11 +273,11 @@ pub fn turn(image: &mut RgbaImage, angle: f32) {
         90.0 | -270.0 => {
             *image = imageops::rotate90(image);
             return;
-        },
+        }
         270.0 | -90.0 => {
             *image = imageops::rotate270(image);
             return;
-        },
+        }
         -180.0 | 180.0 => {
             *image = imageops::rotate180(image);
             return;
@@ -308,7 +306,8 @@ pub fn turn(image: &mut RgbaImage, angle: f32) {
             let dy = dst_y - center_y;
             let src_x = (dx * cos_rad - dy * sin_rad + center_x).round() as i32;
             let src_y = (dx * sin_rad + dy * cos_rad + center_y).round() as i32;
-            if src_x >= 0 && src_x < image_width as i32 && src_y >= 0 && src_y < image_height as i32 {
+            if src_x >= 0 && src_x < image_width as i32 && src_y >= 0 && src_y < image_height as i32
+            {
                 let src_i = (src_y as usize * image_width as usize + src_x as usize) * 4;
                 out_pixel.copy_from_slice(&src_buf[src_i..src_i + 4]);
             } else {
@@ -319,6 +318,7 @@ pub fn turn(image: &mut RgbaImage, angle: f32) {
 }
 
 pub fn shift(image: &mut RgbaImage, dir: Dirs, offset: i32, wrap: bool) {
+    zone!("shift");
     if offset == 0 {
         return;
     }
@@ -337,23 +337,27 @@ pub fn shift(image: &mut RgbaImage, dir: Dirs, offset: i32, wrap: bool) {
     let mut output = RgbaImage::new(image_width, image_height);
     let output_buf: &mut [u8] = output.as_mut();
     let src_buf = image.as_raw();
-    output_buf.par_chunks_exact_mut(4).enumerate().for_each(|(i, px)| {
-        let dst_x = i as i32 % image_width as i32;
-        let dst_y = i as i32 / image_width as i32;
-        let mut src_x = dst_x + off_x;
-        let mut src_y = dst_y + off_y;
-        if src_x < 0 || src_x >= image_width as i32 || src_y < 0 || src_y >= image_height as i32 {
-            if wrap {
-                src_x = src_x.rem_euclid(image_width as i32);
-                src_y = src_y.rem_euclid(image_height as i32);
-            } else {
-                px.copy_from_slice(&[0, 0, 0, 0]);
-                return;
+    output_buf
+        .par_chunks_exact_mut(4)
+        .enumerate()
+        .for_each(|(i, px)| {
+            let dst_x = i as i32 % image_width as i32;
+            let dst_y = i as i32 / image_width as i32;
+            let mut src_x = dst_x + off_x;
+            let mut src_y = dst_y + off_y;
+            if src_x < 0 || src_x >= image_width as i32 || src_y < 0 || src_y >= image_height as i32
+            {
+                if wrap {
+                    src_x = src_x.rem_euclid(image_width as i32);
+                    src_y = src_y.rem_euclid(image_height as i32);
+                } else {
+                    px.copy_from_slice(&[0, 0, 0, 0]);
+                    return;
+                }
             }
-        }
-        let src_i = (src_y as usize * image_width as usize + src_x as usize) * 4;
-        px.copy_from_slice(&src_buf[src_i..src_i+4]);
-    });
+            let src_i = (src_y as usize * image_width as usize + src_x as usize) * 4;
+            px.copy_from_slice(&src_buf[src_i..src_i + 4]);
+        });
     *image = output
 }
 
@@ -366,6 +370,7 @@ pub fn map_colors(
     ar: Option<f32>, ag: Option<f32>, ab: Option<f32>, aa: Option<f32>,
     r0: Option<f32>, g0: Option<f32>, b0: Option<f32>, a0: Option<f32>,
 ) {
+    zone!("map_colors");
     let ra = ra.unwrap_or(0.0);
     let ga = ga.unwrap_or(0.0);
     let ba = ba.unwrap_or(0.0);
@@ -402,145 +407,6 @@ pub fn map_colors(
         pixel[2] = (clamp(nb) * 255.0).round() as u8;
         pixel[3] = (clamp(na) * 255.0).round() as u8;
     });
-}
-
-/// Scales a set of images.
-pub fn scale_images(images: Vec<DynamicImage>, width: u32, height: u32) -> Vec<DynamicImage> {
-    zone!("scale_images");
-    images
-        .into_par_iter()
-        .map(|image: DynamicImage| {
-            zone!("scale_image");
-            let mut new_image = image.clone().into_rgba8();
-            scale(&mut new_image, width, height);
-            DynamicImage::ImageRgba8(new_image)
-        })
-        .collect()
-}
-
-/// Crops a set of images.
-pub fn crop_images(
-    images: Vec<DynamicImage>,
-    x1: i32,
-    y1: i32,
-    x2: i32,
-    y2: i32,
-) -> Result<Vec<DynamicImage>, Error> {
-    zone!("crop_images");
-    let errors = Arc::new(Mutex::new(Vec::<String>::new()));
-    let images_out = images
-        .into_par_iter()
-        .map(|image| {
-            zone!("crop_image");
-            let mut new_image = image.clone().into_rgba8();
-            if let Err(err) = crop(&mut new_image, x1, y1, x2, y2) {
-                errors.lock().unwrap().push(err);
-            }
-            DynamicImage::ImageRgba8(new_image)
-        })
-        .collect();
-    let errors_unlock = errors.lock().unwrap();
-    if !errors_unlock.is_empty() {
-        return Err(Error::IconForge(errors_unlock.join("\n")));
-    }
-    Ok(images_out)
-}
-
-pub fn flip_images(images: Vec<DynamicImage>, dir: Dirs) -> Result<Vec<DynamicImage>, Error> {
-    zone!("flip_images");
-    let images_out = images
-        .into_par_iter()
-        .map(|image| {
-            zone!("flip_image");
-            let mut new_image = image.clone().into_rgba8();
-            flip(&mut new_image, dir);
-            DynamicImage::ImageRgba8(new_image)
-        })
-        .collect();
-    Ok(images_out)
-}
-
-pub fn turn_images(images: Vec<DynamicImage>, angle: f32) -> Result<Vec<DynamicImage>, Error> {
-    zone!("turn_images");
-    let images_out = images
-        .into_par_iter()
-        .map(|image| {
-            zone!("turn_image");
-            let mut new_image = image.clone().into_rgba8();
-            turn(&mut new_image, angle);
-            DynamicImage::ImageRgba8(new_image)
-        })
-        .collect();
-    Ok(images_out)
-}
-
-pub fn shift_images(images: Vec<DynamicImage>, dir: Dirs, offset: i32, wrap: bool) -> Result<Vec<DynamicImage>, Error> {
-    zone!("shift_images");
-    let images_out = images
-        .into_par_iter()
-        .map(|image| {
-            zone!("shift_image");
-            let mut new_image = image.clone().into_rgba8();
-            shift(&mut new_image, dir, offset, wrap);
-            DynamicImage::ImageRgba8(new_image)
-        })
-        .collect();
-    Ok(images_out)
-}
-
-#[rustfmt::skip]
-pub fn map_images_colors(
-    images: Vec<DynamicImage>,
-    rr: f32, rg: f32, rb: f32, ra: Option<f32>,
-    gr: f32, gg: f32, gb: f32, ga: Option<f32>,
-    br: f32, bg: f32, bb: f32, ba: Option<f32>,
-    ar: Option<f32>, ag: Option<f32>, ab: Option<f32>, aa: Option<f32>,
-    r0: Option<f32>, g0: Option<f32>, b0: Option<f32>, a0: Option<f32>,
-) -> Result<Vec<DynamicImage>, Error> {
-    zone!("map_images_colors");
-    let images_out = images
-        .into_par_iter()
-        .map(|image| {
-            zone!("map_image_colors");
-            let mut new_image = image.clone().into_rgba8();
-            map_colors(
-                &mut new_image,
-                rr, rg, rb, ra,
-                gr, gg, gb, ga,
-                br, bg, bb, ba,
-                ar, ag, ab, aa,
-                r0, g0, b0, a0,
-            );
-            DynamicImage::ImageRgba8(new_image)
-        })
-        .collect();
-    Ok(images_out)
-}
-
-/// Blends a set of images with a color.
-pub fn blend_images_color(
-    images: Vec<DynamicImage>,
-    color: &String,
-    blend_mode: &blending::BlendMode,
-) -> Result<Vec<DynamicImage>, Error> {
-    zone!("blend_images_color");
-    let errors = Arc::new(Mutex::new(Vec::<String>::new()));
-    let images_out = images
-        .into_par_iter()
-        .map(|image| {
-            zone!("blend_image_color");
-            let mut new_image = image.clone().into_rgba8();
-            if let Err(err) = blend_color(&mut new_image, color, blend_mode) {
-                errors.lock().unwrap().push(err);
-            }
-            DynamicImage::ImageRgba8(new_image)
-        })
-        .collect();
-    let errors_unlock = errors.lock().unwrap();
-    if !errors_unlock.is_empty() {
-        return Err(Error::IconForge(errors_unlock.join("\n")));
-    }
-    Ok(images_out)
 }
 
 /// Blends a set of images with another set of images.
@@ -641,12 +507,7 @@ pub fn blend_images_other_universal(
             .map(|image| {
                 zone!("blend_image_other_simple");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &first_image, blend_mode, position) {
-                    Ok(_) => (),
-                    Err(error) => {
-                        errors.lock().unwrap().push(error);
-                    }
-                };
+                blend_icon(&mut new_image, &first_image, blend_mode, position);
                 DynamicImage::ImageRgba8(new_image)
             })
             .collect()
@@ -656,12 +517,7 @@ pub fn blend_images_other_universal(
             .map(|(image, image2)| {
                 zone!("blend_image_other");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, position) {
-                    Ok(_) => (),
-                    Err(error) => {
-                        errors.lock().unwrap().push(error);
-                    }
-                };
+                blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, position);
                 DynamicImage::ImageRgba8(new_image)
             })
             .collect()
@@ -789,12 +645,7 @@ pub fn blend_images_other(
             .map(|image| {
                 zone!("blend_image_other_simple");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &first_image, blend_mode, None) {
-                    Ok(_) => (),
-                    Err(error) => {
-                        errors.lock().unwrap().push(error);
-                    }
-                };
+                blend_icon(&mut new_image, &first_image, blend_mode, None);
                 DynamicImage::ImageRgba8(new_image)
             })
             .collect()
@@ -804,12 +655,7 @@ pub fn blend_images_other(
             .map(|(image, image2)| {
                 zone!("blend_image_other");
                 let mut new_image = image.clone().into_rgba8();
-                match blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, None) {
-                    Ok(_) => (),
-                    Err(error) => {
-                        errors.lock().unwrap().push(error);
-                    }
-                };
+                blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, None);
                 DynamicImage::ImageRgba8(new_image)
             })
             .collect()
@@ -838,16 +684,15 @@ impl Transform {
         match &self {
             Transform::BlendColor { color, blend_mode } => {
                 let blend_mode = &blending::BlendMode::from_u8(blend_mode)?;
-                match blend_images_color(image_data.images.clone(), color, blend_mode) {
-                    Ok(result_images) => {
-                        images = result_images;
-                    }
-                    Err(err) => {
-                        return Err(err.to_string());
-                    }
-                }
+                let rgba = hex_to_rgba(color)?;
+                images = image_data.map_cloned_images(|image| blend_color(image, rgba, blend_mode));
             }
-            Transform::BlendIcon { icon, blend_mode, x, y } => {
+            Transform::BlendIcon {
+                icon,
+                blend_mode,
+                x,
+                y,
+            } => {
                 zone!("blend_icon");
                 let (mut other_image_data, cached) = icon.get_image_data(
                     &format!("Transform blend_icon {icon}"),
@@ -860,12 +705,12 @@ impl Transform {
                     other_image_data =
                         apply_all_transforms(other_image_data, &icon.transform, flatten)?;
                 };
-                let position = Some((x.unwrap_or(1),y.unwrap_or(1)));
+                let position = Some((x.unwrap_or(1), y.unwrap_or(1)));
                 let new_out = blend_images_other_universal(
                     image_data,
                     other_image_data.clone(),
                     &blending::BlendMode::from_u8(blend_mode)?,
-                    position
+                    position,
                 )?;
                 images = new_out.images;
                 frames = new_out.frames;
@@ -874,10 +719,15 @@ impl Transform {
                 image_cache::cache_transformed_images(icon, other_image_data);
             }
             Transform::Scale { width, height } => {
-                images = scale_images(image_data.images.clone(), *width, *height);
+                images = image_data.map_cloned_images(|image| scale(image, *width, *height));
             }
             Transform::Crop { x1, y1, x2, y2 } => {
-                images = crop_images(image_data.images.clone(), *x1, *y1, *x2, *y2)?;
+                if *x2 <= (*x1 - 1) || *y2 <= (*y1 - 1) {
+                    return Err(format!(
+                        "Invalid bounds {x1} {y1} to {x2} {y2} in crop transform"
+                    ));
+                }
+                images = image_data.map_cloned_images(|image| crop(image, *x1, *y1, *x2, *y2));
             }
             #[rustfmt::skip]
             Transform::MapColors {
@@ -887,14 +737,14 @@ impl Transform {
                 ar, ag, ab, aa,
                 r0, g0, b0, a0,
             } => {
-                images = map_images_colors(
-                    image_data.images.clone(),
+                images = image_data.map_cloned_images(|image| map_colors(
+                    image,
                     rr.into_inner(), rg.into_inner(), rb.into_inner(), ra.map(OrderedFloat::into_inner),
                     gr.into_inner(), gg.into_inner(), gb.into_inner(), ga.map(OrderedFloat::into_inner),
                     br.into_inner(), bg.into_inner(), bb.into_inner(), ba.map(OrderedFloat::into_inner),
                     ar.map(OrderedFloat::into_inner), ag.map(OrderedFloat::into_inner), ab.map(OrderedFloat::into_inner), aa.map(OrderedFloat::into_inner),
                     r0.map(OrderedFloat::into_inner), g0.map(OrderedFloat::into_inner), b0.map(OrderedFloat::into_inner), a0.map(OrderedFloat::into_inner),
-                )?;
+                ));
             }
             Transform::Flip { dir } => {
                 let dir = match dmi::dirs::Dirs::from_bits(*dir) {
@@ -909,17 +759,21 @@ impl Transform {
                     }
                     None => return Err(format!("Invalid dir specified for Flip: {dir}")),
                 };
-                images = flip_images(image_data.images.clone(), dir)?;
+                images = image_data.map_cloned_images(|image| flip(image, dir));
             }
             Transform::Turn { angle } => {
-                images = turn_images(image_data.images.clone(), angle.into_inner())?;
+                images = image_data.map_cloned_images(|image| turn(image, angle.into_inner()));
             }
-            Transform::Shift { dir, offset, wrap} => {
+            Transform::Shift { dir, offset, wrap } => {
                 let dir = match dmi::dirs::Dirs::from_bits(*dir) {
                     Some(dir) => dir,
                     None => return Err(format!("Invalid dir specified for Shift: {dir}")),
                 };
-                images = shift_images(image_data.images.clone(), dir, *offset, *wrap != 0)?;
+                images =
+                    image_data.map_cloned_images(|image| shift(image, dir, *offset, *wrap != 0));
+            }
+            _ => {
+                images = image_data.images.clone();
             }
         }
         Ok(UniversalIconData {

@@ -8,7 +8,8 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 use std::{
     fs::{read_dir, File},
     io::BufReader,
-    path::Path, sync::{Arc, Mutex},
+    path::Path,
+    sync::{Arc, Mutex},
 };
 
 #[test]
@@ -98,7 +99,10 @@ fn compare_dmis(dm_path: &Path, rustg_path: &Path) -> Option<String> {
             .find(|rustg_state| rustg_state.name == dm_state.name)
         {
             if let Some(diff) = compare_states(dm_state, rustg_state) {
-                differences.lock().unwrap().push(format!("icon state {}:\n{diff}\n", dm_state.name));
+                differences
+                    .lock()
+                    .unwrap()
+                    .push(format!("icon state {}:\n{diff}\n", dm_state.name));
             }
         } else {
             differences.lock().unwrap().push(format!(
@@ -118,7 +122,10 @@ fn compare_dmis(dm_path: &Path, rustg_path: &Path) -> Option<String> {
             .map(|state| &state.name)
             .collect::<Vec<&String>>()
     {
-        differences.lock().unwrap().push(String::from("icon state order differs\n"));
+        differences
+            .lock()
+            .unwrap()
+            .push(String::from("icon state order differs\n"));
     }
     for rustg_state in &rustg_icon.states {
         if let None = dm_icon
@@ -215,50 +222,52 @@ fn compare_images(
     dirs: u8,
 ) {
     let safe_diffs = Arc::new(Mutex::new(Vec::<String>::new()));
-    dm_images.par_iter().zip(rustg_images).enumerate().for_each(|(image_index, (dm_image, rustg_image))| {
-        let mut image_differences: Vec<String> = Vec::new();
-        let mut break_now = false;
-        for x in 0..dm_image.width() {
-            if break_now {
-                break;
-            }
-            for y in 0..dm_image.height() {
-                let dm_pixel = dm_image.get_pixel(x, y);
-                let rustg_pixel = rustg_image.get_pixel(x, y);
-                let r_diff = (dm_pixel[0] as i32 - rustg_pixel[0] as i32).abs();
-                let g_diff = (dm_pixel[1] as i32 - rustg_pixel[1] as i32).abs();
-                let b_diff = (dm_pixel[2] as i32 - rustg_pixel[2] as i32).abs();
-                let a_diff = (dm_pixel[3] as i32 - rustg_pixel[3] as i32).abs();
-                // allow off-by-two because literally who can tell
-                if r_diff <= 2 && g_diff <= 2 && b_diff <= 2 && a_diff <= 2 {
-                    continue;
-                }
-                // RGB might differ on empty pixels, but it doesn't matter
-                if dm_pixel[3] == 0 && rustg_pixel[3] == 0 {
-                    continue;
-                }
-                let mut channels = String::with_capacity(4);
-                channels.push_str(if r_diff > 2 { "R" } else { "#" });
-                channels.push_str(if g_diff > 2 { "G" } else { "#" });
-                channels.push_str(if b_diff > 2 { "B" } else { "#" });
-                channels.push_str(if a_diff > 2 { "A" } else { "#" });
-                if image_differences.len() < 7 {
-                    image_differences.push(format!("({x},{y}:{channels})"));
-                } else if image_differences.len() == 7 {
-                    image_differences.push(String::from("..."));
-                    break_now = true;
+    dm_images.par_iter().zip(rustg_images).enumerate().for_each(
+        |(image_index, (dm_image, rustg_image))| {
+            let mut image_differences: Vec<String> = Vec::new();
+            let mut break_now = false;
+            for x in 0..dm_image.width() {
+                if break_now {
                     break;
                 }
+                for y in 0..dm_image.height() {
+                    let dm_pixel = dm_image.get_pixel(x, y);
+                    let rustg_pixel = rustg_image.get_pixel(x, y);
+                    let r_diff = (dm_pixel[0] as i32 - rustg_pixel[0] as i32).abs();
+                    let g_diff = (dm_pixel[1] as i32 - rustg_pixel[1] as i32).abs();
+                    let b_diff = (dm_pixel[2] as i32 - rustg_pixel[2] as i32).abs();
+                    let a_diff = (dm_pixel[3] as i32 - rustg_pixel[3] as i32).abs();
+                    // allow off-by-two because literally who can tell
+                    if r_diff <= 2 && g_diff <= 2 && b_diff <= 2 && a_diff <= 2 {
+                        continue;
+                    }
+                    // RGB might differ on empty pixels, but it doesn't matter
+                    if dm_pixel[3] == 0 && rustg_pixel[3] == 0 {
+                        continue;
+                    }
+                    let mut channels = String::with_capacity(4);
+                    channels.push_str(if r_diff > 2 { "R" } else { "#" });
+                    channels.push_str(if g_diff > 2 { "G" } else { "#" });
+                    channels.push_str(if b_diff > 2 { "B" } else { "#" });
+                    channels.push_str(if a_diff > 2 { "A" } else { "#" });
+                    if image_differences.len() < 7 {
+                        image_differences.push(format!("({x},{y}:{channels})"));
+                    } else if image_differences.len() == 7 {
+                        image_differences.push(String::from("..."));
+                        break_now = true;
+                        break;
+                    }
+                }
             }
-        }
-        if !image_differences.is_empty() {
-            let all_coordinates = image_differences.join(";");
-            safe_diffs.lock().unwrap().push(format!(
-                "{} at pixels: {all_coordinates}",
-                image_name_from_index(image_index, dirs)
-            ));
-        }
-    });
+            if !image_differences.is_empty() {
+                let all_coordinates = image_differences.join(";");
+                safe_diffs.lock().unwrap().push(format!(
+                    "{} at pixels: {all_coordinates}",
+                    image_name_from_index(image_index, dirs)
+                ));
+            }
+        },
+    );
     differences.append(&mut safe_diffs.lock().unwrap().clone());
 }
 
