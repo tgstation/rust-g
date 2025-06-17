@@ -31,7 +31,7 @@
 /// list("type" = RUSTG_ICONFORGE_FLIP, "dir" = SOUTH)
 /// list("type" = RUSTG_ICONFORGE_TURN, "angle" = 90.0)
 /// list("type" = RUSTG_ICONFORGE_SHIFT, "dir" = EAST, "offset" = 10, "wrap" = FALSE)
-/// list("type" = RUSTG_ICONFORGE_SWAP_COLORS, "src_color" = "#ff0000", "dst_color" = "#00ff00") // alpha bits supported
+/// list("type" = RUSTG_ICONFORGE_SWAP_COLOR, "src_color" = "#ff0000", "dst_color" = "#00ff00") // alpha bits supported
 /// list("type" = RUSTG_ICONFORGE_DRAW_BOX, "color" = "#ff0000", "x1" = 1, "y1" = 1, "x2" = 32, "y2" = 32) // alpha bits supported. color can be null/omitted for transparency. x2 and y2 will default to x1 and y1 if omitted
 ///
 /// Returns a SpritesheetResult as JSON, containing fields:
@@ -86,5 +86,5 @@
 #define RUSTG_ICONFORGE_FLIP "Flip"
 #define RUSTG_ICONFORGE_TURN "Turn"
 #define RUSTG_ICONFORGE_SHIFT "Shift"
-#define RUSTG_ICONFORGE_SWAP_COLORS "SwapColors"
+#define RUSTG_ICONFORGE_SWAP_COLOR "SwapColor"
 #define RUSTG_ICONFORGE_DRAW_BOX "DrawBox"

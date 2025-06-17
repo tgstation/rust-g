@@ -58,6 +58,12 @@
 	transform.shift(dir, offset, wrap)
 	return src
 
+/datum/universal_icon/proc/swap_color(src_color, dst_color)
+	if(!transform)
+		transform = new
+	transform.swap_color(src_color, dst_color)
+	return src
+
 /datum/universal_icon/proc/map_colors_rgba(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	if(!transform)
 		transform = new
@@ -167,6 +173,8 @@
 				target.Turn(transform["angle"])
 			if(RUSTG_ICONFORGE_SHIFT)
 				target.Shift(transform["dir"], transform["offset"], transform["wrap"])
+			if(RUSTG_ICONFORGE_SWAP_COLOR)
+				target.SwapColor(transform["src_color"], transform["dst_color"])
 	return target
 
 /datum/icon_transformer/proc/blend_color(color, blend_mode)
@@ -189,6 +197,9 @@
 
 /datum/icon_transformer/proc/shift(dir, offset, wrap=0)
 	transforms += list(list("type" = RUSTG_ICONFORGE_SHIFT, "dir" = dir, "offset" = offset, "wrap" = wrap))
+
+/datum/icon_transformer/proc/swap_color(src_color, dst_color)
+	transforms += list(list("type" = RUSTG_ICONFORGE_SWAP_COLOR, "src_color" = src_color, "dst_color" = dst_color))
 
 /datum/icon_transformer/proc/map_colors(rr, rg, rb, ra, gr, gg, gb, ga, br, bg, bb, ba, ar, ag, ab, aa, r0=0, g0=0, b0=0, a0=0)
 	transforms += list(list(
@@ -242,6 +253,11 @@
 	var/datum/universal_icon/color_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
 	color_test_icon.blend_color(color, blend_mode)
 	uni_icons[name] = color_test_icon
+
+/proc/add_swap_test_icon(list/uni_icons, icon_state, src_color, dst_color)
+	var/datum/universal_icon/swap_test_icon = uni_icon('rsc/iconforge_tests.dmi', icon_state)
+	swap_test_icon.swap_color(src_color, dst_color)
+	uni_icons["swap_[icon_state]_[src_color]_[dst_color]"] = swap_test_icon
 
 /proc/add_self_test_icons(list/uni_icons, icon_state)
 	add_self_test_icon(uni_icons, "blend_[icon_state]_self_ADD", icon_state, ICON_ADD)
@@ -439,6 +455,28 @@
 		shift_test_icon = uni_icon('rsc/iconforge_tests.dmi', "rgba_test")
 		shift_test_icon.shift(dir, 36, FALSE)
 		uni_icons_32_32["shift_[dir]_36_nowrap"] = shift_test_icon
+
+	// --- swap colors ---
+
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#ff0000", "#003300")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#ff0000ff", "#003300")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#ff000000", "#003300")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#ff0000", "#003300cc")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#ff0000ff", "#003300cc")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#ff000000", "#003300cc")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#000000", "#003300")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#000000ff", "#003300")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000000", "#003300")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#000000", "#003300cc")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#000000ff", "#003300cc")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000000", "#003300cc")
+
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00ff00cc")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00ff0064")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00ff0000")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00000000")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00ff00")
+	add_swap_test_icon(uni_icons_32_32, "rgba_test", "#00000064", "#00ff00ff")
 
 	// --- icon blending ---
 

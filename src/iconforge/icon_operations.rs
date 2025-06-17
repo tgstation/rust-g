@@ -140,6 +140,26 @@ pub fn convert_byond_crop_image_coords(
     (x1 - 1, image_height - y2, x2, image_height - (y1 - 1))
 }
 
+pub struct RgbOrRgbaHex {
+    rgb: [u8; 3],
+    a: Option<u8>,
+}
+
+pub fn hex_to_rgb_or_rgba(hex_in: &String) -> Result<RgbOrRgbaHex, Error> {
+    zone!("hex_to_rgb_or_rgba");
+    let mut hex = hex_in.clone();
+    if hex_in.starts_with('#') {
+        hex = hex_in[1..].to_string();
+    }
+    // a included...
+    let has_a = hex.len() == 4 || hex.len() == 8;
+    let result = hex_to_rgba(&hex)?;
+    Ok(RgbOrRgbaHex {
+        rgb: [result[0], result[1], result[2]],
+        a: if has_a { Some(result[3]) } else { None },
+    })
+}
+
 pub fn hex_to_rgba(hex_in: &String) -> Result<[u8; 4], Error> {
     zone!("hex_to_rgba");
     let mut color: [u8; 4] = [0, 0, 0, 0];
@@ -153,6 +173,14 @@ pub fn hex_to_rgba(hex_in: &String) -> Result<[u8; 4], Error> {
             hex_in[0..1].to_string(),
             hex_in[1..2].to_string(),
             hex_in[2..3].to_string()
+        )
+    } else if hex.len() == 4 {
+        hex = format!(
+            "{0}{0}{1}{1}{2}{2}{3}{3}",
+            hex_in[0..1].to_string(),
+            hex_in[1..2].to_string(),
+            hex_in[2..3].to_string(),
+            hex_in[3..4].to_string()
         )
     }
     if hex.len() == 6 {
@@ -359,6 +387,29 @@ pub fn shift(image: &mut RgbaImage, dir: Dirs, offset: i32, wrap: bool) {
             px.copy_from_slice(&src_buf[src_i..src_i + 4]);
         });
     *image = output
+}
+
+pub fn swap_color(
+    image: &mut RgbaImage,
+    src_color: [u8; 3],
+    src_alpha: Option<u8>,
+    dst_color: [u8; 4],
+) {
+    zone!("swap_color");
+    let image_buf: &mut [u8] = image.as_mut();
+    image_buf
+        .par_chunks_exact_mut(4)
+        .filter(|px| match src_alpha {
+            Some(src_alpha) => px[3] == src_alpha && (src_alpha == 0 || px[0..3] == src_color),
+            None => px[0..3] == src_color && px[3] != 0,
+        })
+        .for_each(|px| {
+            let mut new_color = dst_color.clone();
+            if src_alpha.is_none() && new_color[3] != 0 {
+                new_color[3] = px[3];
+            }
+            px.copy_from_slice(&new_color);
+        });
 }
 
 #[rustfmt::skip]
@@ -771,6 +822,16 @@ impl Transform {
                 };
                 images =
                     image_data.map_cloned_images(|image| shift(image, dir, *offset, *wrap != 0));
+            }
+            Transform::SwapColor {
+                src_color,
+                dst_color,
+            } => {
+                let src_color_opt = hex_to_rgb_or_rgba(src_color)?;
+                let dst_color_rgba = hex_to_rgba(dst_color)?;
+                images = image_data.map_cloned_images(|image| {
+                    swap_color(image, src_color_opt.rgb, src_color_opt.a, dst_color_rgba)
+                });
             }
             _ => {
                 images = image_data.images.clone();

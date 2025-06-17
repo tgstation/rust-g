@@ -97,7 +97,7 @@ pub enum Transform {
         offset: i32,
         wrap: u8,
     },
-    SwapColors {
+    SwapColor {
         src_color: String,
         dst_color: String,
     },
