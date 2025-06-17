@@ -96,6 +96,17 @@ pub enum Transform {
         offset: i32,
         wrap: u8,
     },
+    SwapColors {
+        src_color: String,
+        dst_color: String,
+    },
+    DrawBox {
+        color: Option<String>,
+        x1: i32,
+        y1: i32,
+        x2: Option<i32>,
+        y2: Option<i32>,
+    }
 }
 
 #[derive(Clone)]
