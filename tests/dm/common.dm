@@ -1,5 +1,5 @@
 #define RUST_G world.GetConfig("env", "RUST_G")
-#include "../../target/rust_g.dm"
+#include "rust_g.dm"
 
 /world/New()
     for(var/func in typesof(/test/proc))
