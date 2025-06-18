@@ -24,7 +24,7 @@ fn decode(string: &str) -> Result<String> {
 
 // From `url` crate.
 /// Replace b'+' with b' '
-fn replace_plus(input: &[u8]) -> Cow<[u8]> {
+fn replace_plus(input: &[u8]) -> Cow<'_, [u8]> {
     match input.iter().position(|&b| b == b'+') {
         None => Cow::Borrowed(input),
         Some(first_position) => {
