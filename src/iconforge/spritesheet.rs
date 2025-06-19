@@ -398,9 +398,11 @@ fn create_dmi_output_states(
         };
         // sometimes DMIs can contain more delays than frames because they retain old data
         let new_delays = Some(
-            image_data.delay
+            image_data
+                .delay
                 .clone()
-                .unwrap_or_else(|| vec![1.0; image_data.frames as usize])[0..image_data.frames as usize]
+                .unwrap_or_else(|| vec![1.0; image_data.frames as usize])
+                [0..image_data.frames as usize]
                 .to_owned(),
         );
         output_states.lock().unwrap().push(IconState {
