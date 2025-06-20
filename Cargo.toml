@@ -65,6 +65,7 @@ fast_poisson = { version = "=0.5.2", optional = true, features = [
     "single_precision",
 ] } # Higher versions have problems with x86 due to 'kiddo'.
 symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
+caith = { version = "4.2.4", optional = true }
 
 [features]
 default = [
@@ -95,6 +96,7 @@ all = [
     "batchnoise",
     "cellularnoise",
     "dmi",
+    "dice",
     "file",
     "git",
     "hash",
@@ -161,6 +163,7 @@ toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
 
 # additional features
+dice = ["caith"]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 poissonnoise = ["fast_poisson"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]

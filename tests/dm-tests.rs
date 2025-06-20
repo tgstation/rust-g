@@ -26,6 +26,12 @@ fn hash() {
     run_dm_tests("hash", false);
 }
 
+#[cfg(feature = "dice")]
+#[test]
+fn dice() {
+    run_dm_tests("dice", false);
+}
+
 /**
  * Find a valid BYOND bin path on the system.
  */

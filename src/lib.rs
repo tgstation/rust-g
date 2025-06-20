@@ -18,6 +18,8 @@ pub mod acreplace;
 pub mod cellularnoise;
 #[cfg(feature = "dbpnoise")]
 pub mod dbpnoise;
+#[cfg(feature = "dice")]
+pub mod dice;
 #[cfg(feature = "dmi")]
 pub mod dmi;
 #[cfg(feature = "file")]

@@ -1,0 +1,11 @@
+#include "common.dm"
+
+/test/proc/check_rustg_roll_dice()
+    /// Roll four six-sided dice and reroll any that are equal to or less than five (and do the same to those dice).
+    var/test_roll = "4d6 ir5"
+
+    var/expected_result = 24
+    var/result = rustg_roll_dice("[test_roll]")
+
+    if(result != expected_result)
+        CRASH("\n  test roll: [test_roll]\n  expected: [expected_result]\n  rustg: [result]")
