@@ -1,3 +1,11 @@
 
 /target
 **/*.rs.bk
+tests/dm/*.dmb
+tests/dm/*.lk
+tests/dm/*.int
+tests/dm/*.rsc
+tests/dm/tmp/
+tests/dm/*.dll
+tests/dm/*.so
+tests/dm/rust_g.dm
