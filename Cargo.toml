@@ -61,9 +61,9 @@ num-integer = { version = "0.1.46", optional = true }
 dmi = { version = "0.4.0", optional = true }
 tracy_full = { version = "1.11.0", optional = true }
 ammonia = { version = "4.1", optional = true }
-fast_poisson = { version = "=0.5.2", optional = true, features = [
+fast_poisson = { version = "1.0.2", optional = true, features = [
     "single_precision",
-] } # Higher versions have problems with x86 due to 'kiddo'.
+] }
 symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
 
