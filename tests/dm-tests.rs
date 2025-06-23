@@ -36,7 +36,7 @@ fn dice() {
  * Find a valid BYOND bin path on the system.
  */
 fn find_byond() -> String {
-    return match std::env::var("BYOND_BIN") {
+    match std::env::var("BYOND_BIN") {
         Ok(bin) => bin,
         Err(_) => {
             let paths = vec![
@@ -58,7 +58,7 @@ fn find_byond() -> String {
             }
             found_path.expect("Could not find environment variable BYOND_BIN, or any valid installation path for BYOND.")
         }
-    };
+    }
 }
 
 fn use_byond_executable<F>(byond_bin: &str, windows: &str, linux: &str, command: F) -> Output
@@ -68,12 +68,12 @@ where
     if cfg!(target_os = "linux") {
         let byondexec = format!("{byond_bin}/byondexec");
         let linux_full = format!("{byond_bin}/{linux}");
-        return command(&mut Command::new("bash").arg(&byondexec).arg(&linux_full))
+        command(Command::new("bash").arg(&byondexec).arg(&linux_full))
             .output()
-            .unwrap();
+            .unwrap()
     } else {
         let windows_full = format!("{byond_bin}/{windows}");
-        return command(&mut Command::new(&windows_full)).output().unwrap();
+        command(&mut Command::new(&windows_full)).output().unwrap()
     }
 }
 
@@ -91,16 +91,16 @@ fn compile_and_run_dme(name: &str, rust_g_lib_path: &str, chdir: Option<&str>) -
         c.arg(&dmb)
             .arg("-trusted")
             .arg("-cd")
-            .arg(if let Some(dir) = chdir { dir } else { "." })
+            .arg(chdir.unwrap_or("."))
             .env("RUST_G", rust_g_lib_path)
     });
 
     // Cleanup
     let _ = std::fs::remove_file(&dmb);
-    let _ = std::fs::remove_file(&format!("tests/dm/{name}.rsc"));
-    let _ = std::fs::remove_file(&format!("tests/dm/{name}.dyn.rsc"));
-    let _ = std::fs::remove_file(&format!("tests/dm/{name}.lk"));
-    let _ = std::fs::remove_file(&format!("tests/dm/{name}.int"));
+    let _ = std::fs::remove_file(format!("tests/dm/{name}.rsc"));
+    let _ = std::fs::remove_file(format!("tests/dm/{name}.dyn.rsc"));
+    let _ = std::fs::remove_file(format!("tests/dm/{name}.lk"));
+    let _ = std::fs::remove_file(format!("tests/dm/{name}.int"));
 
     dump(&output);
     generic_check(&output);
@@ -149,7 +149,7 @@ fn run_dm_tests(name: &str, use_repo_root: bool) {
     let (rustg_lib_path, rustg_lib_fname, rustg_dm_path) = find_and_copy_rustg_lib();
 
     let output = compile_and_run_dme(
-        &name,
+        name,
         if use_repo_root {
             &rustg_lib_path
         } else {
@@ -165,7 +165,7 @@ fn run_dm_tests(name: &str, use_repo_root: bool) {
 
     // Cleanup
     let _ = std::fs::remove_file(&rustg_lib_path);
-    let _ = std::fs::remove_file(&rustg_dm_path);
+    let _ = std::fs::remove_file(rustg_dm_path);
 }
 
 fn dump(output: &Output) {
