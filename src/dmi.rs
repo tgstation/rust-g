@@ -78,14 +78,18 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     let height = height.parse::<u32>()?;
 
     let bytes = data.as_bytes();
-    if bytes.len() % 7 != 0 {
-        return Err(Error::InvalidPngData);
-    }
 
     let mut result: Vec<u8> = Vec::new();
-    for pixel in bytes.chunks_exact(7) {
-        for channel in pixel[1..].chunks_exact(2) {
+    for pixel in bytes.split(|&b| b == b'#').skip(1) {
+        if pixel.len() != 6 && pixel.len() != 8 {
+            return Err(Error::InvalidPngData);
+        }
+        for channel in pixel.chunks_exact(2) {
             result.push(u8::from_str_radix(std::str::from_utf8(channel)?, 16)?);
+        }
+        // If only RGB is provided for any pixel we also add alpha
+        if pixel.len() == 6 {
+            result.push(255);
         }
     }
 
@@ -96,7 +100,7 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     }
 
     let mut encoder = Encoder::new(File::create(path)?, width, height);
-    encoder.set_color(png::ColorType::Rgb);
+    encoder.set_color(png::ColorType::Rgba);
     encoder.set_depth(png::BitDepth::Eight);
     let mut writer = encoder.write_header()?;
     Ok(writer.write_image_data(&result)?)
