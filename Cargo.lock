@@ -2775,6 +2775,7 @@ dependencies = [
  "flume",
  "gix",
  "hex",
+ "hmac",
  "image",
  "md-5",
  "mysql",

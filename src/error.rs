@@ -65,6 +65,12 @@ pub enum Error {
     #[cfg(feature = "hash")]
     #[error("Unable to decode hex value.")]
     HexDecode,
+    #[cfg(feature = "hash")]
+    #[error("Seed is invalid length.")]
+    BadSeed,
+    #[cfg(feature = "hash")]
+    #[error("TOTP may not be more than 8 digits.")]
+    BadDigits,
     #[cfg(feature = "iconforge")]
     #[error("IconForge error: {0}")]
     IconForge(String),
