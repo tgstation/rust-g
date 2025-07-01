@@ -78,12 +78,14 @@ fn gen_prng_chacha20_seeded(format: &str, n_bytes: usize, seed: &str) -> String 
 
 fn format_rng<T: RngCore>(rng: &mut T, format: &str, n_bytes: usize) -> String {
     match format {
-        "alphanumeric" => (0..n_bytes).map(|_| rng.sample(Alphanumeric) as char).collect::<String>(),
+        "alphanumeric" => (0..n_bytes)
+            .map(|_| rng.sample(Alphanumeric) as char)
+            .collect::<String>(),
         "hex" => {
             let mut bytes = vec![0u8; n_bytes];
             rng.fill_bytes(&mut bytes);
             hex::encode(bytes)
-        },
+        }
         "base64" => {
             let mut bytes = vec![0u8; n_bytes];
             rng.fill_bytes(&mut bytes);
