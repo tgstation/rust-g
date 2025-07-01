@@ -31,7 +31,12 @@ var/list/reference = list()
         CRASH("Base64 decode failed | S: [input_str] | E: [expected_output] | A: [actual]")
 
 /test/proc/test_seeded_chacha20_prng()
-    var/my_hex = rustg_prng_chacha20_seeded("hex", 32, "example_seed")
+    var/my_hex = rustg_prng_chacha20_seeded(RUSTG_RNG_FORMAT_HEX, 32, "example_seed")
     var/expected_my_hex = "dc4e89bd5efea905c227288b5e30442476f94eb580f2a5e51bd6ca3b00d95712"
     if (!cmptextEx(expected_my_hex, my_hex))
         CRASH("seeded chacha20 expected: [expected_my_hex]\n  rustg: [my_hex]")
+
+/test/proc/test_csprng_totp_accepted()
+    var/my_totp = rustg_hash_generate_totp(RUSTG_HASH_SHA512, rustg_prng_chacha20_seeded("hex", 40, "example_seed"))
+    if(length(my_totp) != 6 || !text2num(my_totp))
+        CRASH("Invalid TOTP: [my_totp]")
