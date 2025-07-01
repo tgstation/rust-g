@@ -4,12 +4,12 @@
 /// Supported algorithms: RUSTG_HASH_SHA1, RUSTG_HASH_SHA256, RUSTG_HASH_SHA512
 /// Seed must be between 20 and 128 characters of hex. 40 characters recommended. Use a CSPRNG.
 /// Refresh rate is fixed at 30sec and digit count is fixed at 6
-#define rustg_hash_generate_totp(seed) RUSTG_CALL(RUST_G, "generate_totp")(algorithm, seed)
+#define rustg_hash_generate_totp(algorithm, seed) RUSTG_CALL(RUST_G, "generate_totp")(algorithm, seed)
 /// Supported algorithms: RUSTG_HASH_SHA1, RUSTG_HASH_SHA256, RUSTG_HASH_SHA512
 /// Seed must be between 20 and 128 characters of hex. 40 characters recommended. Use a CSPRNG.
 /// Refresh rate is fixed at 30sec and digit count is fixed at 6
 /// Tolerance is the number of codes +-30sec from the current one that are allowed.
-#define rustg_hash_generate_totp_tolerance(seed, tolerance) RUSTG_CALL(RUST_G, "generate_totp_tolerance")(algorithm, seed, tolerance)
+#define rustg_hash_generate_totp_tolerance(algorithm, seed, tolerance) RUSTG_CALL(RUST_G, "generate_totp_tolerance")(algorithm, seed, tolerance)
 
 /// Creates a cryptographically-secure pseudorandom number generator using the OS-level PRNG as a seed
 /// n_bytes is the number of bytes provided to the RNG, the length of the string output varies by format

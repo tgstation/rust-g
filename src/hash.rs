@@ -183,7 +183,7 @@ fn hmac<D>(seed: &[u8], data: &[u8]) -> Vec<u8>
 where
     D: Mac + hmac::digest::KeyInit,
 {
-    let mut mac = <D as Mac>::new_from_slice(seed).unwrap(); // works
+    let mut mac = <D as Mac>::new_from_slice(seed).unwrap();
     mac.update(data);
     mac.finalize().into_bytes().to_vec()
 }
