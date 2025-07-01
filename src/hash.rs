@@ -100,7 +100,7 @@ fn format_rng<T: RngCore>(rng: &mut T, format: &str, n_bytes: usize) -> String {
         "base32_rfc4648" => {
             let mut bytes = vec![0u8; n_bytes];
             rng.fill_bytes(&mut bytes);
-            base32::encode(base32::Alphabet::Rfc4648 { padding: true },&bytes)
+            base32::encode(base32::Alphabet::Rfc4648 { padding: true }, &bytes)
         }
         "base64" => {
             let mut bytes = vec![0u8; n_bytes];
@@ -154,7 +154,10 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
             hasher.write(bytes.as_ref());
             Ok(format!("{:x}", hasher.finish()))
         }
-        "base32" => Ok(base32::encode(base32::Alphabet::Rfc4648 { padding: true },bytes.as_ref())),
+        "base32" => Ok(base32::encode(
+            base32::Alphabet::Rfc4648 { padding: true },
+            bytes.as_ref(),
+        )),
         "base64" => Ok(base64::prelude::BASE64_STANDARD.encode(bytes.as_ref())),
         _ => Err(Error::InvalidAlgorithm),
     }
@@ -223,8 +226,8 @@ fn totp_generate(
     match base32::decode(base32::Alphabet::Rfc4648 { padding: true }, base32_seed) {
         Some(base32_bytes) => {
             seed[..base32_bytes.len()].copy_from_slice(&base32_bytes);
-        },
-        None => return Err(Error::BadSeed)
+        }
+        None => return Err(Error::BadSeed),
     }
     // Will panic if the date is not between Jan 1 1970 and the year ~200 billion
     let curr_time: i64 = time_override.unwrap_or_else(|| {
@@ -275,7 +278,11 @@ mod tests {
             20000000000,
         ];
         const TOTP_TEST_ALGORITHMS: [&'static str; 3] = ["sha1", "sha256", "sha512"];
-        const TOTP_TEST_SEEDS: [&'static str; 3] = ["12345678901234567890", "12345678901234567890123456789012", "1234567890123456789012345678901234567890123456789012345678901234"];
+        const TOTP_TEST_SEEDS: [&'static str; 3] = [
+            "12345678901234567890",
+            "12345678901234567890123456789012",
+            "1234567890123456789012345678901234567890123456789012345678901234",
+        ];
         const TOTP_TEST_VALUES_TIME_ALGO: [[&'static str; 3]; 6] = [
             ["94287082", "46119246", "90693936"],
             ["07081804", "68084774", "25091201"],
@@ -293,7 +300,16 @@ mod tests {
                     .zip(TOTP_TEST_SEEDS)
                     .enumerate()
                     .for_each(|(algo_idx, (algo, seed))| {
-                        let totp = totp_generate(*algo, &base32::encode(base32::Alphabet::Rfc4648 { padding: true },seed.as_bytes()), 0, 8, Some(*time));
+                        let totp = totp_generate(
+                            *algo,
+                            &base32::encode(
+                                base32::Alphabet::Rfc4648 { padding: true },
+                                seed.as_bytes(),
+                            ),
+                            0,
+                            8,
+                            Some(*time),
+                        );
                         assert_eq!(
                             totp.unwrap(),
                             TOTP_TEST_VALUES_TIME_ALGO[time_idx][algo_idx]
