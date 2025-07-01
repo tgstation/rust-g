@@ -101,7 +101,7 @@ fn format_rng<T: RngCore>(rng: &mut T, format: &str, n_bytes: usize) -> String {
             let mut bytes = vec![0u8; n_bytes];
             rng.fill_bytes(&mut bytes);
             base32::encode(base32::Alphabet::Rfc4648 { padding: false }, &bytes)
-        },
+        }
         "base32_rfc4648_pad" => {
             let mut bytes = vec![0u8; n_bytes];
             rng.fill_bytes(&mut bytes);
