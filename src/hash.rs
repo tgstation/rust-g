@@ -242,7 +242,7 @@ fn totp_generate(
     let result: u32 = (full_result & 0x7FFFFFFF) % DIGITS_POWER[digits];
     let mut result_str = result.to_string();
     if result_str.len() < digits {
-        result_str = format!("{:0>width$}", result_str, width = digits);
+        result_str = format!("{result_str:0>digits$}");
     }
 
     Ok(result_str)
