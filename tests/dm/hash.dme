@@ -30,3 +30,8 @@ var/list/reference = list()
     if (!cmptextEx(expected_output, actual))
         CRASH("Base64 decode failed | S: [input_str] | E: [expected_output] | A: [actual]")
 
+/test/proc/test_seeded_chacha20_prng()
+    var/my_hex = rustg_prng_chacha20_seeded("hex", 32, "example_seed")
+    var/expected_my_hex = "dc4e89bd5efea905c227288b5e30442476f94eb580f2a5e51bd6ca3b00d95712"
+    if (!cmptextEx(expected_my_hex, my_hex))
+        CRASH("seeded chacha20 expected: [expected_my_hex]\n  rustg: [my_hex]")
