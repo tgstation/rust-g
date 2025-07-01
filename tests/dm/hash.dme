@@ -37,8 +37,34 @@ var/list/reference = list()
         CRASH("seeded chacha20 expected: [expected_my_hex]\n  rustg: [my_hex]")
 
 /test/proc/test_csprng_totp_accepted()
-    // Recommended length of 20 bytes
-    var/seed = rustg_prng_chacha20_seeded(RUSTG_RNG_FORMAT_BASE32, 20, "example_seed")
+    // 16 bytes unpadded
+    var/seed = rustg_prng_chacha20_seeded(RUSTG_RNG_FORMAT_BASE32, 16, "example_seed")
     var/my_totp = rustg_hash_generate_totp(RUSTG_HASH_SHA512, seed)
     if(findtextEx("ERROR: ", my_totp) || length(my_totp) != 6 || !text2num(my_totp))
         CRASH("Invalid TOTP: [my_totp]")
+
+/proc/check_hash_base32(input, padding)
+    var/expected = reference[input]
+    if(!padding)
+        expected = replacetextEx(expected, "=", "")
+    var/rust = rustg_encode_base32(input, padding)
+    // Case sensitive
+    if (!cmptextEx(expected, rust))
+        CRASH("[input]\n  expected: [expected]\n  rustg: [rust]")
+    var/decoded = rustg_decode_base32(expected, padding)
+    if (!cmptextEx(input, decoded))
+        CRASH("[input]\n  expected: [input]\n  rustg: [decoded]")
+
+/test/proc/various_hash_base32()
+    reference["The quick brown fox jumps over the lazy dog."] = \
+    "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLQ="
+
+    reference["Résumé"] = \
+    "KLB2S43VNXB2S==="
+
+    reference["https://example.com/?foo=bar+baz&bar\[]=baz#foo"] = \
+    "NB2HI4DTHIXS6ZLYMFWXA3DFFZRW63JPH5TG63Z5MJQXEK3CMF5CMYTBOJNV2PLCMF5CGZTPN4======"
+
+    for (var/entry in reference)
+        check_hash_base32(entry, TRUE)
+        check_hash_base32(entry, FALSE)

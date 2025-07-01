@@ -31,8 +31,8 @@ byond_fn!(fn decode_base64(string) {
     Some(base64::prelude::BASE64_STANDARD.decode(string).unwrap())
 });
 
-byond_fn!(fn decode_base32(string) {
-    Some(base32::decode(base32::Alphabet::Rfc4648 { padding: true }, string).unwrap())
+byond_fn!(fn decode_base32(string, padding) {
+    Some(base32::decode(base32::Alphabet::Rfc4648 { padding: padding == "1" }, string).unwrap())
 });
 
 byond_fn!(fn hash_file(algorithm, string) {
@@ -100,6 +100,11 @@ fn format_rng<T: RngCore>(rng: &mut T, format: &str, n_bytes: usize) -> String {
         "base32_rfc4648" => {
             let mut bytes = vec![0u8; n_bytes];
             rng.fill_bytes(&mut bytes);
+            base32::encode(base32::Alphabet::Rfc4648 { padding: false }, &bytes)
+        },
+        "base32_rfc4648_pad" => {
+            let mut bytes = vec![0u8; n_bytes];
+            rng.fill_bytes(&mut bytes);
             base32::encode(base32::Alphabet::Rfc4648 { padding: true }, &bytes)
         }
         "base64" => {
@@ -154,7 +159,11 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
             hasher.write(bytes.as_ref());
             Ok(format!("{:x}", hasher.finish()))
         }
-        "base32" => Ok(base32::encode(
+        "base32_rfc4648" => Ok(base32::encode(
+            base32::Alphabet::Rfc4648 { padding: false },
+            bytes.as_ref(),
+        )),
+        "base32_rfc4648_pad" => Ok(base32::encode(
             base32::Alphabet::Rfc4648 { padding: true },
             bytes.as_ref(),
         )),
@@ -216,15 +225,16 @@ fn totp_generate(
 ) -> Result<String> {
     let mut seed: [u8; 64] = [0; 64];
 
-    if base32_seed.len() < 16 || base32_seed.len() > 104 {
-        return Err(Error::BadSeed);
-    }
     if !(1..=8).contains(&digits) {
         return Err(Error::BadDigits);
     }
 
+    // Always accept padding
     match base32::decode(base32::Alphabet::Rfc4648 { padding: true }, base32_seed) {
         Some(base32_bytes) => {
+            if base32_bytes.len() < 10 || base32_bytes.len() > 64 {
+                return Err(Error::BadSeed);
+            }
             seed[..base32_bytes.len()].copy_from_slice(&base32_bytes);
         }
         None => return Err(Error::BadSeed),
@@ -303,7 +313,7 @@ mod tests {
                         let totp = totp_generate(
                             *algo,
                             &base32::encode(
-                                base32::Alphabet::Rfc4648 { padding: true },
+                                base32::Alphabet::Rfc4648 { padding: false }, // test it unpadded
                                 seed.as_bytes(),
                             ),
                             0,
