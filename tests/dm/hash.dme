@@ -37,6 +37,8 @@ var/list/reference = list()
         CRASH("seeded chacha20 expected: [expected_my_hex]\n  rustg: [my_hex]")
 
 /test/proc/test_csprng_totp_accepted()
-    var/my_totp = rustg_hash_generate_totp(RUSTG_HASH_SHA512, rustg_prng_chacha20_seeded("hex", 40, "example_seed"))
-    if(length(my_totp) != 6 || !text2num(my_totp))
+    // Recommended length of 20 bytes
+    var/seed = rustg_prng_chacha20_seeded(RUSTG_RNG_FORMAT_BASE32, 20, "example_seed")
+    var/my_totp = rustg_hash_generate_totp(RUSTG_HASH_SHA512, seed)
+    if(findtextEx("ERROR: ", my_totp) || length(my_totp) != 6 || !text2num(my_totp))
         CRASH("Invalid TOTP: [my_totp]")

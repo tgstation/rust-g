@@ -31,12 +31,16 @@ byond_fn!(fn decode_base64(string) {
     Some(base64::prelude::BASE64_STANDARD.decode(string).unwrap())
 });
 
+byond_fn!(fn decode_base32(string) {
+    Some(base32::decode(base32::Alphabet::Rfc4648 { padding: true }, string).unwrap())
+});
+
 byond_fn!(fn hash_file(algorithm, string) {
     file_hash(algorithm, string).ok()
 });
 
-byond_fn!(fn generate_totp(algorithm, hex_seed) {
-    match totp_generate(algorithm, hex_seed, 0, TOTP_DIGITS, None) {
+byond_fn!(fn generate_totp(algorithm, base32_seed) {
+    match totp_generate(algorithm, base32_seed, 0, TOTP_DIGITS, None) {
         Ok(value) => Some(value),
         Err(error) => Some(format!("ERROR: {error:?}"))
     }
@@ -93,6 +97,11 @@ fn format_rng<T: RngCore>(rng: &mut T, format: &str, n_bytes: usize) -> String {
             rng.fill_bytes(&mut bytes);
             hex::encode(bytes)
         }
+        "base32_rfc4648" => {
+            let mut bytes = vec![0u8; n_bytes];
+            rng.fill_bytes(&mut bytes);
+            base32::encode(base32::Alphabet::Rfc4648 { padding: true },&bytes)
+        }
         "base64" => {
             let mut bytes = vec![0u8; n_bytes];
             rng.fill_bytes(&mut bytes);
@@ -102,12 +111,12 @@ fn format_rng<T: RngCore>(rng: &mut T, format: &str, n_bytes: usize) -> String {
     }
 }
 
-byond_fn!(fn generate_totp_tolerance(algorithm, hex_seed, tolerance) {
+byond_fn!(fn generate_totp_tolerance(algorithm, base32_seed, tolerance) {
     let tolerance_value: i32 = match tolerance.parse() {
         Ok(value) => value,
         Err(_) => return Some(String::from("ERROR: Tolerance not a valid integer"))
     };
-    match totp_generate_tolerance(algorithm, hex_seed, tolerance_value, TOTP_DIGITS, None) {
+    match totp_generate_tolerance(algorithm, base32_seed, tolerance_value, TOTP_DIGITS, None) {
         Ok(value) => Some(value),
         Err(error) => Some(format!("ERROR: {error:?}"))
     }
@@ -145,6 +154,7 @@ fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
             hasher.write(bytes.as_ref());
             Ok(format!("{:x}", hasher.finish()))
         }
+        "base32" => Ok(base32::encode(base32::Alphabet::Rfc4648 { padding: true },bytes.as_ref())),
         "base64" => Ok(base64::prelude::BASE64_STANDARD.encode(bytes.as_ref())),
         _ => Err(Error::InvalidAlgorithm),
     }
@@ -162,18 +172,18 @@ pub fn file_hash(algorithm: &str, path: &str) -> Result<String> {
     hash_algorithm(algorithm, &bytes)
 }
 
-/// Generates multiple TOTP codes from 20 character hex_seed, with time step +-tolerance
+/// Generates multiple TOTP codes from base32_seed, with time step +-tolerance
 /// time_override is used as the current unix time instead of the current system time for testing
 fn totp_generate_tolerance(
     algorithm: &str,
-    hex_seed: &str,
+    base32_seed: &str,
     tolerance: i32,
     digits: usize,
     time_override: Option<i64>,
 ) -> Result<String> {
     let mut results: Vec<String> = Vec::new();
     for i in -tolerance..(tolerance + 1) {
-        let result = totp_generate(algorithm, hex_seed, i.into(), digits, time_override)?;
+        let result = totp_generate(algorithm, base32_seed, i.into(), digits, time_override)?;
         results.push(result)
     }
     Ok(serde_json::to_string(&results)?)
@@ -188,33 +198,34 @@ where
     mac.finalize().into_bytes().to_vec()
 }
 
-/// Generates a single TOTP code from hex_seed offset by offset time steps
-/// hex_seed should be at least 32 characters (16 bytes, 128 bits), but is recommended to be 40 characters (20 bytes, 160 bits)
+/// Generates a single TOTP code from base32_seed offset by offset time steps
+/// base32_seed should be at least 16 input bytes, 128 bits, but is recommended to be 20 input bytes, 160 bits
 /// Please use a proper hardware-seeded CSPRNG to seed the TOTP and store it in a secure location.
-/// Maximum usable length of seed is 128 characters (64 bytes, 512 bits)
+/// Maximum usable length of seed is 104 characters (64 bytes, 512 bits)
 /// time_override is used as the current unix time instead of the current system time for testing
 /// TOTP algorithm described https://blogs.unimelb.edu.au/sciencecommunication/2021/09/30/totp/
 fn totp_generate(
     algorithm: &str,
-    hex_seed: &str,
+    base32_seed: &str,
     offset: i64,
     digits: usize,
     time_override: Option<i64>,
 ) -> Result<String> {
     let mut seed: [u8; 64] = [0; 64];
 
-    if hex_seed.len() < 20 || hex_seed.len() > 128 {
+    if base32_seed.len() < 16 || base32_seed.len() > 104 {
         return Err(Error::BadSeed);
     }
     if !(1..=8).contains(&digits) {
         return Err(Error::BadDigits);
     }
 
-    match hex::decode_to_slice(hex_seed, &mut seed[..hex_seed.len() / 2]) {
-        Ok(value) => value,
-        Err(_) => return Err(Error::HexDecode),
-    };
-
+    match base32::decode(base32::Alphabet::Rfc4648 { padding: true }, base32_seed) {
+        Some(base32_bytes) => {
+            seed[..base32_bytes.len()].copy_from_slice(&base32_bytes);
+        },
+        None => return Err(Error::BadSeed)
+    }
     // Will panic if the date is not between Jan 1 1970 and the year ~200 billion
     let curr_time: i64 = time_override.unwrap_or_else(|| {
         SystemTime::now()
@@ -264,7 +275,7 @@ mod tests {
             20000000000,
         ];
         const TOTP_TEST_ALGORITHMS: [&'static str; 3] = ["sha1", "sha256", "sha512"];
-        const TOTP_TEST_SEEDS: [&'static str; 3] = ["3132333435363738393031323334353637383930", "3132333435363738393031323334353637383930313233343536373839303132", "31323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334"];
+        const TOTP_TEST_SEEDS: [&'static str; 3] = ["12345678901234567890", "12345678901234567890123456789012", "1234567890123456789012345678901234567890123456789012345678901234"];
         const TOTP_TEST_VALUES_TIME_ALGO: [[&'static str; 3]; 6] = [
             ["94287082", "46119246", "90693936"],
             ["07081804", "68084774", "25091201"],
@@ -282,7 +293,7 @@ mod tests {
                     .zip(TOTP_TEST_SEEDS)
                     .enumerate()
                     .for_each(|(algo_idx, (algo, seed))| {
-                        let totp = totp_generate(*algo, seed, 0, 8, Some(*time));
+                        let totp = totp_generate(*algo, &base32::encode(base32::Alphabet::Rfc4648 { padding: true },seed.as_bytes()), 0, 8, Some(*time));
                         assert_eq!(
                             totp.unwrap(),
                             TOTP_TEST_VALUES_TIME_ALGO[time_idx][algo_idx]
@@ -294,7 +305,7 @@ mod tests {
         // Seed, time, and result for zero offset taken from https://blogs.unimelb.edu.au/sciencecommunication/2021/09/30/totp/
         let result = totp_generate(
             "sha1",
-            "B93F9893199AEF85739C",
+            "XE7ZREYZTLXYK444",
             0,
             6,
             Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
@@ -302,7 +313,7 @@ mod tests {
         assert_eq!(result.unwrap(), "417714");
         let result2 = totp_generate(
             "sha1",
-            "B93F9893199AEF85739C",
+            "XE7ZREYZTLXYK444",
             -1,
             6,
             Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
@@ -310,7 +321,7 @@ mod tests {
         assert_eq!(result2.unwrap(), "358747");
         let result3 = totp_generate(
             "sha1",
-            "B93F9893199AEF85739C",
+            "XE7ZREYZTLXYK444",
             1,
             6,
             Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
@@ -318,7 +329,7 @@ mod tests {
         assert_eq!(result3.unwrap(), "539257");
         let result4 = totp_generate(
             "sha1",
-            "B93F9893199AEF85739C",
+            "XE7ZREYZTLXYK444",
             2,
             6,
             Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
@@ -327,7 +338,7 @@ mod tests {
 
         let json_result = totp_generate_tolerance(
             "sha1",
-            "B93F9893199AEF85739C",
+            "XE7ZREYZTLXYK444",
             1,
             6,
             Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
@@ -335,9 +346,9 @@ mod tests {
         assert_eq!(json_result.unwrap(), "[\"358747\",\"417714\",\"539257\"]");
         let err_result = totp_generate_tolerance("sha1", "66", 0, 6, None);
         assert!(err_result.is_err());
-        let err_result = totp_generate_tolerance("sha1", "B93F9893199AEF85739C", 0, 10, None);
+        let err_result = totp_generate_tolerance("sha1", "XE7ZREYZTLXYK444", 0, 10, None);
         assert!(err_result.is_err());
-        let err_result = totp_generate_tolerance("invalid", "B93F9893199AEF85739C", 0, 6, None);
+        let err_result = totp_generate_tolerance("invalid", "XE7ZREYZTLXYK444", 0, 6, None);
         assert!(err_result.is_err());
     }
 }

@@ -63,10 +63,7 @@ pub enum Error {
     #[error(transparent)]
     Unzip(#[from] ZipError),
     #[cfg(feature = "hash")]
-    #[error("Unable to decode hex value.")]
-    HexDecode,
-    #[cfg(feature = "hash")]
-    #[error("Seed is invalid length.")]
+    #[error("TOTP seed is invalid length or not valid base32.")]
     BadSeed,
     #[cfg(feature = "hash")]
     #[error("TOTP may not be more than 8 digits.")]
