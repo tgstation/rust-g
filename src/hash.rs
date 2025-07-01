@@ -278,7 +278,8 @@ mod tests {
 
     #[test]
     fn totp_generate_test() {
-        // https://datatracker.ietf.org/doc/html/rfc6238 secret key at the top is wrong, read the code for seed32/seed64
+        // https://datatracker.ietf.org/doc/html/rfc6238#autoid-18 Test Vectors
+        // See: https://www.rfc-editor.org/errata/eid2866 for seed discrepancy
         const TOTP_TEST_TIMES: [i64; 6] = [
             59,
             1111111109,
