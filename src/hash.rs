@@ -263,17 +263,13 @@ fn totp_generate(
     let totp_untruncated: u32 = u32::from_be_bytes(totp_bytes);
     let totp_sized_code: u32 = (totp_untruncated & 0x7FFFFFFF) % DIGITS_POWER[digits];
     // Pad the digits in constant time to reduce effectiveness of timing attacks
-    let mut totp_code_str: Vec<u8> = Vec::from(
-        (10u64.pow(digits as u32) + (totp_sized_code as u64 % 10u64.pow(digits as u32)))
-            .to_string()
-            .as_bytes(),
-    );
-    totp_code_str.reverse();
-    totp_code_str.truncate(digits);
-    totp_code_str.reverse();
+    let totp_code_str = (10u64.pow(digits as u32)
+        + (totp_sized_code as u64 % 10u64.pow(digits as u32)))
+    .to_string();
+    let totp_code_resized = &totp_code_str.as_bytes()[totp_code_str.len() - digits..];
     // we know that the UTF-8 is valid as it just came from a UTF-8 string.
     // it will only be digits which do not include any multi-byte UTF-8 characters
-    unsafe { Ok(String::from_utf8_unchecked(totp_code_str)) }
+    unsafe { Ok(String::from_utf8_unchecked(totp_code_resized.to_vec())) }
 }
 
 #[cfg(test)]
