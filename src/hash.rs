@@ -18,7 +18,7 @@ use std::{
 use twox_hash::XxHash64;
 
 const TOTP_DIGITS: usize = 6;
-const TOTP_STEP_SECONDS: i64 = 30;
+const TOTP_STEP_SECONDS: u64 = 30;
 const DIGITS_POWER: [u32; 9] = [
     1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000,
 ];
@@ -191,7 +191,7 @@ fn totp_generate_tolerance(
     base32_seed: &str,
     tolerance: i32,
     digits: usize,
-    time_override: Option<i64>,
+    time_override: Option<u64>,
 ) -> Result<String> {
     let mut results: Vec<String> = Vec::new();
     for i in -tolerance..(tolerance + 1) {
@@ -221,7 +221,7 @@ fn totp_generate(
     base32_seed: &str,
     offset: i64,
     digits: usize,
-    time_override: Option<i64>,
+    time_override: Option<u64>,
 ) -> Result<String> {
     let mut seed: [u8; 64] = [0; 64];
 
@@ -240,15 +240,13 @@ fn totp_generate(
         None => return Err(Error::BadSeed),
     }
     // Will panic if the date is not between Jan 1 1970 and the year ~200 billion
-    let curr_time: i64 = time_override.unwrap_or_else(|| {
+    let curr_time: u64 = time_override.unwrap_or_else(|| {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("SystemTime is before Unix Epoc")
             .as_secs()
-            .try_into()
-            .unwrap()
     }) / TOTP_STEP_SECONDS;
-    let time: u64 = (curr_time + offset) as u64;
+    let time: u64 = curr_time.saturating_add_signed(offset);
     let time_bytes: [u8; 8] = time.to_be_bytes();
 
     let hmac_bytes: Vec<u8> = match algorithm {
@@ -258,18 +256,24 @@ fn totp_generate(
         _ => return Err(Error::InvalidAlgorithm),
     };
 
-    let offset: usize = (hmac_bytes[hmac_bytes.len() - 1] & 0x0F).into();
-
-    let result_bytes: [u8; 4] = hmac_bytes[offset..(offset + 4)].try_into().unwrap();
-
-    let full_result: u32 = u32::from_be_bytes(result_bytes);
-    let result: u32 = (full_result & 0x7FFFFFFF) % DIGITS_POWER[digits];
-    let mut result_str = result.to_string();
-    if result_str.len() < digits {
-        result_str = format!("{result_str:0>digits$}");
-    }
-
-    Ok(result_str)
+    let totp_byte_offset: usize = (hmac_bytes.last().unwrap() & 0x0F) as usize;
+    let totp_bytes: [u8; 4] = hmac_bytes[totp_byte_offset..(totp_byte_offset + 4)]
+        .try_into()
+        .unwrap();
+    let totp_untruncated: u32 = u32::from_be_bytes(totp_bytes);
+    let totp_sized_code: u32 = (totp_untruncated & 0x7FFFFFFF) % DIGITS_POWER[digits];
+    // Pad the digits in constant time to reduce effectiveness of timing attacks
+    let mut totp_code_str: Vec<u8> = Vec::from(
+        (10u64.pow(digits as u32) + (totp_sized_code as u64 % 10u64.pow(digits as u32)))
+            .to_string()
+            .as_bytes(),
+    );
+    totp_code_str.reverse();
+    totp_code_str.truncate(digits);
+    totp_code_str.reverse();
+    // we know that the UTF-8 is valid as it just came from a UTF-8 string.
+    // it will only be digits which do not include any multi-byte UTF-8 characters
+    unsafe { Ok(String::from_utf8_unchecked(totp_code_str)) }
 }
 
 #[cfg(test)]
@@ -280,7 +284,7 @@ mod tests {
     fn totp_generate_test() {
         // https://datatracker.ietf.org/doc/html/rfc6238#autoid-18 Test Vectors
         // See: https://www.rfc-editor.org/errata/eid2866 for seed discrepancy
-        const TOTP_TEST_TIMES: [i64; 6] = [
+        const TOTP_TEST_TIMES: [u64; 6] = [
             59,
             1111111109,
             1111111111,
@@ -335,7 +339,7 @@ mod tests {
             "XE7ZREYZTLXYK444",
             0,
             6,
-            Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
+            Some(54424722u64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
         );
         assert_eq!(result.unwrap(), "417714");
         let result2 = totp_generate(
@@ -343,7 +347,7 @@ mod tests {
             "XE7ZREYZTLXYK444",
             -1,
             6,
-            Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
+            Some(54424722u64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
         );
         assert_eq!(result2.unwrap(), "358747");
         let result3 = totp_generate(
@@ -351,7 +355,7 @@ mod tests {
             "XE7ZREYZTLXYK444",
             1,
             6,
-            Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
+            Some(54424722u64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
         );
         assert_eq!(result3.unwrap(), "539257");
         let result4 = totp_generate(
@@ -359,7 +363,7 @@ mod tests {
             "XE7ZREYZTLXYK444",
             2,
             6,
-            Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
+            Some(54424722u64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
         );
         assert_eq!(result4.unwrap(), "679828");
 
@@ -368,7 +372,7 @@ mod tests {
             "XE7ZREYZTLXYK444",
             1,
             6,
-            Some(54424722i64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
+            Some(54424722u64 * TOTP_STEP_SECONDS + (TOTP_STEP_SECONDS - 1)),
         );
         assert_eq!(json_result.unwrap(), "[\"358747\",\"417714\",\"539257\"]");
         let err_result = totp_generate_tolerance("sha1", "66", 0, 6, None);
