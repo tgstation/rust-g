@@ -13,14 +13,8 @@ byond_fn!(
 );
 
 byond_fn!(
-    fn cuid1() {
-        cuid::cuid1().ok()
-    }
-);
-
-byond_fn!(
     fn cuid2() {
-        Some(cuid::cuid2())
+        Some(cuid2::create_id())
     }
 );
 
@@ -28,7 +22,7 @@ byond_fn!(
     fn cuid2_len(length) {
         let length = length.parse::<u16>().ok()?;
         Some(
-            cuid::Cuid2Constructor::new()
+            cuid2::CuidConstructor::new()
                 .with_length(length)
                 .create_id()
         )

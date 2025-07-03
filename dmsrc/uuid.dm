@@ -6,10 +6,6 @@
 /// See https://www.ietf.org/rfc/rfc9562.html#section-5.7 for specifics on version 7 UUIDs.
 #define rustg_generate_uuid_v7(...) RUSTG_CALL(RUST_G, "uuid_v7")()
 
-/// Generates a random version 1 CUID.
-/// See https://github.com/paralleldrive/cuid for specifics on version 1 CUIDs.
-#define rustg_generate_cuid1(...) RUSTG_CALL(RUST_G, "cuid1")()
-
 /// Generates a random version 2 CUID.
 /// See https://github.com/paralleldrive/cuid2 for specifics on version 2 CUIDs.
 #define rustg_generate_cuid2(...) RUSTG_CALL(RUST_G, "cuid2")()
