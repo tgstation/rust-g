@@ -153,7 +153,7 @@ impl HashDispatcher {
             "sha256" => Ok(Self::Sha256(Sha256::new())),
             "sha512" => Ok(Self::Sha512(Sha512::new())),
             "xxh64" => Ok(Self::Xxh64(XxHash64::with_seed(XXHASH_SEED))),
-            "xxh64_fixed" => Ok(Self::Xxh64(XxHash64::with_seed(17479268743136991876))),
+            "xxh64_fixed" => Ok(Self::Xxh64(XxHash64::with_seed(17479268743136991876))), // this seed is just a random number that should stay the same between builds and runs
             "base64" => Ok(Self::Base64(Vec::new())),
             _ => Err(Error::InvalidAlgorithm),
         }
