@@ -421,8 +421,8 @@ fn generate_layer_for_iconstate(
         GAGSLayer::ColorMatrix {
             blend_mode: _,
             color_matrix,
-        } => match last_matched_state.as_ref().map(|o| o.images.clone()) {
-            Some(images) => Some(map_cloned_images(&images, |image| {
+        } => last_matched_state.as_ref().map(|o| {
+            map_cloned_images(&o.images.clone(), |image| {
                 icon_operations::map_colors(
                     image,
                     color_matrix[0][0],
@@ -446,9 +446,8 @@ fn generate_layer_for_iconstate(
                     Some(color_matrix[4][2]),
                     Some(color_matrix[4][3]),
                 )
-            })),
-            None => None,
-        },
+            })
+        }),
     };
 
     match images_result {

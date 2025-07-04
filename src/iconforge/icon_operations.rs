@@ -145,11 +145,11 @@ pub struct RgbOrRgbaHex {
     a: Option<u8>,
 }
 
-pub fn hex_to_rgb_or_rgba(hex_in: &String) -> Result<RgbOrRgbaHex, Error> {
+pub fn hex_to_rgb_or_rgba(hex_in: &str) -> Result<RgbOrRgbaHex, Error> {
     zone!("hex_to_rgb_or_rgba");
-    let mut hex = hex_in.clone();
-    if hex_in.starts_with('#') {
-        hex = hex_in[1..].to_string();
+    let mut hex = hex_in.to_owned();
+    if let Some(stripped) = hex_in.strip_prefix('#') {
+        hex = stripped.to_string();
     }
     // a included...
     let has_a = hex.len() == 4 || hex.len() == 8;
@@ -164,8 +164,8 @@ pub fn hex_to_rgba(hex_in: &String) -> Result<[u8; 4], Error> {
     zone!("hex_to_rgba");
     let mut color: [u8; 4] = [0, 0, 0, 0];
     let mut hex = hex_in.clone();
-    if hex_in.starts_with('#') {
-        hex = hex_in[1..].to_string();
+    if let Some(stripped) = hex_in.strip_prefix('#') {
+        hex = stripped.to_string();
     }
     if hex.len() == 3 {
         hex = format!(
@@ -404,7 +404,7 @@ pub fn swap_color(
             None => px[0..3] == src_color && px[3] != 0,
         })
         .for_each(|px| {
-            let mut new_color = dst_color.clone();
+            let mut new_color = dst_color;
             if src_alpha.is_none() && new_color[3] != 0 {
                 new_color[3] = px[3];
             }
@@ -435,6 +435,7 @@ pub fn draw_box(image: &mut RgbaImage, color: [u8; 4], x1: i32, y1: i32, x2: i32
 }
 
 #[rustfmt::skip]
+#[allow(clippy::too_many_arguments)]
 pub fn map_colors(
     image: &mut RgbaImage,
     rr: f32, rg: f32, rb: f32, ra: Option<f32>,
@@ -473,12 +474,10 @@ pub fn map_colors(
                     + aa * a
                     + a0;
 
-        let clamp = |x: f32| x.max(0.0).min(1.0);
-
-        pixel[0] = (clamp(nr) * 255.0).round() as u8;
-        pixel[1] = (clamp(ng) * 255.0).round() as u8;
-        pixel[2] = (clamp(nb) * 255.0).round() as u8;
-        pixel[3] = (clamp(na) * 255.0).round() as u8;
+        pixel[0] = (nr.clamp(0.0, 1.0) * 255.0).round() as u8;
+        pixel[1] = (ng.clamp(0.0, 1.0) * 255.0).round() as u8;
+        pixel[2] = (nb.clamp(0.0, 1.0) * 255.0).round() as u8;
+        pixel[3] = (na.clamp(0.0, 1.0) * 255.0).round() as u8;
     });
 }
 
@@ -557,7 +556,7 @@ pub fn blend_images_other_universal(
             // Extend the number of delays to match frames by copying the first delay
             if delay_diff > 0 {
                 new_delays.extend(vec![
-                    *new_delays.get(0).unwrap_or(&1.0);
+                    *new_delays.first().unwrap_or(&1.0);
                     delay_diff as usize
                 ]);
             } else if delay_diff < 0 {
@@ -695,7 +694,7 @@ pub fn blend_images_other(
             // Extend the number of delays to match frames by copying the first delay
             if delay_diff > 0 {
                 new_delays.extend(vec![
-                    *new_delays.get(0).unwrap_or(&1.0);
+                    *new_delays.first().unwrap_or(&1.0);
                     delay_diff as usize
                 ]);
             } else if delay_diff < 0 {
