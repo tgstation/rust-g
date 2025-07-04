@@ -1,5 +1,7 @@
 use crate::error::{Error, Result};
+use image::Rgba;
 use png::{Decoder, Encoder, OutputInfo, Reader};
+use qrcode::{render::svg, QrCode};
 use std::{
     fs::{create_dir_all, File},
     io::BufReader,
@@ -146,3 +148,24 @@ fn read_states(path: &str) -> Result<String> {
     }
     Ok(serde_json::to_string(&states)?)
 }
+
+byond_fn!(fn create_qr_code_png(path, data) {
+    let code = match QrCode::new(data.as_bytes()) {
+        Ok(code) => code,
+        Err(err) => return Some(format!("Error: Could not read data into QR code: {err}"))
+    };
+    let image = code.render::<Rgba<u8>>().build();
+    match image.save(path) {
+        Ok(_) => Some(String::from(path)),
+        Err(err) => Some(format!("Error: Could not write QR code image to path: {err}"))
+    }
+});
+
+byond_fn!(fn create_qr_code_svg(data) {
+    let code = match QrCode::new(data.as_bytes()) {
+        Ok(code) => code,
+        Err(err) => return Some(format!("Error: Could not read data into QR code: {err}"))
+    };
+    let svg_xml = code.render::<svg::Color>().build();
+    Some(svg_xml)
+});

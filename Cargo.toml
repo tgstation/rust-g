@@ -66,6 +66,7 @@ fast_poisson = { version = "1.0.2", optional = true, features = [
 ] }
 symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
+qrcode = { version = "0.14.1", optional = true, features = ["image", "svg"]}
 
 [features]
 default = [
@@ -124,7 +125,7 @@ all = [
 acreplace = ["aho-corasick"]
 batchnoise = ["dbpnoise"]
 cellularnoise = ["rand", "rayon"]
-dmi = ["png", "image"]
+dmi = ["png", "image", "qrcode"]
 file = []
 git = ["gix", "chrono"]
 hash = [

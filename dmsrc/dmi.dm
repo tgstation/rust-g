@@ -7,3 +7,6 @@
  * output: json_encode'd list. json_decode to get a flat list with icon states in the order they're in inside the .dmi
  */
 #define rustg_dmi_icon_states(fname) RUSTG_CALL(RUST_G, "dmi_icon_states")(fname)
+
+#define rustg_create_qr_code_png(path, data) RUSTG_CALL(RUST_G, "create_qr_code_png")(path, data)
+#define rustg_create_qr_code_svg(data) RUSTG_CALL(RUST_G, "create_qr_code_svg")(data)
