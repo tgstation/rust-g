@@ -47,7 +47,6 @@ enum GAGSLayer {
         #[serde(default)]
         color_ids: Vec<GAGSColorID>,
     },
-    // Unsupported, but exists nonetheless.
     ColorMatrix {
         blend_mode: String,
         color_matrix: [[f32; 4]; 5],
@@ -383,11 +382,10 @@ fn generate_layer_for_iconstate(
                     GAGSColorID::GAGSColorIndex(idx) => colors.get(*idx as usize - 1).unwrap(),
                     GAGSColorID::GAGSColorStatic(color) => color,
                 };
-                return Ok(icon_operations::blend_images_color(
-                    images,
-                    actual_color,
-                    &blending::BlendMode::Multiply,
-                )?);
+                let rgba = icon_operations::hex_to_rgba(actual_color)?;
+                return Ok(map_cloned_images(&images, |image| {
+                    icon_operations::blend_color(image, rgba, &blending::BlendMode::Multiply)
+                }));
             } else {
                 return Ok(images); // this will get blended by the layergroup.
             }
@@ -422,8 +420,34 @@ fn generate_layer_for_iconstate(
         }
         GAGSLayer::ColorMatrix {
             blend_mode: _,
-            color_matrix: _,
-        } => new_images, // unsupported! TROLLED!
+            color_matrix,
+        } => last_matched_state.as_ref().map(|o| {
+            map_cloned_images(&o.images.clone(), |image| {
+                icon_operations::map_colors(
+                    image,
+                    color_matrix[0][0],
+                    color_matrix[0][1],
+                    color_matrix[0][2],
+                    Some(color_matrix[0][3]),
+                    color_matrix[1][0],
+                    color_matrix[1][1],
+                    color_matrix[1][2],
+                    Some(color_matrix[1][3]),
+                    color_matrix[2][0],
+                    color_matrix[2][1],
+                    color_matrix[2][2],
+                    Some(color_matrix[2][3]),
+                    Some(color_matrix[3][0]),
+                    Some(color_matrix[3][1]),
+                    Some(color_matrix[3][2]),
+                    Some(color_matrix[3][3]),
+                    Some(color_matrix[4][0]),
+                    Some(color_matrix[4][1]),
+                    Some(color_matrix[4][2]),
+                    Some(color_matrix[4][3]),
+                )
+            })
+        }),
     };
 
     match images_result {
@@ -433,4 +457,18 @@ fn generate_layer_for_iconstate(
             gags_data.config_path
         )),
     }
+}
+
+pub fn map_cloned_images<F>(images: &Vec<DynamicImage>, do_fn: F) -> Vec<DynamicImage>
+where
+    F: Fn(&mut image::ImageBuffer<image::Rgba<u8>, Vec<u8>>) + Send + Sync,
+{
+    images
+        .par_iter()
+        .map(|image| {
+            let mut new_image = image.clone().into_rgba8();
+            do_fn(&mut new_image);
+            DynamicImage::ImageRgba8(new_image)
+        })
+        .collect()
 }

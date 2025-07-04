@@ -24,9 +24,15 @@
 /// )
 /// TRANSFORM_OBJECT format:
 /// list("type" = RUSTG_ICONFORGE_BLEND_COLOR, "color" = "#ff0000", "blend_mode" = ICON_MULTIPLY)
-/// list("type" = RUSTG_ICONFORGE_BLEND_ICON, "icon" = [SPRITE_OBJECT], "blend_mode" = ICON_OVERLAY)
+/// list("type" = RUSTG_ICONFORGE_BLEND_ICON, "icon" = [SPRITE_OBJECT], "blend_mode" = ICON_OVERLAY, "x" = 1, "y" = 1) // offsets optional
 /// list("type" = RUSTG_ICONFORGE_SCALE, "width" = 32, "height" = 32)
 /// list("type" = RUSTG_ICONFORGE_CROP, "x1" = 1, "y1" = 1, "x2" = 32, "y2" = 32) // (BYOND icons index from 1,1 to the upper bound, inclusive)
+/// list("type" = RUSTG_ICONFORGE_MAP_COLORS, "rr" = 0.5, "rg" = 0.5, "rb" = 0.5, "ra" = 1, "gr" = 1, "gg" = 1, "gb" = 1, "ga" = 1, ...) // alpha arguments and rgba0 optional
+/// list("type" = RUSTG_ICONFORGE_FLIP, "dir" = SOUTH)
+/// list("type" = RUSTG_ICONFORGE_TURN, "angle" = 90.0)
+/// list("type" = RUSTG_ICONFORGE_SHIFT, "dir" = EAST, "offset" = 10, "wrap" = FALSE)
+/// list("type" = RUSTG_ICONFORGE_SWAP_COLOR, "src_color" = "#ff0000", "dst_color" = "#00ff00") // alpha bits supported
+/// list("type" = RUSTG_ICONFORGE_DRAW_BOX, "color" = "#ff0000", "x1" = 1, "y1" = 1, "x2" = 32, "y2" = 32) // alpha bits supported. color can be null/omitted for transparency. x2 and y2 will default to x1 and y1 if omitted
 ///
 /// Returns a SpritesheetResult as JSON, containing fields:
 /// list(
@@ -60,7 +66,7 @@
 /// Provided a /datum/greyscale_config typepath, JSON string containing the greyscale config, and path to a DMI file containing the base icons,
 /// Loads that config into memory for later use by rustg_iconforge_gags(). The config_path is the unique identifier used later.
 /// JSON Config schema: https://hackmd.io/@tgstation/GAGS-Layer-Types
-/// Unsupported features: color_matrix layer type, 'or' blend_mode. May not have BYOND parity with animated icons or varying dirs between layers.
+/// Adding dirs or frames (via blending larger icons) to icons with more than 1 dir or 1 frame is not supported.
 /// Returns "OK" if successful, otherwise, returns a string containing the error.
 #define rustg_iconforge_load_gags_config(config_path, config_json, config_icon_path) RUSTG_CALL(RUST_G, "iconforge_load_gags_config")("[config_path]", config_json, config_icon_path)
 /// Given a config_path (previously loaded by rustg_iconforge_load_gags_config), and a string of hex colors formatted as "#ff00ff#ffaa00"
@@ -76,3 +82,9 @@
 #define RUSTG_ICONFORGE_BLEND_ICON "BlendIcon"
 #define RUSTG_ICONFORGE_CROP "Crop"
 #define RUSTG_ICONFORGE_SCALE "Scale"
+#define RUSTG_ICONFORGE_MAP_COLORS "MapColors"
+#define RUSTG_ICONFORGE_FLIP "Flip"
+#define RUSTG_ICONFORGE_TURN "Turn"
+#define RUSTG_ICONFORGE_SHIFT "Shift"
+#define RUSTG_ICONFORGE_SWAP_COLOR "SwapColor"
+#define RUSTG_ICONFORGE_DRAW_BOX "DrawBox"
