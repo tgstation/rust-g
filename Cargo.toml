@@ -66,6 +66,8 @@ fast_poisson = { version = "1.0.2", optional = true, features = [
 ] }
 symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
+uuid = { version = "1.17", optional = true, features = ["v4", "v7", "fast-rng"] }
+cuid2 = { version = "0.1.4", optional = true }
 indexmap = { version = "2.9.0", optional = true, features = ["serde", "rayon"] }
 ordered-float = { version = "5.0.0", optional = true, features = ["serde"] }
 
@@ -114,6 +116,7 @@ all = [
     "time",
     "toml",
     "url",
+    "uuid",
     "pathfinder",
     "poissonnoise",
     "redis_pubsub",
@@ -165,6 +168,7 @@ sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
 time = ["chrono"]
 toml = ["serde", "serde_json", "toml-dep"]
 url = ["url-dep", "percent-encoding"]
+uuid = ["dep:uuid", "cuid2"]
 
 # additional features
 dice = ["caith"]
