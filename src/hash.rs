@@ -9,10 +9,11 @@ use rand_chacha::ChaCha20Rng;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
 use std::{
+    cell::RefCell,
     convert::TryInto,
     fs::File,
     hash::Hasher,
-    io::{BufReader, Read},
+    io::Read,
     time::{SystemTime, UNIX_EPOCH},
 };
 use twox_hash::XxHash64;
@@ -127,61 +128,30 @@ byond_fn!(fn generate_totp_tolerance(algorithm, base32_seed, tolerance) {
     }
 });
 
-fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
-    match name {
-        "md5" => {
-            let mut hasher = Md5::new();
-            hasher.update(bytes.as_ref());
-            Ok(hex::encode(hasher.finalize()))
-        }
-        "sha1" => {
-            let mut hasher = Sha1::new();
-            hasher.update(bytes.as_ref());
-            Ok(hex::encode(hasher.finalize()))
-        }
-        "sha256" => {
-            let mut hasher = Sha256::new();
-            hasher.update(bytes.as_ref());
-            Ok(hex::encode(hasher.finalize()))
-        }
-        "sha512" => {
-            let mut hasher = Sha512::new();
-            hasher.update(bytes.as_ref());
-            Ok(hex::encode(hasher.finalize()))
-        }
-        "xxh64" => {
-            let mut hasher = XxHash64::with_seed(XXHASH_SEED);
-            hasher.write(bytes.as_ref());
-            Ok(format!("{:x}", hasher.finish()))
-        }
-        "xxh64_fixed" => {
-            let mut hasher = XxHash64::with_seed(17479268743136991876); // this seed is just a random number that should stay the same between builds and runs
-            hasher.write(bytes.as_ref());
-            Ok(format!("{:x}", hasher.finish()))
-        }
-        "base32_rfc4648" => Ok(base32::encode(
-            base32::Alphabet::Rfc4648 { padding: false },
-            bytes.as_ref(),
-        )),
-        "base32_rfc4648_pad" => Ok(base32::encode(
-            base32::Alphabet::Rfc4648 { padding: true },
-            bytes.as_ref(),
-        )),
-        "base64" => Ok(base64::prelude::BASE64_STANDARD.encode(bytes.as_ref())),
-        _ => Err(Error::InvalidAlgorithm),
-    }
+pub fn string_hash(algorithm: &str, string: &str) -> Result<String> {
+    let mut hasher = HashDispatcher::new(algorithm)?;
+    hasher.update(string);
+    Ok(hasher.finish())
 }
 
-pub fn string_hash(algorithm: &str, string: &str) -> Result<String> {
-    hash_algorithm(algorithm, string)
-}
+const BUFFER_SIZE: usize = 65536;
+// don't allocate another buffer every time we hash a file, just reuse the same buffer.
+thread_local!( static FILE_HASH_BUFFER: RefCell<[u8; BUFFER_SIZE]> = const { RefCell::new([0; BUFFER_SIZE]) } );
 
 pub fn file_hash(algorithm: &str, path: &str) -> Result<String> {
-    let mut bytes: Vec<u8> = Vec::new();
-    let mut file = BufReader::new(File::open(path)?);
-    file.read_to_end(&mut bytes)?;
+    let mut hasher = HashDispatcher::new(algorithm)?;
+    let mut file = File::open(path)?;
 
-    hash_algorithm(algorithm, &bytes)
+    FILE_HASH_BUFFER.with_borrow_mut(|buffer| {
+        loop {
+            let bytes_read = file.read(buffer)?;
+            if bytes_read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..bytes_read]);
+        }
+        Ok(hasher.finish())
+    })
 }
 
 /// Generates multiple TOTP codes from base32_seed, with time step +-tolerance
@@ -270,6 +240,65 @@ fn totp_generate(
     // we know that the UTF-8 is valid as it just came from a UTF-8 string.
     // it will only be digits which do not include any multi-byte UTF-8 characters
     unsafe { Ok(String::from_utf8_unchecked(totp_code_resized.to_vec())) }
+}
+
+enum HashDispatcher {
+    Md5(Md5),
+    Sha1(Sha1),
+    Sha256(Sha256),
+    Sha512(Sha512),
+    Xxh64(XxHash64),
+    Base32(Vec<u8>),
+    Base32Pad(Vec<u8>),
+    Base64(Vec<u8>),
+}
+
+impl HashDispatcher {
+    fn new(name: &str) -> Result<Self> {
+        match name {
+            "md5" => Ok(Self::Md5(Md5::new())),
+            "sha1" => Ok(Self::Sha1(Sha1::new())),
+            "sha256" => Ok(Self::Sha256(Sha256::new())),
+            "sha512" => Ok(Self::Sha512(Sha512::new())),
+            "xxh64" => Ok(Self::Xxh64(XxHash64::with_seed(XXHASH_SEED))),
+            "xxh64_fixed" => Ok(Self::Xxh64(XxHash64::with_seed(17479268743136991876))), // this seed is just a random number that should stay the same between builds and runs
+            "base32_rfc4648" => Ok(Self::Base32(Vec::new())),
+            "base32_rfc4648_pad" => Ok(Self::Base32Pad(Vec::new())),
+            "base64" => Ok(Self::Base64(Vec::new())),
+            _ => Err(Error::InvalidAlgorithm),
+        }
+    }
+
+    fn update(&mut self, data: impl AsRef<[u8]>) {
+        let data = data.as_ref();
+        match self {
+            HashDispatcher::Md5(hasher) => hasher.update(data),
+            HashDispatcher::Sha1(hasher) => hasher.update(data),
+            HashDispatcher::Sha256(hasher) => hasher.update(data),
+            HashDispatcher::Sha512(hasher) => hasher.update(data),
+            HashDispatcher::Xxh64(hasher) => hasher.write(data),
+            HashDispatcher::Base32(buffer) => buffer.extend_from_slice(data),
+            HashDispatcher::Base32Pad(buffer) => buffer.extend_from_slice(data),
+            HashDispatcher::Base64(buffer) => buffer.extend_from_slice(data),
+        }
+    }
+
+    fn finish(self) -> String {
+        match self {
+            HashDispatcher::Md5(hasher) => hex::encode(hasher.finalize()),
+            HashDispatcher::Sha1(hasher) => hex::encode(hasher.finalize()),
+            HashDispatcher::Sha256(hasher) => hex::encode(hasher.finalize()),
+            HashDispatcher::Sha512(hasher) => hex::encode(hasher.finalize()),
+            HashDispatcher::Xxh64(hasher) => format!("{:x}", hasher.finish()),
+            HashDispatcher::Base32(buffer) => {
+                base32::encode(base32::Alphabet::Rfc4648 { padding: false }, &buffer)
+            }
+            HashDispatcher::Base32Pad(buffer) => {
+                base32::encode(base32::Alphabet::Rfc4648 { padding: true }, &buffer)
+            }
+            HashDispatcher::Base64(buffer) => base64::prelude::BASE64_STANDARD.encode(&buffer),
+        }
+    }
 }
 
 #[cfg(test)]
