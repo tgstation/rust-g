@@ -6,10 +6,11 @@ use md5::Md5;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
 use std::{
+    cell::RefCell,
     convert::TryInto,
     fs::File,
     hash::Hasher,
-    io::{BufReader, Read},
+    io::Read,
     time::{SystemTime, UNIX_EPOCH},
 };
 use twox_hash::XxHash64;
@@ -44,53 +45,30 @@ byond_fn!(fn generate_totp_tolerance(hex_seed, tolerance) {
     }
 });
 
-fn hash_algorithm<B: AsRef<[u8]>>(name: &str, bytes: B) -> Result<String> {
-    match name {
-        "md5" => {
-            let mut hasher = Md5::new();
-            hasher.update(bytes.as_ref());
-            Ok(hex::encode(hasher.finalize()))
-        }
-        "sha1" => {
-            let mut hasher = Sha1::new();
-            hasher.update(bytes.as_ref());
-            Ok(hex::encode(hasher.finalize()))
-        }
-        "sha256" => {
-            let mut hasher = Sha256::new();
-            hasher.update(bytes.as_ref());
-            Ok(hex::encode(hasher.finalize()))
-        }
-        "sha512" => {
-            let mut hasher = Sha512::new();
-            hasher.update(bytes.as_ref());
-            Ok(hex::encode(hasher.finalize()))
-        }
-        "xxh64" => {
-            let mut hasher = XxHash64::with_seed(XXHASH_SEED);
-            hasher.write(bytes.as_ref());
-            Ok(format!("{:x}", hasher.finish()))
-        }
-        "xxh64_fixed" => {
-            let mut hasher = XxHash64::with_seed(17479268743136991876); // this seed is just a random number that should stay the same between builds and runs
-            hasher.write(bytes.as_ref());
-            Ok(format!("{:x}", hasher.finish()))
-        }
-        "base64" => Ok(base64::prelude::BASE64_STANDARD.encode(bytes.as_ref())),
-        _ => Err(Error::InvalidAlgorithm),
-    }
+pub fn string_hash(algorithm: &str, string: &str) -> Result<String> {
+    let mut hasher = HashDispatcher::new(algorithm)?;
+    hasher.update(string);
+    Ok(hasher.finish())
 }
 
-pub fn string_hash(algorithm: &str, string: &str) -> Result<String> {
-    hash_algorithm(algorithm, string)
-}
+const BUFFER_SIZE: usize = 65536;
+// don't allocate another buffer every time we hash a file, just reuse the same buffer.
+thread_local!( static FILE_HASH_BUFFER: RefCell<[u8; BUFFER_SIZE]> = const { RefCell::new([0; BUFFER_SIZE]) } );
 
 pub fn file_hash(algorithm: &str, path: &str) -> Result<String> {
-    let mut bytes: Vec<u8> = Vec::new();
-    let mut file = BufReader::new(File::open(path)?);
-    file.read_to_end(&mut bytes)?;
+    let mut hasher = HashDispatcher::new(algorithm)?;
+    let mut file = File::open(path)?;
 
-    hash_algorithm(algorithm, &bytes)
+    FILE_HASH_BUFFER.with_borrow_mut(|buffer| {
+        loop {
+            let bytes_read = file.read(buffer)?;
+            if bytes_read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..bytes_read]);
+        }
+        Ok(hasher.finish())
+    })
 }
 
 /// Generates multiple TOTP codes from 20 character hex_seed, with time step +-tolerance
@@ -156,6 +134,53 @@ fn totp_generate(hex_seed: &str, offset: i64, time_override: Option<i64>) -> Res
     let result: u32 = (full_result & 0x7FFFFFFF) % 1000000;
 
     Ok(result.to_string())
+}
+
+enum HashDispatcher {
+    Md5(Md5),
+    Sha1(Sha1),
+    Sha256(Sha256),
+    Sha512(Sha512),
+    Xxh64(XxHash64),
+    Base64(Vec<u8>),
+}
+
+impl HashDispatcher {
+    fn new(name: &str) -> Result<Self> {
+        match name {
+            "md5" => Ok(Self::Md5(Md5::new())),
+            "sha1" => Ok(Self::Sha1(Sha1::new())),
+            "sha256" => Ok(Self::Sha256(Sha256::new())),
+            "sha512" => Ok(Self::Sha512(Sha512::new())),
+            "xxh64" => Ok(Self::Xxh64(XxHash64::with_seed(XXHASH_SEED))),
+            "xxh64_fixed" => Ok(Self::Xxh64(XxHash64::with_seed(17479268743136991876))), // this seed is just a random number that should stay the same between builds and runs
+            "base64" => Ok(Self::Base64(Vec::new())),
+            _ => Err(Error::InvalidAlgorithm),
+        }
+    }
+
+    fn update(&mut self, data: impl AsRef<[u8]>) {
+        let data = data.as_ref();
+        match self {
+            HashDispatcher::Md5(hasher) => hasher.update(data),
+            HashDispatcher::Sha1(hasher) => hasher.update(data),
+            HashDispatcher::Sha256(hasher) => hasher.update(data),
+            HashDispatcher::Sha512(hasher) => hasher.update(data),
+            HashDispatcher::Xxh64(hasher) => hasher.write(data),
+            HashDispatcher::Base64(buffer) => buffer.extend_from_slice(data),
+        }
+    }
+
+    fn finish(self) -> String {
+        match self {
+            HashDispatcher::Md5(hasher) => hex::encode(hasher.finalize()),
+            HashDispatcher::Sha1(hasher) => hex::encode(hasher.finalize()),
+            HashDispatcher::Sha256(hasher) => hex::encode(hasher.finalize()),
+            HashDispatcher::Sha512(hasher) => hex::encode(hasher.finalize()),
+            HashDispatcher::Xxh64(hasher) => format!("{:x}", hasher.finish()),
+            HashDispatcher::Base64(buffer) => base64::prelude::BASE64_STANDARD.encode(&buffer),
+        }
+    }
 }
 
 #[cfg(test)]

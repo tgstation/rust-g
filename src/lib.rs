@@ -60,6 +60,8 @@ pub mod toml;
 pub mod unzip;
 #[cfg(feature = "url")]
 pub mod url;
+#[cfg(feature = "uuid")]
+pub mod uuid;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
 
