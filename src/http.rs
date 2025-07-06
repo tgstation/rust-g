@@ -124,11 +124,15 @@ fn construct_request(
 }
 
 fn submit_request(prep: RequestPrep) -> Result<String> {
-    let response = prep.req.send_bytes(&prep.body).map_err(Box::new)?;
+    let (status_code, response) = match prep.req.send_bytes(&prep.body) {
+        Ok(response) => (response.status(), response),
+        Err(ureq::Error::Status(status_code, response)) => (status_code, response),
+        Err(err) => return Err(Box::new(err).into()),
+    };
 
     let body;
     let mut resp = Response {
-        status_code: response.status(),
+        status_code,
         headers: HashMap::new(),
         body: None,
     };
