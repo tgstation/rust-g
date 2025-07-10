@@ -20,11 +20,7 @@ fn iconforge() {
     // Compare said icons
     std::env::set_var("RUST_BACKTRACE", "1");
     let mut differences: Vec<String> = Vec::new();
-    for entry in read_dir("tests/dm/tmp/")
-        .unwrap()
-        .filter(Result::is_ok)
-        .map(Result::unwrap)
-    {
+    for entry in read_dir("tests/dm/tmp/").unwrap().flatten() {
         if let Some(file_name) = entry.file_name().to_str() {
             if !file_name.starts_with("iconforge_dm_") || !file_name.ends_with(".dmi") {
                 continue;
@@ -51,8 +47,7 @@ fn iconforge() {
         Path::new("tests/dm/tmp/iconforge_gags_rustg.dmi"),
     ) {
         differences.push(format!(
-            "icon tests/dm/tmp/iconforge_gags_rustg.dmi differs from tests/dm/rsc/iconforge_gags_dm.dmi:\n{}",
-            diff
+            "icon tests/dm/tmp/iconforge_gags_rustg.dmi differs from tests/dm/rsc/iconforge_gags_dm.dmi:\n{diff}"
         ));
     }
     if !differences.is_empty() {
@@ -74,7 +69,7 @@ fn tmp_cleanup() {
             return;
         }
     };
-    for entry in dir.filter(Result::is_ok).map(Result::unwrap) {
+    for entry in dir.flatten() {
         if let Some(file_name) = entry.file_name().to_str() {
             if file_name.starts_with("iconforge_") && file_name.ends_with(".dmi") {
                 let _ = std::fs::remove_file(entry.path());
@@ -128,10 +123,10 @@ fn compare_dmis(dm_path: &Path, rustg_path: &Path) -> Option<String> {
             .push(String::from("icon state order differs\n"));
     }
     for rustg_state in &rustg_icon.states {
-        if let None = dm_icon
+        if !dm_icon
             .states
             .iter()
-            .find(|dm_state| dm_state.name == rustg_state.name)
+            .any(|dm_state| dm_state.name == rustg_state.name)
         {
             differences.lock().unwrap().push(format!(
                 "icon state {}:\ndoes not exist in dm",
@@ -196,8 +191,7 @@ fn compare_states(dm_state: &IconState, rustg_state: &IconState) -> Option<Strin
     let rustg_images_len = rustg_state.images.len();
     if dm_images_len != rustg_images_len {
         differences.push(format!(
-            "IMAGE COUNT: dm: {} - rustg: {}",
-            dm_images_len, rustg_images_len
+            "IMAGE COUNT: dm: {dm_images_len} - rustg: {rustg_images_len}"
         ));
     } else {
         compare_images(
