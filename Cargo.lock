@@ -1734,6 +1734,8 @@ checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.4",
+ "rayon",
+ "serde",
 ]
 
 [[package]]
@@ -2336,6 +2338,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2c1f9f56e534ac6a9b8a4600bdf0f530fb393b5f393e7b4d03489c3cf0c3f01"
 dependencies = [
  "num-traits",
+ "rand 0.8.5",
+ "serde",
 ]
 
 [[package]]
@@ -2647,6 +2651,7 @@ dependencies = [
  "libc",
  "rand_chacha 0.3.1",
  "rand_core 0.6.4",
+ "serde",
 ]
 
 [[package]]
@@ -2686,6 +2691,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom 0.2.16",
+ "serde",
 ]
 
 [[package]]
@@ -2851,11 +2857,13 @@ dependencies = [
  "gix",
  "hex",
  "image",
+ "indexmap",
  "md-5",
  "mysql",
  "noise",
  "num-integer",
  "once_cell",
+ "ordered-float",
  "pathfinding",
  "percent-encoding",
  "png",
@@ -3047,6 +3055,7 @@ version = "1.0.140"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20068b6e96dc6c9bd23e01df8827e6c7e1f2fddd43c21810382803c136b99373"
 dependencies = [
+ "indexmap",
  "itoa",
  "memchr",
  "ryu",
