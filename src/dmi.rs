@@ -224,7 +224,7 @@ fn inject_metadata(path: &str, metadata: &str) -> Result<()> {
             writeln!(new_metadata_string, "\tmovement = 1")?;
         }
         if let Some(loop_count) = state.loop_count {
-            writeln!(new_metadata_string, "\tloop = {}", loop_count)?;
+            writeln!(new_metadata_string, "\tloop = {loop_count}")?;
         }
     }
     writeln!(new_metadata_string, "# END DMI")?;
