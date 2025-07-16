@@ -71,6 +71,8 @@ pub enum Error {
     #[cfg(feature = "dice")]
     #[error(transparent)]
     DiceRoll(#[from] caith::RollError),
+    #[error(transparent)]
+    Formatting(#[from] std::fmt::Error),
     #[error("Panic during function execution: {0}")]
     Panic(String),
 }
