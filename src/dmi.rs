@@ -1,7 +1,11 @@
 use crate::error::{Error, Result};
+use dmi::{
+    error::DmiError,
+    icon::{Icon, Looping},
+};
 use png::{text_metadata::ZTXtChunk, Decoder, Encoder, OutputInfo, Reader};
-use serde::Deserialize;
-use serde_repr::Deserialize_repr;
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::{
     fmt::Write,
     fs::{create_dir_all, File},
@@ -32,6 +36,13 @@ byond_fn!(fn dmi_resize_png(path, width, height, resizetype) {
 
 byond_fn!(fn dmi_icon_states(path) {
     read_states(path).ok()
+});
+
+byond_fn!(fn dmi_read_metadata(path) {
+    match read_metadata(path) {
+        Ok(metadata) => Some(metadata),
+        Err(error) => Some(format!("\"{error:?}\"")),
+    }
 });
 
 byond_fn!(fn dmi_inject_metadata(path, metadata) {
@@ -155,7 +166,7 @@ fn read_states(path: &str) -> Result<String> {
     Ok(serde_json::to_string(&states)?)
 }
 
-#[derive(Deserialize_repr, Clone, Copy)]
+#[derive(Serialize_repr, Deserialize_repr, Clone, Copy)]
 #[repr(u8)]
 enum DmiStateDirCount {
     One = 1,
@@ -163,7 +174,19 @@ enum DmiStateDirCount {
     Eight = 8,
 }
 
-#[derive(Deserialize)]
+impl TryFrom<u8> for DmiStateDirCount {
+    type Error = u8;
+    fn try_from(value: u8) -> std::result::Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::One),
+            4 => Ok(Self::Four),
+            8 => Ok(Self::Eight),
+            n => Err(n),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 struct DmiState {
     name: String,
     dirs: DmiStateDirCount,
@@ -175,13 +198,47 @@ struct DmiState {
     movement: Option<u8>,
     #[serde(default)]
     loop_count: Option<NonZeroU32>,
+    #[serde(default)]
+    hotspot: Option<(u32, u32, u32)>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct DmiMetadata {
     width: u32,
     height: u32,
     states: Vec<DmiState>,
+}
+
+fn read_metadata(path: &str) -> Result<String> {
+    let dmi = Icon::load(File::open(path).map(BufReader::new)?)?;
+    let metadata = DmiMetadata {
+        width: dmi.width,
+        height: dmi.height,
+        states: dmi
+            .states
+            .iter()
+            .map(|state| {
+                Ok(DmiState {
+                    name: state.name.clone(),
+                    dirs: DmiStateDirCount::try_from(state.dirs).map_err(|n| {
+                        DmiError::IconState(format!(
+                            "State \"{}\" has invalid dir count (expected 1, 4, or 8, got {})",
+                            state.name, n
+                        ))
+                    })?,
+                    delay: state.delay.clone(),
+                    movement: state.movement.then_some(1),
+                    rewind: state.rewind.then_some(1),
+                    loop_count: match state.loop_flag {
+                        Looping::Indefinitely => None,
+                        Looping::NTimes(n) => Some(n),
+                    },
+                    hotspot: state.hotspot.map(|hotspot| (hotspot.x, hotspot.y, 1)),
+                })
+            })
+            .collect::<Result<Vec<DmiState>>>()?,
+    };
+    Ok(serde_json::to_string(&metadata)?)
 }
 
 fn inject_metadata(path: &str, metadata: &str) -> Result<()> {
@@ -225,6 +282,12 @@ fn inject_metadata(path: &str, metadata: &str) -> Result<()> {
         }
         if let Some(loop_count) = state.loop_count {
             writeln!(new_metadata_string, "\tloop = {loop_count}")?;
+        }
+        if let Some((hotspot_x, hotspot_y, hotspot_frame)) = state.hotspot {
+            writeln!(
+                new_metadata_string,
+                "\totspot = {hotspot_x},{hotspot_y},{hotspot_frame}"
+            )?;
         }
     }
     writeln!(new_metadata_string, "# END DMI")?;

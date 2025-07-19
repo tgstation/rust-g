@@ -9,9 +9,7 @@
 #define rustg_dmi_icon_states(fname) RUSTG_CALL(RUST_G, "dmi_icon_states")(fname)
 
 /**
- * Inject dmi metadata into a png file located at `path`
- *
- * `metadata` format:
+ * The below functions involve dmi metadata represented in the following format:
  * list(
  *     "width": number,
  *     "height": number,
@@ -27,5 +25,15 @@
  *     "movement"?: TRUE | FALSE,
  *     "loop"?: number
  * )
+ */
+
+/**
+ * Get the dmi metadata of the file located at `fname`.
+ * Returns a json_encode'd list in the metadata format listed above, or an error message.
+ */
+#define rustg_dmi_read_metadata(fname) RUSTG_CALL(RUST_G, "dmi_read_metadata")(fname)
+/**
+ * Inject dmi metadata into a png file located at `path`.
+ * `metadata` must be a json_encode'd list in the metadata format listed above.
  */
 #define rustg_dmi_inject_metadata(path, metadata) RUSTG_CALL(RUST_G, "dmi_inject_metadata")(path, metadata)

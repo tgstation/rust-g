@@ -73,6 +73,8 @@ pub enum Error {
     DiceRoll(#[from] caith::RollError),
     #[error(transparent)]
     Formatting(#[from] std::fmt::Error),
+    #[error(transparent)]
+    Dmi(#[from] dmi::error::DmiError),
     #[error("Panic during function execution: {0}")]
     Panic(String),
 }
