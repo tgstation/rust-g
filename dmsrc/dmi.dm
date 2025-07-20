@@ -29,9 +29,9 @@
 
 /**
  * Get the dmi metadata of the file located at `fname`.
- * Returns a json_encode'd list in the metadata format listed above, or an error message.
+ * Returns a list in the metadata format listed above, or an error message.
  */
-#define rustg_dmi_read_metadata(fname) RUSTG_CALL(RUST_G, "dmi_read_metadata")(fname)
+#define rustg_dmi_read_metadata(fname) json_decode(RUSTG_CALL(RUST_G, "dmi_read_metadata")(fname))
 /**
  * Inject dmi metadata into a png file located at `path`.
  * `metadata` must be a json_encode'd list in the metadata format listed above.

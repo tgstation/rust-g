@@ -41,7 +41,7 @@ byond_fn!(fn dmi_icon_states(path) {
 byond_fn!(fn dmi_read_metadata(path) {
     match read_metadata(path) {
         Ok(metadata) => Some(metadata),
-        Err(error) => Some(format!("\"{error:?}\"")),
+        Err(error) => Some(serde_json::to_string(&error.to_string()).unwrap()),
     }
 });
 
