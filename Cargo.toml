@@ -47,6 +47,7 @@ redis = { version = "0.32", optional = true, features = ["ahash"] }
 ureq = { version = "2.12", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true, features = ["preserve_order"] }
+serde_repr = { version = "0.1", optional = true }
 once_cell = { version = "1.21", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
@@ -66,7 +67,11 @@ fast_poisson = { version = "1.0.2", optional = true, features = [
 ] }
 symphonia = { version = "0.5.4", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
-uuid = { version = "1.17", optional = true, features = ["v4", "v7", "fast-rng"] }
+uuid = { version = "1.17", optional = true, features = [
+    "v4",
+    "v7",
+    "fast-rng",
+] }
 cuid2 = { version = "0.1.4", optional = true }
 indexmap = { version = "2.9.0", optional = true, features = ["serde", "rayon"] }
 ordered-float = { version = "5.0.0", optional = true, features = ["serde"] }
@@ -129,7 +134,7 @@ all = [
 acreplace = ["aho-corasick"]
 batchnoise = ["dbpnoise"]
 cellularnoise = ["rand", "rayon"]
-dmi = ["png", "image"]
+dmi = ["png", "image", "serde_repr"]
 file = []
 git = ["gix", "chrono"]
 hash = [
