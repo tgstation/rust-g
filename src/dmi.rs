@@ -1,9 +1,6 @@
 use crate::error::{Error, Result};
-<<<<<<< HEAD
 use image::Rgba;
-use png::{Decoder, Encoder, OutputInfo, Reader};
 use qrcode::{render::svg, QrCode};
-=======
 use dmi::{
     error::DmiError,
     icon::{Icon, Looping},
@@ -11,7 +8,6 @@ use dmi::{
 use png::{text_metadata::ZTXtChunk, Decoder, Encoder, OutputInfo, Reader};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
->>>>>>> origin/master
 use std::{
     fmt::Write,
     fs::{create_dir_all, File},
