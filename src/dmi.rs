@@ -1,8 +1,16 @@
 use crate::error::{Error, Result};
-use png::{Decoder, Encoder, OutputInfo, Reader};
+use dmi::{
+    error::DmiError,
+    icon::{Icon, Looping},
+};
+use png::{text_metadata::ZTXtChunk, Decoder, Encoder, OutputInfo, Reader};
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::{
+    fmt::Write,
     fs::{create_dir_all, File},
     io::BufReader,
+    num::NonZeroU32,
     path::Path,
 };
 
@@ -28,6 +36,17 @@ byond_fn!(fn dmi_resize_png(path, width, height, resizetype) {
 
 byond_fn!(fn dmi_icon_states(path) {
     read_states(path).ok()
+});
+
+byond_fn!(fn dmi_read_metadata(path) {
+    match read_metadata(path) {
+        Ok(metadata) => Some(metadata),
+        Err(error) => Some(serde_json::to_string(&error.to_string()).unwrap()),
+    }
+});
+
+byond_fn!(fn dmi_inject_metadata(path, metadata) {
+    inject_metadata(path, metadata).err()
 });
 
 fn strip_metadata(path: &str) -> Result<()> {
@@ -145,4 +164,141 @@ fn read_states(path: &str) -> Result<String> {
             });
     }
     Ok(serde_json::to_string(&states)?)
+}
+
+#[derive(Serialize_repr, Deserialize_repr, Clone, Copy)]
+#[repr(u8)]
+enum DmiStateDirCount {
+    One = 1,
+    Four = 4,
+    Eight = 8,
+}
+
+impl TryFrom<u8> for DmiStateDirCount {
+    type Error = u8;
+    fn try_from(value: u8) -> std::result::Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::One),
+            4 => Ok(Self::Four),
+            8 => Ok(Self::Eight),
+            n => Err(n),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct DmiState {
+    name: String,
+    dirs: DmiStateDirCount,
+    #[serde(default)]
+    delay: Option<Vec<f32>>,
+    #[serde(default)]
+    rewind: Option<u8>,
+    #[serde(default)]
+    movement: Option<u8>,
+    #[serde(default)]
+    loop_count: Option<NonZeroU32>,
+    #[serde(default)]
+    hotspot: Option<(u32, u32, u32)>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct DmiMetadata {
+    width: u32,
+    height: u32,
+    states: Vec<DmiState>,
+}
+
+fn read_metadata(path: &str) -> Result<String> {
+    let dmi = Icon::load(File::open(path).map(BufReader::new)?)?;
+    let metadata = DmiMetadata {
+        width: dmi.width,
+        height: dmi.height,
+        states: dmi
+            .states
+            .iter()
+            .map(|state| {
+                Ok(DmiState {
+                    name: state.name.clone(),
+                    dirs: DmiStateDirCount::try_from(state.dirs).map_err(|n| {
+                        DmiError::IconState(format!(
+                            "State \"{}\" has invalid dir count (expected 1, 4, or 8, got {})",
+                            state.name, n
+                        ))
+                    })?,
+                    delay: state.delay.clone(),
+                    movement: state.movement.then_some(1),
+                    rewind: state.rewind.then_some(1),
+                    loop_count: match state.loop_flag {
+                        Looping::Indefinitely => None,
+                        Looping::NTimes(n) => Some(n),
+                    },
+                    hotspot: state.hotspot.map(|hotspot| (hotspot.x, hotspot.y, 1)),
+                })
+            })
+            .collect::<Result<Vec<DmiState>>>()?,
+    };
+    Ok(serde_json::to_string(&metadata)?)
+}
+
+fn inject_metadata(path: &str, metadata: &str) -> Result<()> {
+    let read_file = File::open(path).map(BufReader::new)?;
+    let decoder = png::Decoder::new(read_file);
+    let mut reader = decoder.read_info().map_err(|_| Error::InvalidPngData)?;
+    let new_dmi_metadata: DmiMetadata = serde_json::from_str(metadata)?;
+    let mut new_metadata_string = String::new();
+    writeln!(new_metadata_string, "# BEGIN DMI")?;
+    writeln!(new_metadata_string, "version = 4.0")?;
+    writeln!(new_metadata_string, "\twidth = {}", new_dmi_metadata.width)?;
+    writeln!(
+        new_metadata_string,
+        "\theight = {}",
+        new_dmi_metadata.height
+    )?;
+    for state in new_dmi_metadata.states {
+        writeln!(new_metadata_string, "state = \"{}\"", state.name)?;
+        writeln!(new_metadata_string, "\tdirs = {}", state.dirs as u8)?;
+        writeln!(
+            new_metadata_string,
+            "\tframes = {}",
+            state.delay.as_ref().map_or(1, Vec::len)
+        )?;
+        if let Some(delay) = state.delay {
+            writeln!(
+                new_metadata_string,
+                "\tdelay = {}",
+                delay
+                    .iter()
+                    .map(f32::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )?;
+        }
+        if state.rewind.is_some_and(|r| r != 0) {
+            writeln!(new_metadata_string, "\trewind = 1")?;
+        }
+        if state.movement.is_some_and(|m| m != 0) {
+            writeln!(new_metadata_string, "\tmovement = 1")?;
+        }
+        if let Some(loop_count) = state.loop_count {
+            writeln!(new_metadata_string, "\tloop = {loop_count}")?;
+        }
+        if let Some((hotspot_x, hotspot_y, hotspot_frame)) = state.hotspot {
+            writeln!(
+                new_metadata_string,
+                "\totspot = {hotspot_x},{hotspot_y},{hotspot_frame}"
+            )?;
+        }
+    }
+    writeln!(new_metadata_string, "# END DMI")?;
+    let mut info = reader.info().clone();
+    info.compressed_latin1_text
+        .push(ZTXtChunk::new("Description", new_metadata_string));
+    let mut raw_image_data: Vec<u8> = vec![];
+    while let Some(row) = reader.next_row()? {
+        raw_image_data.append(&mut row.data().to_vec());
+    }
+    let encoder = png::Encoder::with_info(File::create(path)?, info)?;
+    encoder.write_header()?.write_image_data(&raw_image_data)?;
+    Ok(())
 }
