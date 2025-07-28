@@ -78,6 +78,7 @@ indexmap = { version = "2.10.0", optional = true, features = [
     "rayon",
 ] }
 ordered-float = { version = "5.0.0", optional = true, features = ["serde"] }
+qrcode = { version = "0.14.1", optional = true, features = ["image", "svg"]}
 
 [features]
 default = [
@@ -137,7 +138,7 @@ all = [
 acreplace = ["aho-corasick"]
 batchnoise = ["dbpnoise"]
 cellularnoise = ["rand", "rayon"]
-dmi = ["png", "image", "serde_repr"]
+dmi = ["png", "image", "qrcode", "serde_repr"]
 file = []
 git = ["gix", "chrono"]
 hash = [

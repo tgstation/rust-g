@@ -3,7 +3,9 @@ use dmi::{
     error::DmiError,
     icon::{Icon, Looping},
 };
+use image::Rgba;
 use png::{text_metadata::ZTXtChunk, Decoder, Encoder, OutputInfo, Reader};
+use qrcode::{render::svg, QrCode};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::{
@@ -302,3 +304,24 @@ fn inject_metadata(path: &str, metadata: &str) -> Result<()> {
     encoder.write_header()?.write_image_data(&raw_image_data)?;
     Ok(())
 }
+
+byond_fn!(fn create_qr_code_png(path, data) {
+    let code = match QrCode::new(data.as_bytes()) {
+        Ok(code) => code,
+        Err(err) => return Some(format!("Error: Could not read data into QR code: {err}"))
+    };
+    let image = code.render::<Rgba<u8>>().build();
+    match image.save(path) {
+        Ok(_) => Some(String::from(path)),
+        Err(err) => Some(format!("Error: Could not write QR code image to path: {err}"))
+    }
+});
+
+byond_fn!(fn create_qr_code_svg(data) {
+    let code = match QrCode::new(data.as_bytes()) {
+        Ok(code) => code,
+        Err(err) => return Some(format!("Error: Could not read data into QR code: {err}"))
+    };
+    let svg_xml = code.render::<svg::Color>().build();
+    Some(svg_xml)
+});
