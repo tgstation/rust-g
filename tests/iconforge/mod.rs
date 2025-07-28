@@ -49,7 +49,9 @@ fn iconforge() {
             if !file_name.starts_with("iconforge_rustg_") || !file_name.ends_with(".dmi") {
                 continue;
             }
-            let size = file_name.replace("iconforge_rustg_", "").replace(".dmi", "");
+            let size = file_name
+                .replace("iconforge_rustg_", "")
+                .replace(".dmi", "");
             let headless_path_str = format!("tests/dm/tmp/headless_iconforge_rustg_{size}.dmi");
             let headless_path = Path::new(&headless_path_str);
             if !std::fs::exists(headless_path).unwrap() {
@@ -66,7 +68,10 @@ fn iconforge() {
         }
     }
     // Compare BYOND's copied version of a valid headless icon states
-    if let Some(diff) = compare_dmis(Path::new("tests/dm/tmp/iconforge_valid_headless_copied.dmi"), Path::new("tests/dm/tmp/iconforge_valid_headless.dmi")) {
+    if let Some(diff) = compare_dmis(
+        Path::new("tests/dm/tmp/iconforge_valid_headless_copied.dmi"),
+        Path::new("tests/dm/tmp/iconforge_valid_headless.dmi"),
+    ) {
         differences.push(format!(
             "icon tests/dm/tmp/iconforge_valid_headless.dmi differs from tests/dm/tmp/iconforge_valid_headless_copied.dmi:\n{diff}",
         ));
@@ -101,7 +106,9 @@ fn tmp_cleanup() {
     };
     for entry in dir.flatten() {
         if let Some(file_name) = entry.file_name().to_str() {
-            if (file_name.starts_with("iconforge_") || file_name.starts_with("headless_iconforge_")) && file_name.ends_with(".dmi") {
+            if (file_name.starts_with("iconforge_") || file_name.starts_with("headless_iconforge_"))
+                && file_name.ends_with(".dmi")
+            {
                 let _ = std::fs::remove_file(entry.path());
             }
         }
