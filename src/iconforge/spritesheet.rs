@@ -1,14 +1,16 @@
 use super::{
+    icon_operations::apply_all_transforms,
     image_cache,
     universal_icon::{Transform, UniversalIcon, UniversalIconData},
 };
 use crate::{
     error::Error,
     hash::{file_hash, string_hash},
+    iconforge::image_cache::cache_transformed_images,
 };
 use dashmap::{DashMap, DashSet};
 use dmi::icon::{DmiVersion, Icon, IconState};
-use image::RgbaImage;
+use image::{GenericImageView, RgbaImage};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -31,6 +33,30 @@ static SPRITES_TO_JSON: Lazy<Arc<Mutex<SpriteJsonMap>>> = Lazy::new(|| {
 });
 
 #[derive(Serialize)]
+pub struct HeadlessResult {
+    pub file_path: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub error: Option<String>,
+}
+
+fn headless_error(error: String, errors: Option<&Vec<String>>) -> HeadlessResult {
+    let mut errors_out = error;
+    if errors.is_some() && !errors.unwrap().is_empty() {
+        errors_out = format!(
+            "{errors_out} \nAdditional errors: \n{}",
+            errors.unwrap().join("\n")
+        );
+    }
+    HeadlessResult {
+        file_path: None,
+        width: None,
+        height: None,
+        error: Some(errors_out),
+    }
+}
+
+#[derive(Serialize)]
 struct SpritesheetResult {
     sizes: Vec<String>,
     sprites: DashMap<String, SpritesheetEntry, BuildHasherDefault<XxHash64>>,
@@ -43,6 +69,208 @@ struct SpritesheetResult {
 struct SpritesheetEntry {
     size_id: String,
     position: u32,
+}
+
+pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> HeadlessResult {
+    zone!("generate_headless");
+    let generate_dmi: bool = file_path.ends_with(".dmi");
+    if !generate_dmi && !file_path.ends_with(".png") {
+        return headless_error(format!("Invalid file extension for headless icon. Must be '.dmi' or '.png'. Received file path: '{file_path}'"), None);
+    }
+    // PNGs cannot be non-flat
+    let flatten: bool = !generate_dmi || flatten == "1";
+    let error = Arc::new(Mutex::new(Vec::<String>::new()));
+
+    let sprites_map = match serde_json::from_str::<IndexMap<String, UniversalIcon>>(sprites) {
+        Ok(data) => data,
+        Err(err) => return headless_error(format!("Unable to parse headless sprite data provided for generation of '{file_path}': {err}"), None),
+    };
+    // Pre-load all the DMIs now.
+    // This is much faster than doing it as we go (tested!), because sometimes multiple parallel iterators need the DMI.
+    sprites_map.par_iter().for_each(|(_, icon)| {
+        zone!("headless_preload_dmis");
+
+        icon.get_nested_icons(true)
+            .into_par_iter()
+            .for_each(|icon| {
+                if let Err(err) = image_cache::filepath_to_dmi(&icon.icon_file) {
+                    error.lock().unwrap().push(err)
+                }
+            });
+    });
+
+    let expected_size: (u32, u32);
+    {
+        zone!("headless_get_size");
+        expected_size = match sprites_map.first() {
+            Some((sprite_name, icon)) => {
+                match icon.get_image_data(sprite_name, true, false, flatten) {
+                    Ok((image_data, cached)) => {
+                        let mut image_data = image_data;
+                        if !cached {
+                            image_data = match apply_all_transforms(
+                                image_data,
+                                &icon.transform,
+                                flatten,
+                            ) {
+                                Ok(data) => data,
+                                Err(err) => {
+                                    return headless_error(format!("Headless image {file_path} state {sprite_name} had errors during transformation: {err}"), Some(&error.lock().unwrap()));
+                                }
+                            };
+                            cache_transformed_images(icon, image_data.clone(), flatten);
+                        }
+                        match image_data.images.first() {
+                            Some(image) => image.dimensions(),
+                            None => {
+                                return headless_error(format!("Headless image {file_path} state {sprite_name} has no images!"), Some(&error.lock().unwrap()));
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        return headless_error(format!("Headless image {file_path} state {sprite_name} had errors during parsing: {err}"), Some(&error.lock().unwrap()));
+                    }
+                }
+            }
+            None => {
+                return headless_error(
+                    format!("Headless image {file_path} did not contain any sprites!"),
+                    Some(&error.lock().unwrap()),
+                );
+            }
+        };
+    }
+
+    // Generate all states in parallel
+    let mut sprites_data: Vec<(
+        String,
+        &UniversalIcon,
+        Arc<UniversalIconData>,
+        Option<IconState>,
+    )>;
+    {
+        zone!("headless_generate_all_states");
+        sprites_data = sprites_map.par_iter().filter_map(|(sprite_name, icon)| {
+            zone!("headless_generate_state");
+            let image_data = match icon.get_image_data(
+                sprite_name,
+                true,
+                false,
+                flatten,
+            ) {
+                Ok((image_data, cached)) => {
+                    let mut image_data = image_data;
+                    if !cached {
+                        zone!("headless_apply_transforms");
+                        image_data = match apply_all_transforms(image_data, &icon.transform, flatten) {
+                            Ok(data) => data,
+                            Err(err) => {
+                                error.lock().unwrap().push(format!("Headless image {file_path} state {sprite_name} had errors during transformation, skipping this state: {err}"));
+                                return None;
+                            }
+                        };
+                        cache_transformed_images(icon, image_data.clone(), flatten);
+                    }
+                    let first_image_size = match image_data.images.first() {
+                        Some(image) => {
+                            image.dimensions()
+                        },
+                        None => {
+                            error.lock().unwrap().push(format!("Headless image '{file_path}' state {sprite_name} has no images, skipping this state!"));
+                            return None;
+                        }
+                    };
+                    if first_image_size != expected_size {
+                        error.lock().unwrap().push(format!("Headless image '{file_path}' state {sprite_name} does not match expected size of {}x{} (got {}x{}), skipping this state", expected_size.0, expected_size.1, first_image_size.0, first_image_size.1));
+                        return None;
+                    }
+                    if flatten && image_data.images.len() > 1 {
+                        error.lock().unwrap().push(format!("More than one image (non-flattened) state {sprite_name} in headless spritesheet for file path '{file_path}', skipping this state! This shouldn't happen. Please report this bug to IconForge."));
+                        return None;
+                    }
+                    image_data
+                },
+                Err(err) => {
+                    error.lock().unwrap().push(format!("Headless image '{file_path}' state {sprite_name} had errors during parsing, skipping this state: {err}"));
+                    return None;
+                }
+            };
+
+            Some((sprite_name.to_owned(), icon, image_data.clone(), if generate_dmi { Some(image_data.to_iconstate(sprite_name)) } else { None }))
+        }).collect()
+    };
+
+    {
+        zone!("headless_sort_sprites");
+        sprites_data.sort_unstable_by_key(|(sprite_name, _, _, _)| {
+            sprites_map.get_index_of(sprite_name).unwrap_or(1000)
+        });
+    }
+
+    if generate_dmi {
+        zone!("headless_write_dmi");
+        {
+            zone!("headless_create_file");
+            let path = std::path::Path::new(&file_path);
+            if let Err(err) = std::fs::create_dir_all(path.parent().unwrap()) {
+                return headless_error(format!("Error creating output file directories for path '{file_path}' during headless generation: {}", err), Some(&error.lock().unwrap()));
+            };
+            let mut output_file = match File::create(path) {
+                Ok(file) => file,
+                Err(err) => {
+                    return headless_error(format!("Error creating output file path '{file_path}' during headless generation: {}", err), Some(&error.lock().unwrap()));
+                }
+            };
+            {
+                zone!("headless_save_dmi");
+                let dmi_icon = Icon {
+                    version: DmiVersion::default(),
+                    width: expected_size.0,
+                    height: expected_size.1,
+                    states: sprites_data
+                        .into_iter()
+                        .map(|(_, _, _, state)| state.unwrap())
+                        .collect::<Vec<IconState>>(),
+                };
+                if let Err(err) = dmi_icon.save(&mut output_file) {
+                    return headless_error(format!("Error saving DMI for file path '{file_path}' during headless generation: {}", err), Some(&error.lock().unwrap()));
+                }
+            }
+        }
+    } else {
+        let mut final_image: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
+            RgbaImage::new(expected_size.0 * sprites_data.len() as u32, expected_size.1);
+        for (idx, (_, _, image_data, _)) in sprites_data.into_iter().enumerate() {
+            zone!("headless_join_sprite_png");
+            let image: RgbaImage = image_data.images.first().unwrap().to_rgba8();
+            let base_x: u32 = expected_size.0 * idx as u32;
+            for x in 0..image.width() {
+                for y in 0..image.height() {
+                    final_image.put_pixel(base_x + x, y, *image.get_pixel(x, y))
+                }
+            }
+        }
+        {
+            zone!("write_headless_png");
+            if let Err(err) = final_image.save(file_path) {
+                return headless_error(format!("Error saving PNG for file path '{file_path}' during headless generation: {}", err), Some(&error.lock().unwrap()));
+            }
+        }
+    }
+
+    HeadlessResult {
+        file_path: Some(file_path.to_owned()),
+        width: Some(expected_size.0),
+        height: Some(expected_size.1),
+        error: {
+            let errors = error.lock().unwrap();
+            if errors.is_empty() {
+                None
+            } else {
+                Some(errors.join("\n"))
+            }
+        },
+    }
 }
 
 pub fn generate_spritesheet(
@@ -165,7 +393,7 @@ pub fn generate_spritesheet(
                     // This will ensure we only map unique transform sets. This also means each UniversalIcon is guaranteed a unique icon_hash
                     // Since all icons share the same 'base'.
                     // Also check to see if the icon is already cached. If so, we can ignore this transform chain.
-                    if !image_cache::image_cache_contains(icon) {
+                    if !image_cache::image_cache_contains(icon, flatten) {
                         unique_icons.insert(icon);
                     }
                     if icon.transform.is_empty() {
@@ -174,7 +402,7 @@ pub fn generate_spritesheet(
                 });
             }
             if let Some(entry) = no_transforms {
-                image_cache::cache_transformed_images(entry, base_icon_data.clone());
+                image_cache::cache_transformed_images(entry, base_icon_data.clone(), flatten);
             }
             {
                 zone!("transform_all_leaves");
@@ -270,13 +498,14 @@ pub fn generate_spritesheet(
                 .unwrap();
 
             if generate_dmi {
-                let output_states = match create_dmi_output_states(sprite_entries, &sprites_map) {
-                    Ok(output_states) => output_states,
-                    Err(err) => {
-                        error.lock().unwrap().push(err);
-                        return;
-                    }
-                };
+                let output_states =
+                    match create_dmi_output_states(sprite_entries, &sprites_map, flatten) {
+                        Ok(output_states) => output_states,
+                        Err(err) => {
+                            error.lock().unwrap().push(err);
+                            return;
+                        }
+                    };
                 {
                     zone!("write_spritesheet_dmi");
                     {
@@ -375,6 +604,7 @@ fn create_png_image(
 fn create_dmi_output_states(
     sprite_entries: &Vec<(&String, &UniversalIcon)>,
     sprites_map: &IndexMap<String, UniversalIcon>,
+    flatten: bool,
 ) -> Result<Arc<Mutex<Vec<IconState>>>, String> {
     zone!("create_dmi_output_states");
     let output_states = Arc::new(Mutex::new(Vec::<IconState>::with_capacity(
@@ -384,34 +614,17 @@ fn create_dmi_output_states(
     sprite_entries.par_iter().for_each(|sprite_entry| {
         zone!("create_output_state_dmi");
         let (sprite_name, icon) = *sprite_entry;
-        let image_data = match icon.get_image_data(sprite_name, true, true, false) {
+        let image_data = match icon.get_image_data(sprite_name, true, true, flatten) {
             Ok((image, _)) => image,
             Err(err) => {
                 errors.lock().unwrap().push(err);
                 return;
             }
         };
-        // sometimes DMIs can contain more delays than frames because they retain old data
-        let new_delays = Some(
-            image_data
-                .delay
-                .clone()
-                .unwrap_or_else(|| vec![1.0; image_data.frames as usize])
-                [0..image_data.frames as usize]
-                .to_owned(),
-        );
-        output_states.lock().unwrap().push(IconState {
-            name: sprite_name.to_owned(),
-            dirs: image_data.dirs,
-            frames: image_data.frames,
-            delay: new_delays,
-            loop_flag: image_data.loop_flag,
-            rewind: image_data.rewind,
-            movement: false,
-            unknown_settings: Option::None,
-            hotspot: Option::None,
-            images: image_data.images.to_vec(),
-        });
+        output_states
+            .lock()
+            .unwrap()
+            .push(image_data.to_iconstate(sprite_name));
     });
     if !errors.lock().unwrap().is_empty() {
         return Err(errors.lock().unwrap().join("\n"));
@@ -482,6 +695,7 @@ fn transform_leaves(
                                 image_cache::cache_transformed_images(
                                     icon,
                                     altered_image_data.clone(),
+                                    flatten,
                                 );
                             }
                         });

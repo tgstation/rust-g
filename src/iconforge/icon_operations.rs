@@ -553,15 +553,19 @@ pub fn blend_images_other_universal(
                 .clone()
                 .unwrap_or(vec![1.0; frames_out as usize]);
             let delay_diff = frames_out as i32 - new_delays.len() as i32;
-            // Extend the number of delays to match frames by copying the first delay
-            if delay_diff > 0 {
-                new_delays.extend(vec![
-                    *new_delays.first().unwrap_or(&1.0);
-                    delay_diff as usize
-                ]);
-            } else if delay_diff < 0 {
-                // sometimes DMIs can contain more delays than frames because they retain old data
-                new_delays = new_delays[0..frames_out as usize].to_vec()
+            match delay_diff.cmp(&0) {
+                std::cmp::Ordering::Greater => {
+                    // Extend the number of delays to match frames by copying the first delay
+                    new_delays.extend(vec![
+                        *new_delays.first().unwrap_or(&1.0);
+                        delay_diff as usize
+                    ]);
+                }
+                std::cmp::Ordering::Less => {
+                    // sometimes DMIs can contain more delays than frames because they retain old data
+                    new_delays = new_delays[0..frames_out as usize].to_vec()
+                }
+                _ => {}
             }
             delay_out = Some(new_delays);
         } else {
@@ -691,15 +695,20 @@ pub fn blend_images_other(
                     .clone()
                     .unwrap_or(vec![1.0; base_icon_state.frames as usize]);
             let delay_diff = base_icon_state.frames as i32 - new_delays.len() as i32;
-            // Extend the number of delays to match frames by copying the first delay
-            if delay_diff > 0 {
-                new_delays.extend(vec![
-                    *new_delays.first().unwrap_or(&1.0);
-                    delay_diff as usize
-                ]);
-            } else if delay_diff < 0 {
-                // sometimes DMIs can contain more delays than frames because they retain old data
-                new_delays = new_delays[0..base_icon_state.frames as usize].to_vec()
+
+            match delay_diff.cmp(&0) {
+                std::cmp::Ordering::Greater => {
+                    // Extend the number of delays to match frames by copying the first delay
+                    new_delays.extend(vec![
+                        *new_delays.first().unwrap_or(&1.0);
+                        delay_diff as usize
+                    ]);
+                }
+                std::cmp::Ordering::Less => {
+                    // sometimes DMIs can contain more delays than frames because they retain old data
+                    new_delays = new_delays[0..base_icon_state.frames as usize].to_vec()
+                }
+                _ => {}
             }
             base_icon_state.delay = Some(new_delays);
         } else {
@@ -788,7 +797,7 @@ impl Transform {
                 frames = new_out.frames;
                 dirs = new_out.dirs;
                 delay = new_out.delay;
-                image_cache::cache_transformed_images(icon, other_image_data);
+                image_cache::cache_transformed_images(icon, other_image_data, flatten);
             }
             Transform::Scale { width, height } => {
                 images = image_data.map_cloned_images(|image| scale(image, *width, *height));
@@ -888,7 +897,7 @@ impl Transform {
 }
 
 /// Applies a list of Transforms to UniversalIconData immediately and sequentially, while handling any errors. Optionally flattens to only the first dir and frame.
-fn apply_all_transforms(
+pub fn apply_all_transforms(
     image_data: Arc<UniversalIconData>,
     transforms: &Vec<Transform>,
     flatten: bool,
