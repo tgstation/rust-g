@@ -147,6 +147,22 @@
 		src.transform.apply(self)
 	return self
 
+/// Convert the universal icon into a DM icon using rust-backed IconForge generation.
+/// The resulting DM icon is unscoped but contains one icon state with '[output_icon_state_name]' as its name.
+/// Returns null and runtimes if there is any fatal errors. Non-fatal errors will emit a runtime but provide an icon.
+/datum/universal_icon/proc/to_icon_headless(file_path, output_icon_state_name)
+	. = null
+	if(!istext(file_path) || !length(file_path))
+		return
+	var/list/result = rustg_iconforge_generate_headless(file_path, json_encode(list("[output_icon_state_name]" = src.to_list())), FALSE)
+	if(!islist(result))
+		CRASH("Unparseable result from rustg_iconforge_generate_headless for '[file_path]': [result]")
+	if(result["file_path"] != file_path)
+		CRASH("Fatal errors during rustg_iconforge_generate_headless for '[file_path]': [result["error"]]")
+	. = icon(file(file_path))
+	if(!isnull(result["error"]) && length(result["error"]))
+		CRASH("Errors during rustg_iconforge_generate_headless for '[file_path]': [result["error"]]")
+
 /datum/icon_transformer
 	var/list/transforms = null
 
@@ -602,6 +618,29 @@
 	while(!check_jobs(job_ids)) sleep(-1)
 	duration = rustg_time_milliseconds("iconforge_rustg")
 	world.log << "rustg: Elapsed [duration]ms\n"
+	world.log << "Generating rustg sheets (headless mode)..."
+	rustg_time_reset("iconforge_rustg_headless")
+	for(var/expected_size in sizes)
+		var/list/uni_icons = sizes[expected_size]
+		var/list/entries = list()
+		for(var/entry_name as anything in uni_icons)
+			var/datum/universal_icon/entry = uni_icons[entry_name]
+			entries[entry_name] = entry.to_list()
+		var/entries_json = json_encode(entries)
+		var/file_path = "tmp/headless_iconforge_rustg_[expected_size].dmi"
+		var/list/result = rustg_iconforge_generate_headless(file_path, entries_json, FALSE)
+		if(!islist(result))
+			world.log << "runtime error: Unparseable result from rustg_iconforge_generate_headless for '[file_path]': [result]"
+			continue
+		if(result["file_path"] != file_path)
+			world.log << "runtime error: Fatal errors during rustg_iconforge_generate_headless for '[file_path]': [result["error"]]"
+			continue
+		if(!isnull(result["error"]) && length(result["error"]))
+			world.log << "runtime error: Errors during rustg_iconforge_generate_headless for '[file_path]': [result["error"]]"
+			continue
+
+	duration = rustg_time_milliseconds("iconforge_rustg_headless")
+	world.log << "rustg (headless): Elapsed [duration]ms\n"
 
 /proc/check_jobs(list/job_ids)
 	for(var/job in job_ids)
@@ -628,6 +667,49 @@
 			world.log << "runtime error: Invalid size output from rustg (expected: [expected_size], got: [sizes_joined])"
 		job_ids -= job
 	return TRUE
+
+/proc/headless_must_error(file_path, sprites, error_text)
+	var/list/result = rustg_iconforge_generate_headless(file_path, sprites, FALSE)
+	if(!islist(result))
+		world.log << "runtime error: Unparseable result from rustg_iconforge_generate_headless for '[file_path]': [result]"
+	if(result["file_path"] == file_path)
+		world.log << "runtime error: rustg_iconforge_generate_headless output file_path when an error was expected ([error_text])"
+	if(!isnull(result["error"]) && length(result["error"]))
+		world.log << "error test PASS: [error_text] \n---->    [result["error"]]\n\n"
+	else
+		world.log << "runtime error: rustg_iconforge_generate_headless output no errors when an error was expected ([error_text])"
+
+/test/proc/headless_error_handling()
+	var/datum/universal_icon/valid = uni_icon('rsc/iconforge_tests.dmi', "dirs_1_frames_1", SOUTH, 1)
+	valid.blend_color("#fc00fc", ICON_MULTIPLY)
+	var/datum/universal_icon/valid_64 = uni_icon('rsc/iconforge_tests.dmi', "dirs_1_frames_1", SOUTH, 1)
+	valid_64.scale(64, 64)
+	var/valid_json = json_encode(list("test" = valid.to_list()))
+	headless_must_error("", valid_json, "empty filename")
+	headless_must_error("tmp/nonexistent.jpg", valid_json, "invalid file extension")
+	headless_must_error("tmp/nonexistent", valid_json, "no file extension")
+	headless_must_error("/../what.dmi", valid_json, "invalid file path")
+	headless_must_error("tmp/nonexistent.dmi", "{}", "no sprites")
+	headless_must_error("tmp/nonexistent.dmi", "lol", "invalid sprites")
+	headless_must_error("tmp/nonexistent.dmi", json_encode(list("test" = list("lol" = 1))), "invalid sprites content")
+	var/list/mixed_size_result = rustg_iconforge_generate_headless("tmp/iconforge_mixed_sizes.dmi", json_encode(list("32" = valid.to_list(), "64" = valid_64.to_list())), FALSE)
+	if(mixed_size_result["width"] != 32 && mixed_size_result["height"] != 32)
+		world.log << "runtime error: Mixed-sizes headless generation test did not give a 32x32 icon (the first value passed) [mixed_size_result["error"]]"
+	if(length(icon_states(icon(file("tmp/iconforge_mixed_sizes.dmi")))) != 1)
+		world.log << "runtime error: Mixed-sizes headless generation test gave more than one state, when it should only contain states with correct sizes [mixed_size_result["error"]]"
+	var/datum/universal_icon/nonexistent_icon = uni_icon("nonexistent", "nonexistent")
+	headless_must_error("tmp/nonexistent.dmi", json_encode(list("test" = nonexistent_icon.to_list())), "nonexistent icon file")
+	var/datum/universal_icon/nonexistent_state = uni_icon('rsc/iconforge_tests.dmi', "nonexistent")
+	headless_must_error("tmp/nonexistent.dmi", json_encode(list("test" = nonexistent_state.to_list())), "nonexistent icon state")
+	var/datum/universal_icon/nonexistent_dir = uni_icon('rsc/iconforge_tests.dmi', "dirs_1_frames_1", NORTH)
+	headless_must_error("tmp/nonexistent.dmi", json_encode(list("test" = nonexistent_dir.to_list())), "nonexistent dir")
+	var/datum/universal_icon/nonexistent_frame = uni_icon('rsc/iconforge_tests.dmi', "dirs_1_frames_1", SOUTH, 2)
+	headless_must_error("tmp/nonexistent.dmi", json_encode(list("test" = nonexistent_frame.to_list())), "nonexistent frame")
+	var/icon/valid_icon = valid.to_icon_headless("tmp/iconforge_valid_headless.dmi", "")
+	if(!isicon(valid_icon))
+		world.log << "runtime error: failed to generate headless icon that is valid!"
+	// Copy a scoped version into a new dmi for comparison
+	fcopy(icon(valid_icon, ""), "tmp/iconforge_valid_headless_copied.dmi")
 
 
 #undef uni_icon

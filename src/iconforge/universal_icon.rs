@@ -1,4 +1,4 @@
-use dmi::icon::Looping;
+use dmi::icon::{IconState, Looping};
 use image::DynamicImage;
 use ordered_float::OrderedFloat;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -133,5 +133,26 @@ impl UniversalIconData {
                 DynamicImage::ImageRgba8(new_image)
             })
             .collect()
+    }
+
+    pub fn to_iconstate(&self, name: &String) -> IconState {
+        let new_delays = Some(
+            self.delay
+                .clone()
+                .unwrap_or_else(|| vec![1.0; self.frames as usize])[0..self.frames as usize]
+                .to_owned(),
+        );
+        IconState {
+            name: name.to_owned(),
+            dirs: self.dirs,
+            frames: self.frames,
+            delay: new_delays,
+            loop_flag: self.loop_flag,
+            rewind: self.rewind,
+            movement: false,
+            unknown_settings: Option::None,
+            hotspot: Option::None,
+            images: self.images.to_vec(),
+        }
     }
 }
