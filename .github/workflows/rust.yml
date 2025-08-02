@@ -83,7 +83,7 @@ jobs:
       - run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386
+          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386 libcurl4:i386
           ./scripts/install_byond.sh
 
       - uses: dtolnay/rust-toolchain@nightly
@@ -126,7 +126,7 @@ jobs:
       - run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386
+          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386 libcurl4:i386
           ./scripts/install_byond.sh
 
       - uses: dtolnay/rust-toolchain@nightly
