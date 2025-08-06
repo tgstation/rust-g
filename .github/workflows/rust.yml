@@ -73,8 +73,8 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     env:
-      BYOND_MAJOR: 515
-      BYOND_MINOR: 1647
+      BYOND_MAJOR: 516
+      BYOND_MINOR: 1667
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
@@ -83,7 +83,7 @@ jobs:
       - run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386
+          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386 libcurl4:i386
           ./scripts/install_byond.sh
 
       - uses: dtolnay/rust-toolchain@nightly
@@ -116,8 +116,8 @@ jobs:
   build-linux-x64:
     runs-on: ubuntu-latest
     env:
-      BYOND_MAJOR: 515
-      BYOND_MINOR: 1647
+      BYOND_MAJOR: 516
+      BYOND_MINOR: 1667
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
@@ -126,7 +126,7 @@ jobs:
       - run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386
+          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386 libcurl4:i386
           ./scripts/install_byond.sh
 
       - uses: dtolnay/rust-toolchain@nightly
