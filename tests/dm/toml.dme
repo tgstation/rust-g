@@ -8,9 +8,7 @@ data = [ ["delta", "phi"] ]
 temp_targets = { cpu = 79, case = 72 }
 "}
 
-var/test_json = @{"
-{"database":{"data":[["delta","phi"]],"enabled":1,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}
-"}
+var/test_json = @{"{"database":{"data":[["delta","phi"]],"enabled":1,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}"}
 
 /test/proc/check_toml_file2json()
     rustg_file_write(test_toml, "tmp/test.toml")
