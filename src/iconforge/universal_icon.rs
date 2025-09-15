@@ -1,5 +1,4 @@
 use dmi::icon::Looping;
-use image::DynamicImage;
 use ordered_float::OrderedFloat;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -112,7 +111,7 @@ pub enum Transform {
 
 #[derive(Clone)]
 pub struct UniversalIconData {
-    pub images: Vec<DynamicImage>,
+    pub images: Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
     pub frames: u32,
     pub dirs: u8,
     pub delay: Option<Vec<f32>>,
@@ -121,16 +120,16 @@ pub struct UniversalIconData {
 }
 
 impl UniversalIconData {
-    pub fn map_cloned_images<F>(&self, do_fn: F) -> Vec<DynamicImage>
+    pub fn map_cloned_images<F>(&self, do_fn: F) -> Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>
     where
         F: Fn(&mut image::ImageBuffer<image::Rgba<u8>, Vec<u8>>) + Send + Sync,
     {
         self.images
             .par_iter()
             .map(|image| {
-                let mut new_image = image.clone().into_rgba8();
+                let mut new_image = image.clone();
                 do_fn(&mut new_image);
-                DynamicImage::ImageRgba8(new_image)
+                new_image
             })
             .collect()
     }

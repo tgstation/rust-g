@@ -4,7 +4,7 @@ use super::{
 };
 use crate::error::Error;
 use dmi::{dirs::Dirs, icon::IconState};
-use image::{imageops, DynamicImage, Rgba, RgbaImage};
+use image::{imageops, Rgba, RgbaImage};
 use ordered_float::OrderedFloat;
 use rayon::{
     iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
@@ -571,16 +571,16 @@ pub fn blend_images_other_universal(
             )));
         }
     }
-    let images_out: Vec<DynamicImage> = if images_other.len() == 1 {
+    let images_out: Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>> = if images_other.len() == 1 {
         // This is useful in the case where the something with 4+ dirs blends with 1dir
-        let first_image = images_other.first().unwrap().clone().into_rgba8();
+        let first_image = images_other.first().unwrap().clone();
         images
             .into_par_iter()
             .map(|image| {
                 zone!("blend_image_other_simple");
-                let mut new_image = image.clone().into_rgba8();
+                let mut new_image = image.clone();
                 blend_icon(&mut new_image, &first_image, blend_mode, position);
-                DynamicImage::ImageRgba8(new_image)
+                new_image
             })
             .collect()
     } else {
@@ -588,9 +588,9 @@ pub fn blend_images_other_universal(
             .into_par_iter()
             .map(|(image, image2)| {
                 zone!("blend_image_other");
-                let mut new_image = image.clone().into_rgba8();
-                blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, position);
-                DynamicImage::ImageRgba8(new_image)
+                let mut new_image = image.clone();
+                blend_icon(&mut new_image, &image2, blend_mode, position);
+                new_image
             })
             .collect()
     };
@@ -611,12 +611,12 @@ pub fn blend_images_other_universal(
 /// Blends a set of images with another set of images.
 /// The frame and dir counts of first_matched_state are mutated to match the new icon.
 pub fn blend_images_other(
-    images: Vec<DynamicImage>,
-    images_other: Vec<DynamicImage>,
+    images: Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
+    images_other: Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
     blend_mode: &blending::BlendMode,
     first_matched_state: &mut Option<IconState>,
     last_matched_state: &mut Option<IconState>,
-) -> Result<Vec<DynamicImage>, Error> {
+) -> Result<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>, Error> {
     zone!("blend_images_other");
     let base_icon_state = match first_matched_state {
         Some(state) => state,
@@ -709,16 +709,16 @@ pub fn blend_images_other(
             )));
         }
     }
-    let images_out: Vec<DynamicImage> = if images_other.len() == 1 {
+    let images_out: Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>> = if images_other.len() == 1 {
         // This is useful in the case where the something with 4+ dirs blends with 1dir
-        let first_image = images_other.first().unwrap().clone().into_rgba8();
+        let first_image = images_other.first().unwrap().clone();
         images
             .into_par_iter()
             .map(|image| {
                 zone!("blend_image_other_simple");
-                let mut new_image = image.clone().into_rgba8();
+                let mut new_image = image.clone();
                 blend_icon(&mut new_image, &first_image, blend_mode, None);
-                DynamicImage::ImageRgba8(new_image)
+                new_image
             })
             .collect()
     } else {
@@ -726,9 +726,9 @@ pub fn blend_images_other(
             .into_par_iter()
             .map(|(image, image2)| {
                 zone!("blend_image_other");
-                let mut new_image = image.clone().into_rgba8();
-                blend_icon(&mut new_image, &image2.into_rgba8(), blend_mode, None);
-                DynamicImage::ImageRgba8(new_image)
+                let mut new_image = image.clone();
+                blend_icon(&mut new_image, &image2, blend_mode, None);
+                new_image
             })
             .collect()
     };
@@ -747,7 +747,7 @@ impl Transform {
         flatten: bool,
     ) -> Result<UniversalIconData, String> {
         zone!("transform_apply");
-        let images: Vec<DynamicImage>;
+        let images: Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>;
         let mut frames = image_data.frames;
         let mut dirs = image_data.dirs;
         let mut delay = image_data.delay.to_owned();

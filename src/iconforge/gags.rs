@@ -2,7 +2,6 @@ use super::{blending, icon_operations, image_cache::filepath_to_dmi};
 use crate::error::Error;
 use dashmap::DashMap;
 use dmi::icon::{DmiVersion, Icon, IconState};
-use image::DynamicImage;
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -217,10 +216,10 @@ fn gags_internal(
     config_path: &str,
     colors_vec: &Vec<String>,
     icon_state: &String,
-    last_external_images: Option<Vec<DynamicImage>>,
+    last_external_images: Option<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>>,
     first_matched_state: &mut Option<IconState>,
     last_matched_state: &mut Option<IconState>,
-) -> Result<Vec<DynamicImage>, String> {
+) -> Result<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>, String> {
     zone!("gags_internal");
     let gags_data = match GAGS_CACHE.get(config_path) {
         Some(config) => config,
@@ -270,12 +269,12 @@ fn generate_layer_groups_for_iconstate(
     colors: &Vec<String>,
     layer_groups: &Vec<GAGSLayerGroupOption>,
     gags_data: &GAGSData,
-    last_external_images: Option<Vec<DynamicImage>>,
+    last_external_images: Option<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>>,
     first_matched_state: &mut Option<IconState>,
     last_matched_state: &mut Option<IconState>,
-) -> Result<Vec<DynamicImage>, String> {
+) -> Result<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>, String> {
     zone!("generate_layer_groups_for_iconstate");
-    let mut new_images: Option<Vec<DynamicImage>> = None;
+    let mut new_images: Option<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>> = None;
     for option in layer_groups {
         zone!("process_gags_layergroup_option");
         let (layer_images, blend_mode_result) = match option {
@@ -342,12 +341,12 @@ fn generate_layer_for_iconstate(
     colors: &[String],
     layer: &GAGSLayer,
     gags_data: &GAGSData,
-    new_images: Option<Vec<DynamicImage>>,
+    new_images: Option<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>>,
     first_matched_state: &mut Option<IconState>,
     last_matched_state: &mut Option<IconState>,
-) -> Result<Vec<DynamicImage>, String> {
+) -> Result<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>, String> {
     zone!("generate_layer_for_iconstate");
-    let images_result: Option<Vec<DynamicImage>> = match layer {
+    let images_result: Option<Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>> = match layer {
         GAGSLayer::IconState {
             icon_state,
             blend_mode: _,
@@ -459,16 +458,16 @@ fn generate_layer_for_iconstate(
     }
 }
 
-pub fn map_cloned_images<F>(images: &Vec<DynamicImage>, do_fn: F) -> Vec<DynamicImage>
+pub fn map_cloned_images<F>(images: &Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>, do_fn: F) -> Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>
 where
     F: Fn(&mut image::ImageBuffer<image::Rgba<u8>, Vec<u8>>) + Send + Sync,
 {
     images
         .par_iter()
         .map(|image| {
-            let mut new_image = image.clone().into_rgba8();
+            let mut new_image = image.clone();
             do_fn(&mut new_image);
-            DynamicImage::ImageRgba8(new_image)
+            new_image
         })
         .collect()
 }

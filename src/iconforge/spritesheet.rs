@@ -361,7 +361,7 @@ fn create_png_image(
         if image_data.images.len() > 1 {
             return Err(format!("More than one image (non-flattened) sprite {sprite_name} in PNG spritesheet for icon {icon}!"));
         }
-        let image = image_data.images.first().unwrap().to_rgba8();
+        let image = image_data.images.first().unwrap();
         let base_x: u32 = base_width * idx as u32;
         for x in 0..image.width() {
             for y in 0..image.height() {

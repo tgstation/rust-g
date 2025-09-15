@@ -3,7 +3,6 @@ use dmi::{
     error::DmiError,
     icon::{Icon, IconState},
 };
-use image::{DynamicImage, GenericImageView};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{
     fs::{read_dir, File},
@@ -211,8 +210,8 @@ fn compare_states(dm_state: &IconState, rustg_state: &IconState) -> Option<Strin
 
 fn compare_images(
     differences: &mut Vec<String>,
-    dm_images: &Vec<DynamicImage>,
-    rustg_images: &Vec<DynamicImage>,
+    dm_images: &Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
+    rustg_images: &Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
     dirs: u8,
 ) {
     let safe_diffs = Arc::new(Mutex::new(Vec::<String>::new()));
