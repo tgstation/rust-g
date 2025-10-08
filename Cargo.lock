@@ -618,15 +618,16 @@ checksum = "69dde51e8fef5e12c1d65e0929b03d66e4c0c18282bc30ed2ca050ad6f44dd82"
 
 [[package]]
 name = "dmi"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3b9d3bbc0099f59af8a58688a89d862e940bab0000b3dc57b86016040f726bd"
+checksum = "40ffa0925bc72c58722f7b0f615f561ed98d4bf09754415383764c4888f2671c"
 dependencies = [
  "bitflags 2.9.1",
  "crc32fast",
  "deflate",
  "image",
  "inflate",
+ "png 0.18.0",
  "thiserror 2.0.12",
 ]
 
@@ -1717,7 +1718,7 @@ dependencies = [
  "bytemuck",
  "byteorder-lite",
  "num-traits",
- "png",
+ "png 0.17.16",
 ]
 
 [[package]]
@@ -2533,6 +2534,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "png"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97baced388464909d42d89643fe4361939af9b7ce7a31ee32a168f832a70f2a0"
+dependencies = [
+ "bitflags 2.9.1",
+ "crc32fast",
+ "fdeflate",
+ "flate2",
+ "miniz_oxide",
+]
+
+[[package]]
 name = "portable-atomic"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2880,7 +2894,7 @@ dependencies = [
  "ordered-float",
  "pathfinding",
  "percent-encoding",
- "png",
+ "png 0.17.16",
  "qrcode",
  "rand 0.9.2",
  "rayon",

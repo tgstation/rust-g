@@ -212,7 +212,7 @@ struct DmiMetadata {
 }
 
 fn read_metadata(path: &str) -> Result<String> {
-    let dmi = Icon::load(File::open(path).map(BufReader::new)?)?;
+    let dmi = Icon::load_meta(File::open(path).map(BufReader::new)?)?;
     let metadata = DmiMetadata {
         width: dmi.width,
         height: dmi.height,
