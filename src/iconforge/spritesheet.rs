@@ -346,7 +346,7 @@ fn create_png_image(
     base_width: u32,
     base_height: u32,
     sprite_entries: &Vec<(&String, &UniversalIcon)>,
-) -> Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, String> {
+) -> Result<RgbaImage, String> {
     zone!("create_png_image");
     let mut final_image = RgbaImage::new(base_width * sprite_entries.len() as u32, base_height);
     for (idx, sprite_entry) in sprite_entries.iter().enumerate() {

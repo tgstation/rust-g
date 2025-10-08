@@ -4,7 +4,7 @@ use dmi::{
     dirs::{Dirs, ALL_DIRS, CARDINAL_DIRS},
     icon::{dir_to_dmi_index, Icon, IconState},
 };
-use image::ImageBuffer;
+use image::RgbaImage;
 use once_cell::sync::Lazy;
 use std::{fs::File, hash::BuildHasherDefault, io::BufReader, sync::Arc};
 use tracy_full::zone;
@@ -128,7 +128,7 @@ impl UniversalIcon {
             frame_offset = 0;
         }
 
-        let mut images: Vec<ImageBuffer<image::Rgba<u8>, Vec<u8>>> = Vec::new();
+        let mut images: Vec<RgbaImage> = Vec::new();
 
         for frame_index in frame_offset..(frame_offset + frames) {
             for dir_offset in dir_index..(dir_index + dirs) {
