@@ -17,7 +17,7 @@ var/test_json = @{"{"database":{"data":[["delta","phi"]],"enabled":1,"ports":[80
     fdel("tmp/test.toml")
 
     if (json_encode(toml_output) != test_json)
-        CRASH("test file2json:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
+        CRASH("\ntest file2json:\n[test_toml]\n\nexpected:\n[test_json]\n\nrustg:\n[json_encode(toml_output)]\n")
 
 /test/proc/check_rustg_toml_encode()
     var/json_value = json_decode(test_json)
@@ -26,4 +26,4 @@ var/test_json = @{"{"database":{"data":[["delta","phi"]],"enabled":1,"ports":[80
     fdel("tmp/test_encode.toml")
 
     if (json_encode(toml_output) != test_json)
-        CRASH("test toml_encode:\n[test_json]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
+        CRASH("\ntest toml_encode:\n[test_json]\n\nexpected:\n[test_json]\n\nrustg:\n[json_encode(toml_output)]\n")
