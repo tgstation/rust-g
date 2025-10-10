@@ -1,7 +1,7 @@
 [package]
 name = "rust-g"
-edition = "2021"
-version = "4.0.0"
+edition = "2021" # do this during next breaking change
+version = "4.1.0"
 authors = [
     "Bjorn Neergaard <bjorn@neersighted.com>",
     "Tad Hardesty <tad@platymuus.com>",
@@ -10,7 +10,7 @@ authors = [
 repository = "https://github.com/tgstation/rust-g"
 license = "MIT"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
-rust-version = "1.81"
+rust-version = "1.81" # do this during next breaking change
 
 [lib]
 crate-type = ["cdylib"]
