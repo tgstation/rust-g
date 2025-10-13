@@ -10,7 +10,7 @@ use crate::{
 };
 use dashmap::{DashMap, DashSet};
 use dmi::icon::{DmiVersion, Icon, IconState};
-use image::{GenericImageView, RgbaImage};
+use image::RgbaImage;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -213,12 +213,12 @@ pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> Headl
             zone!("headless_create_file");
             let path = std::path::Path::new(&file_path);
             if let Err(err) = std::fs::create_dir_all(path.parent().unwrap()) {
-                return headless_error(format!("Error creating output file directories for path '{file_path}' during headless generation: {}", err), Some(&error.lock().unwrap()));
+                return headless_error(format!("Error creating output file directories for path '{file_path}' during headless generation: {err}"), Some(&error.lock().unwrap()));
             };
             let mut output_file = match File::create(path) {
                 Ok(file) => file,
                 Err(err) => {
-                    return headless_error(format!("Error creating output file path '{file_path}' during headless generation: {}", err), Some(&error.lock().unwrap()));
+                    return headless_error(format!("Error creating output file path '{file_path}' during headless generation: {err}"), Some(&error.lock().unwrap()));
                 }
             };
             {
@@ -233,7 +233,7 @@ pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> Headl
                         .collect::<Vec<IconState>>(),
                 };
                 if let Err(err) = dmi_icon.save(&mut output_file) {
-                    return headless_error(format!("Error saving DMI for file path '{file_path}' during headless generation: {}", err), Some(&error.lock().unwrap()));
+                    return headless_error(format!("Error saving DMI for file path '{file_path}' during headless generation: {err}"), Some(&error.lock().unwrap()));
                 }
             }
         }
@@ -242,7 +242,7 @@ pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> Headl
             RgbaImage::new(expected_size.0 * sprites_data.len() as u32, expected_size.1);
         for (idx, (_, _, image_data, _)) in sprites_data.into_iter().enumerate() {
             zone!("headless_join_sprite_png");
-            let image: RgbaImage = image_data.images.first().unwrap().to_rgba8();
+            let image: &RgbaImage = image_data.images.first().unwrap();
             let base_x: u32 = expected_size.0 * idx as u32;
             for x in 0..image.width() {
                 for y in 0..image.height() {
@@ -253,7 +253,7 @@ pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> Headl
         {
             zone!("write_headless_png");
             if let Err(err) = final_image.save(file_path) {
-                return headless_error(format!("Error saving PNG for file path '{file_path}' during headless generation: {}", err), Some(&error.lock().unwrap()));
+                return headless_error(format!("Error saving PNG for file path '{file_path}' during headless generation: {err}"), Some(&error.lock().unwrap()));
             }
         }
     }
@@ -575,7 +575,7 @@ fn create_png_image(
     base_width: u32,
     base_height: u32,
     sprite_entries: &Vec<(&String, &UniversalIcon)>,
-) -> Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, String> {
+) -> Result<RgbaImage, String> {
     zone!("create_png_image");
     let mut final_image = RgbaImage::new(base_width * sprite_entries.len() as u32, base_height);
     for (idx, sprite_entry) in sprite_entries.iter().enumerate() {
@@ -590,7 +590,7 @@ fn create_png_image(
         if image_data.images.len() > 1 {
             return Err(format!("More than one image (non-flattened) sprite {sprite_name} in PNG spritesheet for icon {icon}!"));
         }
-        let image = image_data.images.first().unwrap().to_rgba8();
+        let image = image_data.images.first().unwrap();
         let base_x: u32 = base_width * idx as u32;
         for x in 0..image.width() {
             for y in 0..image.height() {
