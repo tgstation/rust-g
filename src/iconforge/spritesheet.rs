@@ -42,11 +42,13 @@ pub struct HeadlessResult {
 
 fn headless_error(error: String, errors: Option<&Vec<String>>) -> HeadlessResult {
     let mut errors_out = error;
-    if errors.is_some() && !errors.unwrap().is_empty() {
-        errors_out = format!(
-            "{errors_out} \nAdditional errors: \n{}",
-            errors.unwrap().join("\n")
-        );
+    match errors {
+        Some(error) => {
+            if !error.is_empty() {
+                errors_out = format!("{errors_out} \nAdditional errors: \n{}", error.join("\n"))
+            }
+        }
+        None => (),
     }
     HeadlessResult {
         file_path: None,
