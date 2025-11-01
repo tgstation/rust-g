@@ -8,9 +8,7 @@ data = [ ["delta", "phi"] ]
 temp_targets = { cpu = 79, case = 72 }
 "}
 
-var/test_json = @{"
-{"database":{"data":[["delta","phi"]],"enabled":1,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}
-"}
+var/test_json = @{"{"database":{"data":[["delta","phi"]],"enabled":1,"ports":[8000,25565],"temp_targets":{"case":72,"cpu":79}}}"}
 
 /test/proc/check_toml_file2json()
     rustg_file_write(test_toml, "tmp/test.toml")
@@ -18,8 +16,8 @@ var/test_json = @{"
     var/toml_output = rustg_read_toml_file("tmp/test.toml")
     fdel("tmp/test.toml")
 
-    if (toml_output ~! json_decode(test_json))
-        CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
+    if (json_encode(toml_output) != test_json)
+        CRASH("\ntest file2json:\n[test_toml]\n\nexpected:\n[test_json]\n\nrustg:\n[json_encode(toml_output)]\n")
 
 /test/proc/check_rustg_toml_encode()
     var/json_value = json_decode(test_json)
@@ -27,5 +25,5 @@ var/test_json = @{"
     var/toml_output = rustg_read_toml_file("tmp/test_encode.toml")
     fdel("tmp/test_encode.toml")
 
-    if (toml_output ~! json_value)
-        CRASH("test:\n[test_toml]\n \nexpected:\n[test_json]\n \nrustg:\n[json_encode(toml_output)]")
+    if (json_encode(toml_output) != test_json)
+        CRASH("\ntest toml_encode:\n[test_json]\n\nexpected:\n[test_json]\n\nrustg:\n[json_encode(toml_output)]\n")

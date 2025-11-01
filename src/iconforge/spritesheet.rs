@@ -346,7 +346,7 @@ fn create_png_image(
     base_width: u32,
     base_height: u32,
     sprite_entries: &Vec<(&String, &UniversalIcon)>,
-) -> Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, String> {
+) -> Result<RgbaImage, String> {
     zone!("create_png_image");
     let mut final_image = RgbaImage::new(base_width * sprite_entries.len() as u32, base_height);
     for (idx, sprite_entry) in sprite_entries.iter().enumerate() {
@@ -361,7 +361,7 @@ fn create_png_image(
         if image_data.images.len() > 1 {
             return Err(format!("More than one image (non-flattened) sprite {sprite_name} in PNG spritesheet for icon {icon}!"));
         }
-        let image = image_data.images.first().unwrap().to_rgba8();
+        let image = image_data.images.first().unwrap();
         let base_x: u32 = base_width * idx as u32;
         for x in 0..image.width() {
             for y in 0..image.height() {
