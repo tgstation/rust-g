@@ -123,12 +123,12 @@ pub fn set_panic_hook() {
 #[allow(dead_code)] // Used depending on feature set
 /// Utility for BYOND functions to catch panic unwinds safely and return a Result<String, Error>, as expected.
 /// Usage: catch_panic(|| internal_safe_function(arguments))
-pub fn catch_panic<F>(f: F) -> Result<String, Error>
+pub fn catch_panic<F, R>(f: F) -> Result<R, Error>
 where
-    F: FnOnce() -> Result<String, Error> + std::panic::UnwindSafe,
+    F: FnOnce() -> R + std::panic::UnwindSafe,
 {
     match std::panic::catch_unwind(f) {
-        Ok(o) => o,
+        Ok(o) => Ok(o),
         Err(e) => {
             let message: Option<String> = e
                 .downcast_ref::<&'static str>()
