@@ -4,7 +4,7 @@ use dmi::{
     icon::{Icon, Looping},
 };
 use image::Rgba;
-use png::{Decoder, Encoder, OutputInfo, Reader, text_metadata::ZTXtChunk};
+use png::{text_metadata::ZTXtChunk, Decoder, Encoder, OutputInfo, Reader};
 use qrcode::{render::svg, QrCode};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
