@@ -26,7 +26,7 @@ fn gen_dbp_noise(
         lower_range,
         upper_range,
     );
-    let mut result = String::new();
+    let mut result = String::with_capacity(world_size * world_size);
     for row in map {
         for cell in row {
             result.push(if cell { '1' } else { '0' });
