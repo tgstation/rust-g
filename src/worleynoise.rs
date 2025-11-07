@@ -163,7 +163,7 @@ impl NoiseCellMap {
             .collect::<Vec<NoiseCellRegion>>();
         let full_size = self.reg_amt as usize * self.reg_size as usize;
         let mut final_vec: Vec<Vec<bool>> = Vec::with_capacity(full_size);
-        for _ in 0..self.reg_amt * self.reg_size {
+        for _ in 0..full_size {
             final_vec.push(vec![false; full_size]);
         }
         new_data.into_iter().for_each(|reg| {
