@@ -88,7 +88,7 @@ impl NoiseCellMap {
             // this amount of nodes scales inversely to range.
             {
                 let mut write_guard = node_counter.write().unwrap();
-                if (*write_guard < RANGE) && prob.sample(&mut rng) {
+                if (*write_guard < RANGE) && !prob.sample(&mut rng) {
                     *write_guard += 1;
                     return;
                 }
