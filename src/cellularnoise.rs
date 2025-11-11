@@ -1,7 +1,6 @@
 use crate::error::Result;
-use rand::prelude::*;
+use rand::distr::{Bernoulli, Distribution};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use std::fmt::Write;
 
 byond_fn!(fn cnoise_generate(percentage, smoothing_iterations, birth_limit, death_limit, width, height) {
     noise_gen(percentage, smoothing_iterations, birth_limit, death_limit, width, height).ok()
@@ -21,6 +20,9 @@ fn noise_gen(
     let death_limit = death_limit_as_str.parse::<usize>()?;
     let width = width_as_str.parse::<usize>()?;
     let height = height_as_str.parse::<usize>()?;
+
+    let prob = Bernoulli::new((percentage as f64 / 100.0).clamp(0.0, 1.0)).unwrap(); // unwrap is safe bc we clamp to 0-1 anyways
+
     //we populate it, from 0 to height+3, 0 to height+1 is exactly height long, but we also need border guards, so we add another +2, so it is 0..height+3
     let mut filled_vec = (0..width + 3)
         .into_par_iter()
@@ -31,7 +33,7 @@ fn noise_gen(
                     if x == 0 || y == 0 || x == width + 2 || y == height + 2 {
                         return false;
                     }
-                    rng.random_range(0..100) < percentage
+                    prob.sample(&mut rng)
                 })
                 .collect::<Vec<bool>>()
         })
@@ -80,14 +82,10 @@ fn noise_gen(
         })
         .collect::<Vec<Vec<bool>>>();
 
-    let mut string = String::new();
+    let mut string = String::with_capacity(width * height);
     for row in map.iter() {
         for cell in row.iter() {
-            if *cell {
-                let _ = write!(string, "1");
-            } else {
-                let _ = write!(string, "0");
-            }
+            string.push(if *cell { '1' } else { '0' });
         }
     }
 
