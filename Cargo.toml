@@ -1,7 +1,7 @@
 [package]
 name = "rust-g"
 edition = "2021" # do this during next breaking change
-version = "4.1.0"
+version = "4.2.0"
 authors = [
     "rust-g maintainer team",                   # current maintainers
     "Bjorn Neergaard <bjorn@neersighted.com>",  # original author
