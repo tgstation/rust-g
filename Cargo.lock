@@ -124,6 +124,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b7e4c2464d97fe331d41de9d5db0def0a96f4d823b8b32a2efd503578988973"
 
 [[package]]
+name = "base32"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "022dfe9eb35f19ebbcb51e0b40a5ab759f46ad60cadf7297e0bd085afb50e076"
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2868,6 +2874,7 @@ version = "4.2.0"
 dependencies = [
  "aho-corasick",
  "ammonia",
+ "base32",
  "base64",
  "caith",
  "chrono",
@@ -2880,6 +2887,7 @@ dependencies = [
  "flume",
  "gix",
  "hex",
+ "hmac",
  "image",
  "indexmap",
  "md-5",
@@ -2893,6 +2901,7 @@ dependencies = [
  "png",
  "qrcode",
  "rand 0.9.2",
+ "rand_chacha 0.9.0",
  "rayon",
  "redis",
  "regex",
