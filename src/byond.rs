@@ -100,7 +100,7 @@ pub fn set_panic_hook() {
     SET_HOOK.call_once(|| {
         let default_panic_handler = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |panic_info| {
-            default_panic_handler(&panic_info);
+            default_panic_handler(panic_info);
             let mut file = match OpenOptions::new()
                 .append(true)
                 .create(true)
@@ -138,7 +138,6 @@ pub fn set_panic_hook() {
                 Ok(_) => {}
                 Err(err) => {
                     eprintln!("panic_hook: Failed to extract backtrace: {err:?}");
-                    return;
                 }
             };
         }))
