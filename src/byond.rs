@@ -122,24 +122,24 @@ pub fn set_panic_hook() {
                 Some(pl) => pl,
                 None => {
                     eprintln!("panic_hook: Failed to extract panic payload");
-                    return
+                    return;
                 }
             };
 
             match file.write_all(payload.as_bytes()) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(err) => {
                     eprintln!("panic_hook: Failed to write error payload: {err:?}");
-                    return
-                },
+                    return;
+                }
             };
 
             match file.write_all(Backtrace::capture().to_string().as_bytes()) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(err) => {
                     eprintln!("panic_hook: Failed to extract backtrace: {err:?}");
-                    return
-                },
+                    return;
+                }
             };
         }))
     });
