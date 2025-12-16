@@ -98,24 +98,48 @@ byond_fn!(
 /// Print any panics before exiting.
 pub fn set_panic_hook() {
     SET_HOOK.call_once(|| {
-        std::panic::set_hook(Box::new(|panic_info| {
-            let mut file = OpenOptions::new()
+        let default_panic_handler = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |panic_info| {
+            default_panic_handler(panic_info);
+            let mut file = match OpenOptions::new()
                 .append(true)
                 .create(true)
                 .open("rustg-panic.log")
-                .unwrap();
-            file.write_all(
-                panic_info
-                    .payload()
-                    .downcast_ref::<&'static str>()
-                    .map(|payload| payload.to_string())
-                    .or_else(|| panic_info.payload().downcast_ref::<String>().cloned())
-                    .unwrap()
-                    .as_bytes(),
-            )
-            .expect("Failed to extract error payload");
-            file.write_all(Backtrace::capture().to_string().as_bytes())
-                .expect("Failed to extract error backtrace");
+            {
+                Ok(file) => file,
+                Err(res) => {
+                    eprintln!("panic_hook: Cannot open file: {res:?}");
+                    return;
+                }
+            };
+
+            let payload = match panic_info
+                .payload()
+                .downcast_ref::<&'static str>()
+                .map(|payload| payload.to_string())
+                .or_else(|| panic_info.payload().downcast_ref::<String>().cloned())
+            {
+                Some(pl) => pl,
+                None => {
+                    eprintln!("panic_hook: Failed to extract panic payload");
+                    return;
+                }
+            };
+
+            match file.write_all(payload.as_bytes()) {
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!("panic_hook: Failed to write error payload: {err:?}");
+                    return;
+                }
+            };
+
+            match file.write_all(Backtrace::capture().to_string().as_bytes()) {
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!("panic_hook: Failed to extract backtrace: {err:?}");
+                }
+            };
         }))
     });
 }
