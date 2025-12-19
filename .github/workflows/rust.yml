@@ -18,7 +18,15 @@ jobs:
       - name: Install BYOND
         run: |
           bash scripts/install_byond.sh
-          echo "BYOND_BIN=$HOME/BYOND/byond/bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Get-ChildItem -Path "$env:USERPROFILE\BYOND" -Recurse | Where-Object { $_.Name -match '\.(exe|dll)$' } | Select-Object FullName
+          if (Test-Path "$env:USERPROFILE\BYOND\bin") {
+            echo "BYOND_BIN=$env:USERPROFILE\BYOND\bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } elseif (Test-Path "$env:USERPROFILE\BYOND\byond\bin") {
+            echo "BYOND_BIN=$env:USERPROFILE\BYOND\byond\bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            Write-Error "Could not find BYOND bin directory"
+            exit 1
+          }
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
