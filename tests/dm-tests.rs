@@ -85,7 +85,7 @@ where
         }
         command(&mut Command::new(&windows_full))
             .output()
-            .expect(&format!("Failed to execute BYOND command: {}", windows_full))
+            .unwrap_or_else(|_| panic!("Failed to execute BYOND command: {}", windows_full))
     }
 }
 
