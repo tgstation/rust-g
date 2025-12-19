@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Detect OS
-if [[ "$OSTYPE" == "win32" ]]; then
+# In GitHub Actions Windows runners with Git Bash, OSTYPE is "msys"
+if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "win32" ]]; then
     IS_WINDOWS=1
     BYOND_SUFFIX=""
 else
