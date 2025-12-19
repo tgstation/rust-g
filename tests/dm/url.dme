@@ -24,5 +24,5 @@
     check_decode("R%c3%a9sum%c3%a9")
     check_decode("https%3a%2f%2fexample.com%2f%3ffoo%3dbar%2bbaz%26bar%5b%5d%3dbaz%23foo")
 
-    check_decode("a+b=c%20d&e#f=g")
+    check_decode("a+b=c%20d&e%23f=g")
     check_decode("%2b=")

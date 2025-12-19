@@ -50,7 +50,7 @@ fn test_librs() -> Result<(), String> {
 #[test]
 fn test_cargotoml() -> Result<(), String> {
     let cargotoml = std::fs::read_to_string("Cargo.toml").unwrap();
-    let blocksre = RegexBuilder::new(r"^# default features\r?\n((:?^.+?\r?\n)*)\r?\n# additional features\r?\n((:?^.+?\r?\n)*)\r?\n#").multi_line(true).build().unwrap();
+    let blocksre = RegexBuilder::new(r"^# default features\r?\n((:?^[^#\r\n]+?\r?\n)*)\r?\n# additional features\r?\n((:?^[^#\r\n]+?\r?\n)*)\r?\n#").multi_line(true).build().unwrap();
     let linesre = RegexBuilder::new(r"^(\w.+?)$")
         .multi_line(true)
         .build()

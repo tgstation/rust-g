@@ -1,4 +1,8 @@
 // #![forbid(unsafe_op_in_unsafe_fn)] - see github.com/rust-lang/rust/issues/121483
+#![cfg_attr(
+    all(windows, not(all(target_vendor = "pc", target_env = "msvc"))),
+    allow(clippy::missing_const_for_thread_local)
+)] // see https://github.com/rust-lang/rust-clippy/issues/13422
 
 #[macro_use]
 mod byond;
@@ -14,6 +18,8 @@ pub mod acreplace;
 pub mod cellularnoise;
 #[cfg(feature = "dbpnoise")]
 pub mod dbpnoise;
+#[cfg(feature = "dice")]
+pub mod dice;
 #[cfg(feature = "dmi")]
 pub mod dmi;
 #[cfg(feature = "file")]
@@ -31,7 +37,7 @@ pub mod json;
 #[cfg(feature = "log")]
 pub mod log;
 #[cfg(feature = "noise")]
-pub mod noise_gen;
+pub mod noise;
 #[cfg(feature = "pathfinder")]
 pub mod pathfinder;
 #[cfg(feature = "poissonnoise")]
@@ -42,6 +48,8 @@ pub mod redis_pubsub;
 pub mod redis_reliablequeue;
 #[cfg(feature = "sanitize")]
 pub mod sanitize;
+#[cfg(feature = "sound_len")]
+pub mod sound_len;
 #[cfg(feature = "sql")]
 pub mod sql;
 #[cfg(feature = "time")]
@@ -52,8 +60,12 @@ pub mod toml;
 pub mod unzip;
 #[cfg(feature = "url")]
 pub mod url;
+#[cfg(feature = "uuid")]
+pub mod uuid;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
 
-#[cfg(not(target_pointer_width = "32"))]
-compile_error!("rust-g must be compiled for a 32-bit target");
+#[cfg(all(not(target_pointer_width = "32"), not(feature = "allow_non_32bit")))]
+compile_error!(
+    "Compiling for non-32bit is not allowed without enabling the `allow_non_32bit` feature."
+);

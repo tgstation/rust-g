@@ -1,16 +1,16 @@
 [package]
 name = "rust-g"
-edition = "2021"
-version = "3.3.0"
+edition = "2021" # do this during next breaking change
+version = "4.2.0"
 authors = [
-    "Bjorn Neergaard <bjorn@neersighted.com>",
-    "Tad Hardesty <tad@platymuus.com>",
-    "rust-g maintainer team",
+    "rust-g maintainer team",                   # current maintainers
+    "Bjorn Neergaard <bjorn@neersighted.com>",  # original author
+    "Tad Hardesty <tad@platymuus.com>",         # original author
 ]
 repository = "https://github.com/tgstation/rust-g"
 license = "MIT"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
-rust-version = "1.70"
+rust-version = "1.81" # do this during next breaking change
 
 [lib]
 crate-type = ["cdylib"]
@@ -22,50 +22,66 @@ lto = true
 debug = true
 
 [dependencies]
-thiserror = "1.0"
+thiserror = "2.0"
 flume = { version = "0.11", optional = true }
 chrono = { version = "0.4", optional = true }
 base64 = { version = "0.22", optional = true }
 md-5 = { version = "0.10", optional = true }
-twox-hash = { version = "1.6", optional = true }
+twox-hash = { version = "2.1", optional = true }
 const-random = { version = "0.1.18", optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
 hex = { version = "0.4", optional = true }
 percent-encoding = { version = "2.3", optional = true }
 url-dep = { version = "2.5", package = "url", optional = true }
-png = { version = "0.17", optional = true }
+png = { version = "0.18", optional = true }
 image = { version = "0.25", optional = true, default-features = false, features = [
     "png",
 ] }
-gix = { version = "0.63", optional = true, default-features = false, features = [
+gix = { version = "0.74", optional = true, default-features = false, features = [
     "revision",
     "max-performance-safe",
 ] }
 noise = { version = "0.9", optional = true }
-redis = { version = "0.25", optional = true }
-reqwest = { version = "0.12", optional = true, default-features = false, features = [
-    "blocking",
-    "rustls-tls",
-] }
+redis = { version = "0.32", optional = true, features = ["ahash"] }
+ureq = { version = "2.12", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
-serde_json = { version = "1.0", optional = true }
-lazy_static = { version = "1.4", optional = true }
-once_cell = { version = "1.19", optional = true }
-mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v25.0.1", default-features = false, optional = true }
-dashmap = { version = "5.5", optional = true, features = ["rayon", "serde"] }
-zip = { version = "2.1.1", optional = true }
-rand = { version = "0.8", optional = true }
-toml-dep = { version = "0.8.13", package = "toml", optional = true }
+serde_json = { version = "1.0", optional = true, features = ["preserve_order"] }
+serde_repr = { version = "0.1", optional = true }
+once_cell = { version = "1.21", optional = true }
+mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
+dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
+zip = { version = "6.0", optional = true }
+rand = { version = "0.9", optional = true }
+toml-dep = { version = "0.9.8", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
-rayon = { version = "1.10", optional = true }
+rayon = { version = "1.11", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
-pathfinding = { version = "4.9", optional = true }
+pathfinding = { version = "4.14", optional = true }
 num-integer = { version = "0.1.46", optional = true }
-dmi = { version = "0.3.5", optional = true }
-tracy_full = { version = "1.8.0", optional = true }
-ammonia = { version = "4.0.0", optional = true }
-fast_poisson = { version = "0.5.2", optional = true, features = ["single_precision"]} # Higher versions have problems with x86 due to 'kiddo'.
+dmi = { version = "0.5.0", optional = true }
+tracy_full = { version = "1.12.0", optional = true }
+ammonia = { version = "4.1", optional = true }
+fast_poisson = { version = "1.0.2", optional = true, features = [
+    "single_precision",
+] }
+symphonia = { version = "0.5.5", optional = true, features = ["all-codecs"] }
+caith = { version = "4.2.4", optional = true }
+uuid = { version = "1.18", optional = true, features = [
+    "v4",
+    "v7",
+    "fast-rng",
+] }
+cuid2 = { version = "0.1.4", optional = true }
+rand_chacha = { version = "0.9.0", optional = true }
+hmac = { version = "0.12.1", optional = true }
+base32 = { version = "0.5.1", optional = true }
+indexmap = { version = "2.11.4", optional = true, features = [
+    "serde",
+    "rayon",
+] }
+ordered-float = { version = "5.1.0", optional = true, features = ["serde"] }
+qrcode = { version = "0.14.1", optional = true, features = ["image", "svg"]}
 
 [features]
 default = [
@@ -75,12 +91,16 @@ default = [
     "dmi",
     "file",
     "git",
+    "hash",
     "http",
+    "iconforge",
     "json",
     "log",
     "noise",
+    "pathfinder",
     "rustls_tls",
     "sanitize",
+    "sound_len",
     "sql",
     "time",
     "toml",
@@ -92,20 +112,23 @@ all = [
     "batchnoise",
     "cellularnoise",
     "dmi",
+    "dice",
     "file",
     "git",
+    "hash",
     "http",
+    "iconforge",
     "json",
     "log",
     "noise",
     "rustls_tls",
     "sanitize",
+    "sound_len",
     "sql",
     "time",
     "toml",
     "url",
-    "hash",
-    "iconforge",
+    "uuid",
     "pathfinder",
     "poissonnoise",
     "redis_pubsub",
@@ -118,37 +141,34 @@ all = [
 acreplace = ["aho-corasick"]
 batchnoise = ["dbpnoise"]
 cellularnoise = ["rand", "rayon"]
-dmi = ["png", "image", "dep:dmi"]
+dmi = ["png", "image", "qrcode", "serde_repr"]
 file = []
 git = ["gix", "chrono"]
-http = ["reqwest", "serde", "serde_json", "once_cell", "jobs"]
-json = ["serde", "serde_json"]
-log = ["chrono"]
-sanitize = ["ammonia", "serde_json"]
-sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
-time = []
-toml = ["serde", "serde_json", "toml-dep"]
-url = ["url-dep", "percent-encoding"]
-
-# additional features
 hash = [
+    "base32",
     "base64",
     "const-random",
     "md-5",
     "hex",
+    "hmac",
+    "rand",
+    "rand_chacha",
     "sha-1",
     "sha2",
     "twox-hash",
     "serde",
     "serde_json",
 ]
+http = ["ureq", "serde", "serde_json", "once_cell", "jobs"]
 iconforge = [
     "dashmap",
     "dep:dmi",
     "hash",
     "image",
+    "indexmap",
     "jobs",
     "once_cell",
+    "ordered-float",
     "png",
     "rayon",
     "serde",
@@ -156,6 +176,18 @@ iconforge = [
     "tracy_full",
     "twox-hash",
 ]
+json = ["serde", "serde_json"]
+log = ["chrono"]
+sanitize = ["ammonia", "serde_json"]
+sound_len = ["symphonia"]
+sql = ["mysql", "serde", "serde_json", "once_cell", "dashmap", "jobs"]
+time = ["chrono"]
+toml = ["serde", "serde_json", "toml-dep"]
+url = ["url-dep", "percent-encoding"]
+uuid = ["dep:uuid", "cuid2"]
+
+# additional features
+dice = ["caith"]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 poissonnoise = ["fast_poisson"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
@@ -164,11 +196,12 @@ unzip = ["zip", "jobs"]
 worleynoise = ["rand", "rayon"]
 
 # Use the native tls stack for the mysql db
-native_tls = ["mysql/default"]
-rustls_tls = ["mysql/default-rustls"]
+native_tls = ["mysql/default", "mysql/native-tls"]
+rustls_tls = ["mysql/default-rust", "mysql/rustls-tls-ring"]
 
 # internal feature-like things
 jobs = ["flume"]
+allow_non_32bit = []
 
 [dev-dependencies]
 regex = "1"

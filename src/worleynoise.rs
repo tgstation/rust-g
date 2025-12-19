@@ -1,8 +1,10 @@
 use crate::error::Result;
 use core::panic;
-use rand::prelude::*;
+use rand::{
+    distr::{Bernoulli, Distribution},
+    Rng,
+};
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
-use std::fmt::Write;
 use std::{
     collections::HashSet,
     sync::{Arc, RwLock},
@@ -43,15 +45,10 @@ fn worley_noise(
         row.truncate(size);
     });
 
-    let mut output = String::new();
-
+    let mut output = String::with_capacity(size * size);
     for row in map {
         for cell in row {
-            if cell {
-                let _ = write!(output, "1");
-            } else {
-                let _ = write!(output, "0");
-            }
+            output.push(if cell { '1' } else { '0' });
         }
     }
     Ok(output)
@@ -65,15 +62,16 @@ struct NoiseCellMap {
 impl NoiseCellMap {
     fn new(reg_size: i32, reg_amt: i32) -> Self {
         let mut noise_cell_map = NoiseCellMap {
-            reg_vec: Vec::new(),
+            reg_vec: Vec::with_capacity(reg_amt as usize),
             reg_size,
             reg_amt,
         };
         for x in 0..reg_amt {
-            noise_cell_map.reg_vec.push(Vec::new());
+            let mut reg = Vec::with_capacity(reg_amt as usize);
             for y in 0..reg_amt {
-                noise_cell_map.reg_vec[x as usize].push(NoiseCellRegion::new((x, y), reg_size));
+                reg.push(NoiseCellRegion::new((x, y), reg_size));
             }
+            noise_cell_map.reg_vec.push(reg);
         }
         noise_cell_map
     }
@@ -83,22 +81,23 @@ impl NoiseCellMap {
         node_max = node_min.max(node_max);
         let node_counter: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
         let reg_size = self.reg_size;
+        let prob = Bernoulli::new((node_chance as f64 / 100.0).clamp(0.0, 1.0)).unwrap(); // unwrap is safe bc we clamp to 0-1 anyways
         self.reg_vec.par_iter_mut().flatten().for_each(|region| {
-            let mut rng = ThreadRng::default();
+            let mut rng = rand::rng();
             // basically, to make sure the algorithm works optimally or rather works at all without panicing we have to ensure we spawn at least some nodes
             // this amount of nodes scales inversely to range.
             {
                 let mut write_guard = node_counter.write().unwrap();
-                if (*write_guard < RANGE) && rng.gen_range(0..100) > node_chance {
+                if (*write_guard < RANGE) && !prob.sample(&mut rng) {
                     *write_guard += 1;
                     return;
                 }
                 *write_guard = 0;
             }
 
-            let amt = rng.gen_range(node_min..node_max);
+            let amt = rng.random_range(node_min..node_max);
             for _ in 0..amt {
-                let coord = (rng.gen_range(0..reg_size), rng.gen_range(0..reg_size));
+                let coord = (rng.random_range(0..reg_size), rng.random_range(0..reg_size));
                 region.insert_node(coord);
             }
         });
@@ -162,12 +161,10 @@ impl NoiseCellMap {
                 edit_region
             })
             .collect::<Vec<NoiseCellRegion>>();
-        let mut final_vec: Vec<Vec<bool>> = Vec::new();
-        for x in 0..self.reg_amt * self.reg_size {
-            final_vec.push(Vec::new());
-            for _ in 0..self.reg_amt * self.reg_size {
-                final_vec[x as usize].push(false);
-            }
+        let full_size = self.reg_amt as usize * self.reg_size as usize;
+        let mut final_vec: Vec<Vec<bool>> = Vec::with_capacity(full_size);
+        for _ in 0..full_size {
+            final_vec.push(vec![false; full_size]);
         }
         new_data.into_iter().for_each(|reg| {
             for x in 0..reg.reg_size {
@@ -192,16 +189,15 @@ struct NoiseCellRegion {
 impl NoiseCellRegion {
     fn new(reg_coordinates: (i32, i32), reg_size: i32) -> Self {
         let mut noise_cell_region = NoiseCellRegion {
-            cell_vec: Vec::new(),
+            cell_vec: Vec::with_capacity(reg_size as usize),
             node_set: HashSet::new(),
             reg_coordinates,
             reg_size,
         };
-        for x in 0..reg_size {
-            noise_cell_region.cell_vec.push(Vec::new());
-            for _ in 0..reg_size {
-                noise_cell_region.cell_vec[x as usize].push(false);
-            }
+        for _ in 0..reg_size {
+            noise_cell_region
+                .cell_vec
+                .push(vec![false; reg_size as usize]);
         }
         noise_cell_region
     }
