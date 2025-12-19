@@ -29,11 +29,11 @@ byond_fn!(fn hash_string(algorithm, string) {
 });
 
 byond_fn!(fn decode_base64(string) {
-    Some(base64::prelude::BASE64_STANDARD.decode(string).unwrap())
+    base64::prelude::BASE64_STANDARD.decode(string).ok()
 });
 
 byond_fn!(fn decode_base32(string, padding) {
-    Some(base32::decode(base32::Alphabet::Rfc4648 { padding: padding == "1" }, string).unwrap())
+    base32::decode(base32::Alphabet::Rfc4648 { padding: padding == "1" }, string)
 });
 
 byond_fn!(fn hash_file(algorithm, string) {
