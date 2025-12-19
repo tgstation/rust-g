@@ -1,29 +1,29 @@
 use chrono::{TimeZone, Utc};
-use gix::{open::Error as OpenError, Repository};
 use std::{fs, path::Path};
 
-thread_local! {
-    static REPOSITORY: Result<Repository, OpenError> = gix::open(".");
-}
-
 byond_fn!(fn rg_git_revparse(rev) {
-    REPOSITORY.with(|repo| -> Option<String> {
-        let repo = repo.as_ref().ok()?;
-        let object = repo.rev_parse_single(rev).ok()?;
-        Some(object.to_string())
-    })
+    let repository = match gix::open(".") {
+        Ok(repo) => repo,
+        Err(err) => {
+            return Some(format!("failed to open repository: {}", err));
+        }
+    };
+    repository.rev_parse_single(rev).ok().map(|object| object.to_string())
 });
 
 byond_fn!(fn rg_git_commit_date(rev, format) {
-    REPOSITORY.with(|repo| -> Option<String> {
-        let repo = repo.as_ref().ok()?;
-        let rev = repo.rev_parse_single(rev).ok()?;
-        let object = rev.object().ok()?;
-        let commit = object.try_into_commit().ok()?;
-        let commit_time = commit.committer().ok()?.time;
-        let datetime = Utc.timestamp_opt(commit_time.seconds, 0).latest()?;
-        Some(datetime.format(format).to_string())
-    })
+    let repository = match gix::open(".") {
+        Ok(repo) => repo,
+        Err(err) => {
+            return Some(format!("failed to open repository: {}", err));
+        }
+    };
+    let rev = repository.rev_parse_single(rev).ok()?;
+    let object = rev.object().ok()?;
+    let commit = object.try_into_commit().ok()?;
+    let commit_time = commit.committer().ok()?.time;
+    let datetime = Utc.timestamp_opt(commit_time.seconds, 0).latest()?;
+    Some(datetime.format(format).to_string())
 });
 
 byond_fn!(fn rg_git_commit_date_head(format) {
@@ -35,11 +35,12 @@ byond_fn!(fn rg_git_commit_date_head(format) {
         return None;
     }
     let log_entries = fs::read_to_string(&head_log_path).ok()?;
-    let log_entries = log_entries.split('\n');
-    let last_entry = log_entries.last()?.split_ascii_whitespace().collect::<Vec<_>>();
+    let mut log_entries = log_entries.split('\n');
+    let last_entry = log_entries.next_back()?.split_ascii_whitespace().collect::<Vec<_>>();
     if last_entry.len() < 5 { // 5 is the timestamp
         return None;
     }
     let datetime = Utc.timestamp_opt(last_entry[4].parse().ok()?, 0).latest()?;
     Some(datetime.format(format).to_string())
 });
+ 
