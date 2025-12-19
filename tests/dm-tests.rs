@@ -117,7 +117,28 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
     let target_dir = if cfg!(target_os = "linux") {
         "i686-unknown-linux-gnu"
     } else {
-        "i686-pc-windows-msvc"
+        //TODO: Remove when win7 is finally deleted like it deserves
+        // Try both i686-win7-windows-msvc and i686-pc-windows-msvc
+        let win7_target = "i686-win7-windows-msvc";
+        let pc_target = "i686-pc-windows-msvc";
+
+        let profile = if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        };
+
+        let win7_path = format!("target/{win7_target}/{profile}/rust_g.dll");
+        let pc_path = format!("target/{pc_target}/{profile}/rust_g.dll");
+
+        if fs::exists(Path::new(&win7_path)).unwrap_or(false) {
+            win7_target
+        } else if fs::exists(Path::new(&pc_path)).unwrap_or(false) {
+            pc_target
+        } else {
+            // Default to pc target for error message
+            pc_target
+        }
     };
     let profile = if cfg!(debug_assertions) {
         "debug"
