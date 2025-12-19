@@ -75,8 +75,17 @@ where
             .output()
             .unwrap()
     } else {
-        let windows_full = format!("{byond_bin}/{windows}");
-        command(&mut Command::new(&windows_full)).output().unwrap()
+        let windows_full = format!("{byond_bin}/{windows}.exe");
+        let path = Path::new(&windows_full);
+        if !fs::exists(path).unwrap_or(false) {
+            panic!(
+                "BYOND executable not found at: {}\nBYOND_BIN is set to: {}\nPlease install BYOND or set the BYOND_BIN environment variable correctly.",
+                windows_full, byond_bin
+            );
+        }
+        command(&mut Command::new(&windows_full))
+            .output()
+            .expect(&format!("Failed to execute BYOND command: {}", windows_full))
     }
 }
 
