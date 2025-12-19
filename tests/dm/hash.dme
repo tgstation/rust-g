@@ -68,3 +68,26 @@ var/list/reference = list()
     for (var/entry in reference)
         check_hash_base32(entry, TRUE)
         check_hash_base32(entry, FALSE)
+
+/test/proc/test_invalid_base_decoding()
+    var/list/invalid_base64_inputs = list(
+        "abc",
+        "not base64!",
+        "Zm9vYmFy==="
+    )
+    for (var/input in invalid_base64_inputs)
+        var/output = rustg_decode_base64(input)
+        if (length(output))
+            CRASH("Invalid base64 decode should be empty | I: [input] | O: [output]")
+
+    var/list/invalid_base32_inputs = list(
+        "9119",
+        "NOTVALID!"
+    )
+    for (var/input in invalid_base32_inputs)
+        var/padded = rustg_decode_base32(input, TRUE)
+        if (length(padded))
+            CRASH("Invalid padded base32 decode should be empty | I: [input] | O: [padded]")
+        var/unpadded = rustg_decode_base32(input, FALSE)
+        if (length(unpadded))
+            CRASH("Invalid unpadded base32 decode should be empty | I: [input] | O: [unpadded]")
