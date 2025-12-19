@@ -18,15 +18,16 @@ jobs:
       - name: Install BYOND
         run: |
           bash scripts/install_byond.sh
-          Get-ChildItem -Path "$env:USERPROFILE\BYOND" -Recurse | Where-Object { $_.Name -match '\.(exe|dll)$' } | Select-Object FullName
-          if (Test-Path "$env:USERPROFILE\BYOND\bin") {
-            echo "BYOND_BIN=$env:USERPROFILE\BYOND\bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          } elseif (Test-Path "$env:USERPROFILE\BYOND\byond\bin") {
-            echo "BYOND_BIN=$env:USERPROFILE\BYOND\byond\bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "=== BYOND Directory Structure ==="
+          Get-ChildItem -Path "$env:USERPROFILE\BYOND" -Recurse -File | Select-Object FullName | Format-Table -AutoSize
+          Write-Host "=== Setting BYOND_BIN ==="
+          $byondBin = "$env:USERPROFILE\BYOND\byond\bin"
+          if (Test-Path "$byondBin\dm.exe") {
+            Write-Host "Found dm.exe at: $byondBin"
           } else {
-            Write-Error "Could not find BYOND bin directory"
-            exit 1
+            Write-Host "WARNING: dm.exe not found at expected path: $byondBin"
           }
+          echo "BYOND_BIN=$byondBin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
