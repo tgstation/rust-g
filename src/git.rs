@@ -41,4 +41,3 @@ byond_fn!(fn rg_git_commit_date_head(format) {
     let datetime = Utc.timestamp_opt(last_entry[4].parse().ok()?, 0).latest()?;
     Some(datetime.format(format).to_string())
 });
- 
