@@ -72,6 +72,16 @@ struct SpritesheetEntry {
 
 pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> HeadlessResult {
     zone!("generate_headless");
+
+    if file_path.is_empty() {
+        return headless_error("File path cannot be empty".to_string(), None);
+    }
+
+    // Check for absolute path attempts (starting with / or \)
+    if file_path.starts_with('/') || file_path.starts_with('\\') {
+        return headless_error(format!("Invalid file path: path cannot be absolute (starting with '/' or '\\'). Received: '{file_path}'"), None);
+    }
+
     let generate_dmi: bool = file_path.ends_with(".dmi");
     if !generate_dmi && !file_path.ends_with(".png") {
         return headless_error(format!("Invalid file extension for headless icon. Must be '.dmi' or '.png'. Received file path: '{file_path}'"), None);
