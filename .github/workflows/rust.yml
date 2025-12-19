@@ -17,17 +17,47 @@ jobs:
 
       - name: Install BYOND
         run: |
+          Write-Host "=== Starting BYOND Installation ==="
           bash scripts/install_byond.sh
-          Write-Host "=== BYOND Directory Structure ==="
-          Get-ChildItem -Path "$env:USERPROFILE\BYOND" -Recurse -File | Select-Object FullName | Format-Table -AutoSize
-          Write-Host "=== Setting BYOND_BIN ==="
-          $byondBin = "$env:USERPROFILE\BYOND\byond\bin"
-          if (Test-Path "$byondBin\dm.exe") {
-            Write-Host "Found dm.exe at: $byondBin"
-          } else {
-            Write-Host "WARNING: dm.exe not found at expected path: $byondBin"
+          Write-Host "`n=== BYOND Installation Complete ==="
+          Write-Host "`n=== Full BYOND Directory Tree ==="
+          tree "$env:USERPROFILE\BYOND" /F /A
+          Write-Host "`n=== All Files in BYOND Directory ==="
+          Get-ChildItem -Path "$env:USERPROFILE\BYOND" -Recurse -File | ForEach-Object {
+            Write-Host "$($_.FullName) (Size: $($_.Length) bytes)"
           }
+          Write-Host "`n=== Checking Expected Paths ==="
+          $paths = @(
+            "$env:USERPROFILE\BYOND\bin",
+            "$env:USERPROFILE\BYOND\byond",
+            "$env:USERPROFILE\BYOND\byond\bin"
+          )
+          foreach ($path in $paths) {
+            if (Test-Path $path) {
+              Write-Host "✓ Directory exists: $path"
+              if (Test-Path "$path\dm.exe") {
+                Write-Host "  ✓ dm.exe found in this directory"
+              } else {
+                Write-Host "  ✗ dm.exe NOT found in this directory"
+              }
+              if (Test-Path "$path\dd.exe") {
+                Write-Host "  ✓ dd.exe found in this directory"
+              } else {
+                Write-Host "  ✗ dd.exe NOT found in this directory"
+              }
+            } else {
+              Write-Host "✗ Directory does NOT exist: $path"
+            }
+          }
+          Write-Host "`n=== Searching for BYOND Executables ==="
+          Get-ChildItem -Path "$env:USERPROFILE\BYOND" -Recurse -Filter "*.exe" | ForEach-Object {
+            Write-Host "Found EXE: $($_.FullName)"
+          }
+          Write-Host "`n=== Setting BYOND_BIN ==="
+          $byondBin = "$env:USERPROFILE\BYOND\byond\bin"
+          Write-Host "Setting BYOND_BIN to: $byondBin"
           echo "BYOND_BIN=$byondBin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Environment variable set"
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
