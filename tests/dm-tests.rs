@@ -170,9 +170,17 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
         Err(err) => panic!("Error accessing source rust_g path! {err}"),
     }
     let rustg_lib_path = format!("tests/dm/{rustg_lib_fname}");
-    let _ = fs::copy(&rustg_lib_source_path, &rustg_lib_path);
+    fs::copy(&rustg_lib_source_path, &rustg_lib_path)
+        .unwrap_or_else(|_| panic!("Failed to copy {} to {}", rustg_lib_source_path, rustg_lib_path));
+
     let rustg_dm_path = "tests/dm/rust_g.dm";
-    let _ = fs::copy("target/rust_g.dm", rustg_dm_path);
+    let rustg_dm_source = "target/rust_g.dm";
+    if !fs::exists(Path::new(rustg_dm_source)).unwrap_or(false) {
+        panic!("rust_g.dm source file does not exist at: {}", rustg_dm_source);
+    }
+    fs::copy(rustg_dm_source, rustg_dm_path)
+        .unwrap_or_else(|_| panic!("Failed to copy {} to {}", rustg_dm_source, rustg_dm_path));
+
     (rustg_lib_path, rustg_lib_fname, rustg_dm_path)
 }
 
