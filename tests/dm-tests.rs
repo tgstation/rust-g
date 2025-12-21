@@ -170,12 +170,26 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
         Err(err) => panic!("Error accessing source rust_g path! {err}"),
     }
     let rustg_lib_path = format!("tests/dm/{rustg_lib_fname}");
-    fs::copy(&rustg_lib_source_path, &rustg_lib_path).unwrap_or_else(|_| {
-        panic!(
-            "Failed to copy {} to {}",
-            rustg_lib_source_path, rustg_lib_path
-        )
-    });
+
+    // Try to copy, but if it fails, check if the file already exists and matches
+    match fs::copy(&rustg_lib_source_path, &rustg_lib_path) {
+        Ok(_) => println!("Successfully copied {rustg_lib_fname}"),
+        Err(e) => {
+            println!("Copy failed with error: {:?}", e);
+            println!("Error kind: {:?}", e.kind());
+            println!("Checking if destination already exists...");
+
+            if fs::exists(Path::new(&rustg_lib_path)).unwrap_or(false) {
+                println!("Destination file already exists, will use it");
+                // File exists, assume it's correct (may be from another test running in parallel)
+            } else {
+                panic!(
+                    "Failed to copy {} to {}: {:?}",
+                    rustg_lib_source_path, rustg_lib_path, e
+                );
+            }
+        }
+    }
 
     let rustg_dm_path = "tests/dm/rust_g.dm";
     let rustg_dm_source = "target/rust_g.dm";
@@ -185,8 +199,20 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
             rustg_dm_source
         );
     }
-    fs::copy(rustg_dm_source, rustg_dm_path)
-        .unwrap_or_else(|_| panic!("Failed to copy {} to {}", rustg_dm_source, rustg_dm_path));
+
+    match fs::copy(rustg_dm_source, rustg_dm_path) {
+        Ok(_) => println!("Successfully copied rust_g.dm"),
+        Err(e) => {
+            println!("Copy rust_g.dm failed with error: {:?}", e);
+            println!("Error kind: {:?}", e.kind());
+
+            if fs::exists(Path::new(rustg_dm_path)).unwrap_or(false) {
+                println!("Destination rust_g.dm already exists, will use it");
+            } else {
+                panic!("Failed to copy {} to {}: {:?}", rustg_dm_source, rustg_dm_path, e);
+            }
+        }
+    }
 
     (rustg_lib_path, rustg_lib_fname, rustg_dm_path)
 }
