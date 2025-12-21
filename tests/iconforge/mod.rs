@@ -18,7 +18,7 @@ fn iconforge() {
     // Generate icons for comparison
     run_dm_tests("iconforge", false);
     // Compare said icons
-    std::env::set_var("RUST_BACKTRACE", "1");
+    unsafe { std::env::set_var("RUST_BACKTRACE", "1") };
     let mut differences: Vec<String> = Vec::new();
     for entry in read_dir("tests/dm/tmp/").unwrap().flatten() {
         if let Some(file_name) = entry.file_name().to_str() {
@@ -42,7 +42,7 @@ fn iconforge() {
         }
     }
     // Compare headless icons with non-headless icons for sanity check
-    std::env::set_var("RUST_BACKTRACE", "1");
+    unsafe { std::env::set_var("RUST_BACKTRACE", "1") };
     let mut differences: Vec<String> = Vec::new();
     for entry in read_dir("tests/dm/tmp/").unwrap().flatten() {
         if let Some(file_name) = entry.file_name().to_str() {
