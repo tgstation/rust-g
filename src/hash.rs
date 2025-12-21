@@ -317,13 +317,13 @@ mod tests {
             2000000000,
             20000000000,
         ];
-        const TOTP_TEST_ALGORITHMS: [&'static str; 3] = ["sha1", "sha256", "sha512"];
-        const TOTP_TEST_SEEDS: [&'static str; 3] = [
+        const TOTP_TEST_ALGORITHMS: [&str; 3] = ["sha1", "sha256", "sha512"];
+        const TOTP_TEST_SEEDS: [&str; 3] = [
             "12345678901234567890",
             "12345678901234567890123456789012",
             "1234567890123456789012345678901234567890123456789012345678901234",
         ];
-        const TOTP_TEST_VALUES_TIME_ALGO: [[&'static str; 3]; 6] = [
+        const TOTP_TEST_VALUES_TIME_ALGO: [[&str; 3]; 6] = [
             ["94287082", "46119246", "90693936"],
             ["07081804", "68084774", "25091201"],
             ["14050471", "67062674", "99943326"],
@@ -341,7 +341,7 @@ mod tests {
                     .enumerate()
                     .for_each(|(algo_idx, (algo, seed))| {
                         let totp = totp_generate(
-                            *algo,
+                            algo,
                             &base32::encode(
                                 base32::Alphabet::Rfc4648 { padding: false }, // test it unpadded
                                 seed.as_bytes(),

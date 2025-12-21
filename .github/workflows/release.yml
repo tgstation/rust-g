@@ -57,8 +57,8 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            ./artifacts/windows/i686-win7-windows-msvc/release/rust_g.dll
-            ./artifacts/windows/i686-win7-windows-msvc/release/rust_g.pdb
+            ./artifacts/windows/i686-pc-windows-msvc/release/rust_g.dll
+            ./artifacts/windows/i686-pc-windows-msvc/release/rust_g.pdb
             ./artifacts/windows-x64/x86_64-pc-windows-msvc/release/rust_g64.dll
             ./artifacts/windows-x64/x86_64-pc-windows-msvc/release/rust_g64.pdb
             ./artifacts/linux/i686-unknown-linux-gnu/release/librust_g.so

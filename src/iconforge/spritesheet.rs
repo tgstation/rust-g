@@ -74,14 +74,13 @@ pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> Headl
     zone!("generate_headless");
 
     if file_path.is_empty() {
-        return headless_error("File path cannot be empty".to_string(), None);
+        return headless_error("Invalid file path: path cannot be empty".to_string(), None);
     }
 
-    // Check for absolute path attempts (starting with / or \)
-    if file_path.starts_with('/') || file_path.starts_with('\\') {
+    if file_path.contains("..") {
         return headless_error(
             format!(
-                "Invalid file path: path cannot be absolute (starting with '/' or '\\'). Received: '{file_path}'"
+                "Invalid file path: path cannot contain '..' (relative directory traversal). Received: '{file_path}'"
             ),
             None,
         );
@@ -91,7 +90,7 @@ pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> Headl
     if !generate_dmi && !file_path.ends_with(".png") {
         return headless_error(
             format!(
-                "Invalid file extension for headless icon. Must be '.dmi' or '.png'. Received file path: '{file_path}'"
+                "Invalid file extension for headless icon. Must be '.dmi' or '.png'. Received: '{file_path}'"
             ),
             None,
         );
