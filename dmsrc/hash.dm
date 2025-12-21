@@ -52,7 +52,8 @@
 
 /// Encode a given string into base64
 #define rustg_encode_base64(str) rustg_hash_string(RUSTG_HASH_BASE64, str)
-/// Decode a given base64 string
+/// Decode a given base64 string. This expects padding.
+/// Returns a blank string if the string is not valid base64.
 #define rustg_decode_base64(str) RUSTG_CALL(RUST_G, "decode_base64")(str)
 
 /// Encode a given string into base32 (RFC4648)
@@ -60,6 +61,7 @@
 #define rustg_encode_base32(str, padding) rustg_hash_string(padding ? RUSTG_HASH_BASE32_PADDED : RUSTG_HASH_BASE32, str)
 /// Decode a given base32 (RFC4648) string
 /// If padding set to FALSE, decoding will not support padding characters.
+/// Returns a blank string if the string is not valid base32.
 #define rustg_decode_base32(str, padding) RUSTG_CALL(RUST_G, "decode_base32")(str, "[padding ? 1 : 0]")
 
 #ifdef RUSTG_OVERRIDE_BUILTINS
