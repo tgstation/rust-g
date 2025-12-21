@@ -1,7 +1,7 @@
 [package]
 name = "rust-g"
 edition = "2021" # do this during next breaking change
-version = "4.2.0"
+version = "4.3.0"
 authors = [
     "rust-g maintainer team",                   # current maintainers
     "Bjorn Neergaard <bjorn@neersighted.com>",  # original author
@@ -23,7 +23,7 @@ debug = true
 
 [dependencies]
 thiserror = "2.0"
-flume = { version = "0.11", optional = true }
+flume = { version = "0.12", optional = true }
 chrono = { version = "0.4", optional = true }
 base64 = { version = "0.22", optional = true }
 md-5 = { version = "0.10", optional = true }
@@ -38,7 +38,7 @@ png = { version = "0.18", optional = true }
 image = { version = "0.25", optional = true, default-features = false, features = [
     "png",
 ] }
-gix = { version = "0.74", optional = true, default-features = false, features = [
+gix = { version = "0.75", optional = true, default-features = false, features = [
     "revision",
     "max-performance-safe",
 ] }
@@ -51,9 +51,9 @@ serde_repr = { version = "0.1", optional = true }
 once_cell = { version = "1.21", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
-zip = { version = "6.0", optional = true }
+zip = { version = "7.0", optional = true }
 rand = { version = "0.9", optional = true }
-toml-dep = { version = "0.9.8", package = "toml", optional = true }
+toml-dep = { version = "0.9.9", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
 rayon = { version = "1.11", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
@@ -67,7 +67,7 @@ fast_poisson = { version = "1.0.2", optional = true, features = [
 ] }
 symphonia = { version = "0.5.5", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
-uuid = { version = "1.18", optional = true, features = [
+uuid = { version = "1.19", optional = true, features = [
     "v4",
     "v7",
     "fast-rng",
