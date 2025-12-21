@@ -209,7 +209,10 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
             if fs::exists(Path::new(rustg_dm_path)).unwrap_or(false) {
                 println!("Destination rust_g.dm already exists, will use it");
             } else {
-                panic!("Failed to copy {} to {}: {:?}", rustg_dm_source, rustg_dm_path, e);
+                panic!(
+                    "Failed to copy {} to {}: {:?}",
+                    rustg_dm_source, rustg_dm_path, e
+                );
             }
         }
     }
