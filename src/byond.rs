@@ -54,7 +54,7 @@ pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
 #[macro_export]
 macro_rules! byond_fn {
     (fn $name:ident() $body:block) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
@@ -66,7 +66,7 @@ macro_rules! byond_fn {
     };
 
     (fn $name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
