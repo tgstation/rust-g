@@ -6,7 +6,7 @@ use dmi::{
 use image::RgbaImage;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{
-    fs::{read_dir, File},
+    fs::{File, read_dir},
     io::BufReader,
     path::Path,
     sync::{Arc, Mutex},
@@ -29,7 +29,9 @@ fn iconforge() {
             let rustg_path_str = format!("tests/dm/tmp/iconforge_rustg_{size}.dmi");
             let rustg_path = Path::new(&rustg_path_str);
             if !std::fs::exists(rustg_path).unwrap() {
-                panic!("Could not find corresponding iconforge_rustg_{size}.dmi for iconforge_dm_{size}.dmi!")
+                panic!(
+                    "Could not find corresponding iconforge_rustg_{size}.dmi for iconforge_dm_{size}.dmi!"
+                )
             }
             if let Some(diff) = compare_dmis(entry.path().as_path(), rustg_path) {
                 differences.push(format!(
@@ -55,7 +57,9 @@ fn iconforge() {
             let headless_path_str = format!("tests/dm/tmp/headless_iconforge_rustg_{size}.dmi");
             let headless_path = Path::new(&headless_path_str);
             if !std::fs::exists(headless_path).unwrap() {
-                panic!("Could not find corresponding headless_iconforge_rustg_{size}.dmi for iconforge_rustg_{size}.dmi!")
+                panic!(
+                    "Could not find corresponding headless_iconforge_rustg_{size}.dmi for iconforge_rustg_{size}.dmi!"
+                )
             }
             if let Some(diff) = compare_dmis(entry.path().as_path(), headless_path) {
                 differences.push(format!(

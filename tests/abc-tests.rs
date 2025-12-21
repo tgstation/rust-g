@@ -8,7 +8,7 @@ fn are_captures_sorted(matches: CaptureMatches, context: &str) -> Result<(), Str
         let capstring = cap.get(0).unwrap().as_str();
         match prev_string.cmp(capstring) {
             Ordering::Greater => {
-                return Err(format!("{} is not sorted in {}", &capstring, &context))
+                return Err(format!("{} is not sorted in {}", &capstring, &context));
             }
             _ => {
                 prev_string = capstring;

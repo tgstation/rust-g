@@ -1,13 +1,13 @@
 use crate::jobs;
 use dashmap::DashMap;
 use mysql::{
+    OptsBuilder, Params, Pool, PoolConstraints, PoolOpts,
     consts::{ColumnFlags, ColumnType::*},
     prelude::Queryable,
-    OptsBuilder, Params, Pool, PoolConstraints, PoolOpts,
 };
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use serde_json::{json, map::Map, Number};
+use serde_json::{Number, json, map::Map};
 use std::{collections::HashMap, sync::atomic::AtomicUsize};
 use std::{error::Error, time::Duration};
 

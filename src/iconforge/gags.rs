@@ -225,14 +225,18 @@ fn gags_internal(
     let gags_data = match GAGS_CACHE.get(config_path) {
         Some(config) => config,
         None => {
-            return Err(format!("Provided config_path {config_path} has not been loaded by iconforge_load_gags_config (from gags_internal)!"));
+            return Err(format!(
+                "Provided config_path {config_path} has not been loaded by iconforge_load_gags_config (from gags_internal)!"
+            ));
         }
     };
 
     let layer_groups = match gags_data.config.get(icon_state) {
         Some(data) => data,
         None => {
-            return Err(format!("Provided config_path {config_path} did not contain requested icon_state {icon_state} for reference type."));
+            return Err(format!(
+                "Provided config_path {config_path} did not contain requested icon_state {icon_state} for reference type."
+            ));
         }
     };
     {
@@ -311,7 +315,10 @@ fn generate_layer_groups_for_iconstate(
                     match layers.first().unwrap() {
                         GAGSLayerGroupOption::GAGSLayer(layer) => layer.get_blendmode(),
                         GAGSLayerGroupOption::GAGSLayerGroup(_) => {
-                            return Err(format!("Layer group began with another layer group in GAGS state {state_name} for GAGS config {} !", gags_data.config_path));
+                            return Err(format!(
+                                "Layer group began with another layer group in GAGS state {state_name} for GAGS config {} !",
+                                gags_data.config_path
+                            ));
                         }
                     },
                 )

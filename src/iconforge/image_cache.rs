@@ -1,8 +1,8 @@
 use super::universal_icon::{UniversalIcon, UniversalIconData};
 use dashmap::DashMap;
 use dmi::{
-    dirs::{Dirs, ALL_DIRS, CARDINAL_DIRS},
-    icon::{dir_to_dmi_index, Icon, IconState},
+    dirs::{ALL_DIRS, CARDINAL_DIRS, Dirs},
+    icon::{Icon, IconState, dir_to_dmi_index},
 };
 use image::RgbaImage;
 use once_cell::sync::Lazy;
@@ -54,7 +54,9 @@ impl UniversalIcon {
                 return Ok((entry.value().to_owned(), true));
             }
             if must_be_cached {
-                return Err(format!("Image was requested but does not exist in the cache. It's likely that the icon state doesn't exist: {self} - while generating '{sprite_name}'"));
+                return Err(format!(
+                    "Image was requested but does not exist in the cache. It's likely that the icon state doesn't exist: {self} - while generating '{sprite_name}'"
+                ));
             }
         }
         let dmi = filepath_to_dmi(&self.icon_file)?;
@@ -92,7 +94,8 @@ impl UniversalIcon {
                             || (state.dirs == 8 && !ALL_DIRS.contains(&dir))
                         {
                             return Err(format!(
-                                "Dir specified {dir} is not in the set of valid dirs ({} dirs) for icon_state \"{}\" for {sprite_name}", state.dirs, state.name
+                                "Dir specified {dir} is not in the set of valid dirs ({} dirs) for icon_state \"{}\" for {sprite_name}",
+                                state.dirs, state.name
                             ));
                         }
                         match dir_to_dmi_index(&dir) {
@@ -151,7 +154,9 @@ impl UniversalIcon {
                 {
                     Some(image) => images.push(image.clone()),
                     None => {
-                        return Err(format!("Somehow got out of bounds image for dir {dir_index} and frame {frame_offset} on {sprite_name}!"));
+                        return Err(format!(
+                            "Somehow got out of bounds image for dir {dir_index} and frame {frame_offset} on {sprite_name}!"
+                        ));
                     }
                 }
             }

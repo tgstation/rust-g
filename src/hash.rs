@@ -4,7 +4,7 @@ use const_random::const_random;
 const XXHASH_SEED: u64 = const_random!(u64);
 use hmac::{Hmac, Mac};
 use md5::Md5;
-use rand::{distr::Alphanumeric, Rng, RngCore, SeedableRng};
+use rand::{Rng, RngCore, SeedableRng, distr::Alphanumeric};
 use rand_chacha::ChaCha20Rng;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
