@@ -164,7 +164,9 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
     match fs::exists(Path::new(&rustg_lib_source_path)) {
         Ok(exists) => {
             if !exists {
-                panic!("Source RUST_G path does not exist! Try rebuilding the project with the corresponding target and debug or release mode.")
+                panic!(
+                    "Source RUST_G path does not exist! Try rebuilding the project with the corresponding target and debug or release mode."
+                )
             }
         }
         Err(err) => panic!("Error accessing source rust_g path! {err}"),
@@ -217,7 +219,7 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
 }
 
 fn run_dm_tests(name: &str, use_repo_root: bool) {
-    std::env::remove_var("RUST_BACKTRACE");
+    unsafe { std::env::remove_var("RUST_BACKTRACE") };
 
     let (rustg_lib_path, rustg_lib_fname, rustg_dm_path) = find_and_copy_rustg_lib();
 

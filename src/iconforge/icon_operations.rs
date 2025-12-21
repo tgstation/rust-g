@@ -4,7 +4,7 @@ use super::{
 };
 use crate::error::Error;
 use dmi::{dirs::Dirs, icon::IconState};
-use image::{imageops, Rgba, RgbaImage};
+use image::{Rgba, RgbaImage, imageops};
 use ordered_float::OrderedFloat;
 use rayon::{
     iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
@@ -496,14 +496,18 @@ pub fn blend_images_other_universal(
     if expected_length_first != image_data.images.len() as u32 {
         return Err(Error::IconForge(format!(
             "Error during blend_images_other - the base set of images did not contain the correct amount of images (contains {}, it should contain {expected_length_first}) to match the amount of dirs ({}) or frames ({}) from the first icon state. This shouldn't ever happen!",
-            image_data.images.len(), image_data.dirs, image_data.frames
+            image_data.images.len(),
+            image_data.dirs,
+            image_data.frames
         )));
     }
     let expected_length_last = image_data_other.dirs as u32 * image_data_other.frames;
     if expected_length_last != image_data_other.images.len() as u32 {
         return Err(Error::IconForge(format!(
             "Error during blend_images_other - the blending set of images did not contain the correct amount of images (contains {}, it should contain {expected_length_last}) to match the amount of dirs ({}) or frames ({}) from the last icon state. This shouldn't ever happen!",
-            image_data_other.images.len(), image_data_other.dirs, image_data_other.frames
+            image_data_other.images.len(),
+            image_data_other.dirs,
+            image_data_other.frames
         )));
     }
     let mut images = image_data.images.clone();
@@ -640,14 +644,18 @@ pub fn blend_images_other(
     if expected_length_first != images.len() as u32 {
         return Err(Error::IconForge(format!(
             "Error during blend_images_other - the base set of images did not contain the correct amount of images (contains {}, it should contain {expected_length_first}) to match the amount of dirs ({}) or frames ({}) from the first icon state. This shouldn't ever happen!",
-            images.len(), base_icon_state.dirs, base_icon_state.frames
+            images.len(),
+            base_icon_state.dirs,
+            base_icon_state.frames
         )));
     }
     let expected_length_last = blending_icon_state.dirs as u32 * blending_icon_state.frames;
     if expected_length_last != images_other.len() as u32 {
         return Err(Error::IconForge(format!(
             "Error during blend_images_other - the blending set of images did not contain the correct amount of images (contains {}, it should contain {expected_length_last}) to match the amount of dirs ({}) or frames ({}) from the last icon state. This shouldn't ever happen!",
-            images_other.len(), blending_icon_state.dirs, blending_icon_state.frames
+            images_other.len(),
+            blending_icon_state.dirs,
+            blending_icon_state.frames
         )));
     }
     let mut images = images.clone();
@@ -672,7 +680,10 @@ pub fn blend_images_other(
         } else {
             return Err(Error::IconForge(format!(
                 "Attempted to blend two icon states with different dir amounts - {} and {}, with {} and {} dirs respectively.",
-                base_icon_state.name, blending_icon_state.name, base_icon_state.dirs, blending_icon_state.dirs
+                base_icon_state.name,
+                blending_icon_state.name,
+                base_icon_state.dirs,
+                blending_icon_state.dirs
             )));
         }
     }
@@ -714,7 +725,10 @@ pub fn blend_images_other(
         } else {
             return Err(Error::IconForge(format!(
                 "Attempted to blend two icon states with different frame amounts - {} and {}, with {} and {} frames respectively.",
-                base_icon_state.name, blending_icon_state.name, base_icon_state.frames, blending_icon_state.frames
+                base_icon_state.name,
+                blending_icon_state.name,
+                base_icon_state.frames,
+                blending_icon_state.frames
             )));
         }
     }
@@ -834,7 +848,11 @@ impl Transform {
                         if image.width() != image.height()
                             && !dmi::dirs::CARDINAL_DIRS.contains(&dir)
                         {
-                            return Err(format!("Non-square icons cannot be flipped diagonally (Turned&Flipped)! (used Flip(dir={dir}) on {}x{})", image.width(), image.height()));
+                            return Err(format!(
+                                "Non-square icons cannot be flipped diagonally (Turned&Flipped)! (used Flip(dir={dir}) on {}x{})",
+                                image.width(),
+                                image.height()
+                            ));
                         }
                         dir
                     }

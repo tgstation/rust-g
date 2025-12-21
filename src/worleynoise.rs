@@ -1,8 +1,8 @@
 use crate::error::Result;
 use core::panic;
 use rand::{
-    distr::{Bernoulli, Distribution},
     Rng,
+    distr::{Bernoulli, Distribution},
 };
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::{

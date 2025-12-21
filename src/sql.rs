@@ -1,13 +1,13 @@
 use crate::jobs;
 use dashmap::DashMap;
 use mysql::{
+    OptsBuilder, Params, Pool, PoolConstraints, PoolOpts,
     consts::{ColumnFlags, ColumnType::*},
     prelude::Queryable,
-    OptsBuilder, Params, Pool, PoolConstraints, PoolOpts,
 };
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use serde_json::{json, map::Map, Number};
+use serde_json::{Number, json, map::Map};
 use std::{collections::HashMap, sync::atomic::AtomicUsize};
 use std::{error::Error, time::Duration};
 
@@ -126,7 +126,7 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
         .tcp_port(options.port.unwrap_or(DEFAULT_PORT))
         // Work around addresses like `localhost:3307` defaulting to socket as
         // if the port were the default too.
-        .prefer_socket(options.port.map_or(true, |p| p == DEFAULT_PORT))
+        .prefer_socket(options.port.is_none_or(|p| p == DEFAULT_PORT))
         .user(options.user)
         .pass(options.pass)
         .db_name(options.db_name)

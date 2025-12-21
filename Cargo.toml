@@ -1,7 +1,7 @@
 [package]
 name = "rust-g"
-edition = "2021" # do this during next breaking change
-version = "4.3.0"
+edition = "2024"
+version = "5.0.0"
 authors = [
     "rust-g maintainer team",                   # current maintainers
     "Bjorn Neergaard <bjorn@neersighted.com>",  # original author
@@ -10,7 +10,7 @@ authors = [
 repository = "https://github.com/tgstation/rust-g"
 license = "MIT"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
-rust-version = "1.81" # do this during next breaking change
+rust-version = "1.87" # generally update this when doing a major version to T-6mo ago
 
 [lib]
 crate-type = ["cdylib"]
@@ -53,7 +53,7 @@ mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
 zip = { version = "7.0", optional = true }
 rand = { version = "0.9", optional = true }
-toml-dep = { version = "0.9.9", package = "toml", optional = true }
+toml-dep = { version = "0.9.10", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
 rayon = { version = "1.11", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
