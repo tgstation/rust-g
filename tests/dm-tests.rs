@@ -171,17 +171,14 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
     }
     let rustg_lib_path = format!("tests/dm/{rustg_lib_fname}");
 
-    // Try to copy, but if it fails, check if the file already exists and matches
     match fs::copy(&rustg_lib_source_path, &rustg_lib_path) {
         Ok(_) => println!("Successfully copied {rustg_lib_fname}"),
         Err(e) => {
             println!("Copy failed with error: {:?}", e);
-            println!("Error kind: {:?}", e.kind());
             println!("Checking if destination already exists...");
 
             if fs::exists(Path::new(&rustg_lib_path)).unwrap_or(false) {
                 println!("Destination file already exists, will use it");
-                // File exists, assume it's correct (may be from another test running in parallel)
             } else {
                 panic!(
                     "Failed to copy {} to {}: {:?}",
@@ -204,7 +201,6 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
         Ok(_) => println!("Successfully copied rust_g.dm"),
         Err(e) => {
             println!("Copy rust_g.dm failed with error: {:?}", e);
-            println!("Error kind: {:?}", e.kind());
 
             if fs::exists(Path::new(rustg_dm_path)).unwrap_or(false) {
                 println!("Destination rust_g.dm already exists, will use it");
