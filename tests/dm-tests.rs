@@ -75,8 +75,17 @@ where
             .output()
             .unwrap()
     } else {
-        let windows_full = format!("{byond_bin}/{windows}");
-        command(&mut Command::new(&windows_full)).output().unwrap()
+        let windows_full = format!("{byond_bin}/{windows}.exe");
+        let path = Path::new(&windows_full);
+        if !fs::exists(path).unwrap_or(false) {
+            panic!(
+                "BYOND executable not found at: {}\nBYOND_BIN is set to: {}\nPlease install BYOND or set the BYOND_BIN environment variable correctly.",
+                windows_full, byond_bin
+            );
+        }
+        command(&mut Command::new(&windows_full))
+            .output()
+            .unwrap_or_else(|_| panic!("Failed to execute BYOND command: {}", windows_full))
     }
 }
 
@@ -117,7 +126,28 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
     let target_dir = if cfg!(target_os = "linux") {
         "i686-unknown-linux-gnu"
     } else {
-        "i686-pc-windows-msvc"
+        //TODO: Remove when win7 is finally deleted like it deserves
+        // Try both i686-win7-windows-msvc and i686-pc-windows-msvc
+        let win7_target = "i686-win7-windows-msvc";
+        let pc_target = "i686-pc-windows-msvc";
+
+        let profile = if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        };
+
+        let win7_path = format!("target/{win7_target}/{profile}/rust_g.dll");
+        let pc_path = format!("target/{pc_target}/{profile}/rust_g.dll");
+
+        if fs::exists(Path::new(&win7_path)).unwrap_or(false) {
+            win7_target
+        } else if fs::exists(Path::new(&pc_path)).unwrap_or(false) {
+            pc_target
+        } else {
+            // Default to pc target for error message
+            pc_target
+        }
     };
     let profile = if cfg!(debug_assertions) {
         "debug"
@@ -140,9 +170,49 @@ fn find_and_copy_rustg_lib() -> (String, &'static str, &'static str) {
         Err(err) => panic!("Error accessing source rust_g path! {err}"),
     }
     let rustg_lib_path = format!("tests/dm/{rustg_lib_fname}");
-    let _ = fs::copy(&rustg_lib_source_path, &rustg_lib_path);
+
+    match fs::copy(&rustg_lib_source_path, &rustg_lib_path) {
+        Ok(_) => println!("Successfully copied {rustg_lib_fname}"),
+        Err(e) => {
+            println!("Copy failed with error: {:?}", e);
+            println!("Checking if destination already exists...");
+
+            if fs::exists(Path::new(&rustg_lib_path)).unwrap_or(false) {
+                println!("Destination file already exists, will use it");
+            } else {
+                panic!(
+                    "Failed to copy {} to {}: {:?}",
+                    rustg_lib_source_path, rustg_lib_path, e
+                );
+            }
+        }
+    }
+
     let rustg_dm_path = "tests/dm/rust_g.dm";
-    let _ = fs::copy("target/rust_g.dm", rustg_dm_path);
+    let rustg_dm_source = "target/rust_g.dm";
+    if !fs::exists(Path::new(rustg_dm_source)).unwrap_or(false) {
+        panic!(
+            "rust_g.dm source file does not exist at: {}",
+            rustg_dm_source
+        );
+    }
+
+    match fs::copy(rustg_dm_source, rustg_dm_path) {
+        Ok(_) => println!("Successfully copied rust_g.dm"),
+        Err(e) => {
+            println!("Copy rust_g.dm failed with error: {:?}", e);
+
+            if fs::exists(Path::new(rustg_dm_path)).unwrap_or(false) {
+                println!("Destination rust_g.dm already exists, will use it");
+            } else {
+                panic!(
+                    "Failed to copy {} to {}: {:?}",
+                    rustg_dm_source, rustg_dm_path, e
+                );
+            }
+        }
+    }
+
     (rustg_lib_path, rustg_lib_fname, rustg_dm_path)
 }
 

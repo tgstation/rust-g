@@ -9,8 +9,16 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    env:
+      BYOND_MAJOR: 516
+      BYOND_MINOR: 1667
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      - name: Install BYOND
+        run: |
+          bash scripts/install_byond.sh
+          echo "BYOND_BIN=$env:USERPROFILE\BYOND\byond\bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
@@ -25,10 +33,16 @@ jobs:
       - name: Rustfmt
         run: cargo fmt -- --check
 
+      - name: Build (Debug) (all features)
+        run: cargo build -Z build-std --target i686-win7-windows-msvc --locked --features all
+
+      - name: Run tests (all features)
+        run: cargo test -Z build-std --target i686-win7-windows-msvc --locked --features all
+
       - name: Build (release) (default features)
         run: cargo build -Z build-std --target i686-win7-windows-msvc --locked --release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: Windows Build
           path: |
@@ -62,7 +76,7 @@ jobs:
           Move-Item -Path "target\x86_64-pc-windows-msvc\release\rust_g.dll" -Destination "target\x86_64-pc-windows-msvc\release\rust_g64.dll"
           Move-Item -Path "target\x86_64-pc-windows-msvc\release\rust_g.pdb" -Destination "target\x86_64-pc-windows-msvc\release\rust_g64.pdb"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: Windows Build x64
           path: |
@@ -78,7 +92,7 @@ jobs:
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - run: |
           sudo dpkg --add-architecture i386
@@ -106,7 +120,7 @@ jobs:
       - name: Build (release) (default features)
         run: cargo build --target i686-unknown-linux-gnu --locked --release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: Linux Build
           path: |
@@ -121,7 +135,7 @@ jobs:
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - run: |
           sudo dpkg --add-architecture i386
@@ -147,7 +161,7 @@ jobs:
       - name: Rename x64 artifacts
         run: mv target/x86_64-unknown-linux-gnu/release/librust_g.so target/x86_64-unknown-linux-gnu/release/librust_g64.so
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: Linux Build x64
           path: |
