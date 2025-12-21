@@ -688,7 +688,7 @@
 	headless_must_error("", valid_json, "empty filename")
 	headless_must_error("tmp/nonexistent.jpg", valid_json, "invalid file extension")
 	headless_must_error("tmp/nonexistent", valid_json, "no file extension")
-	headless_must_error("/../what.dmi", valid_json, "invalid file path")
+	headless_must_error("../what.dmi", valid_json, "invalid path - relative")
 	headless_must_error("tmp/nonexistent.dmi", "{}", "no sprites")
 	headless_must_error("tmp/nonexistent.dmi", "lol", "invalid sprites")
 	headless_must_error("tmp/nonexistent.dmi", json_encode(list("test" = list("lol" = 1))), "invalid sprites content")
