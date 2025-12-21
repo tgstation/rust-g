@@ -126,7 +126,7 @@ fn sql_connect(options: ConnectOptions) -> Result<serde_json::Value, Box<dyn Err
         .tcp_port(options.port.unwrap_or(DEFAULT_PORT))
         // Work around addresses like `localhost:3307` defaulting to socket as
         // if the port were the default too.
-        .prefer_socket(options.port.map_or(true, |p| p == DEFAULT_PORT))
+        .prefer_socket(options.port.is_none_or(|p| p == DEFAULT_PORT))
         .user(options.user)
         .pass(options.pass)
         .db_name(options.db_name)
