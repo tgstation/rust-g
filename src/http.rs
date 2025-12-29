@@ -60,7 +60,9 @@ byond_fn!(fn http_request_fire_and_forget(method, url, body, headers, options) {
         Err(e) => return Some(e.to_string())
     };
 
-    std::thread::spawn(move || req.req.send_bytes(&req.body));
+    std::thread::spawn(move || {
+        let _ = req.req.send_bytes(&req.body); // discard result
+    });
     Some("ok".to_owned())
 });
 
