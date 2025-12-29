@@ -74,13 +74,23 @@ pub fn generate_headless(file_path: &str, sprites: &str, flatten: &str) -> Headl
     zone!("generate_headless");
 
     if file_path.is_empty() {
-        return headless_error("Invalid file path: path cannot be empty".to_string(), None);
+        return headless_error(
+            "Invalid file path: empty paths are not allowed".to_string(),
+            None,
+        );
     }
 
-    if file_path.contains("..") {
+    if file_path.starts_with('/') || file_path.starts_with('\\') || file_path.contains(':') {
+        return headless_error(
+            format!("Invalid file path: absolute paths are not allowed. Received: '{file_path}'"),
+            None,
+        );
+    }
+
+    if file_path.contains("../") || file_path.contains("..\\") {
         return headless_error(
             format!(
-                "Invalid file path: path cannot contain '..' (relative directory traversal). Received: '{file_path}'"
+                "Invalid file path: parent directory traversal is not allowed. Received: '{file_path}'"
             ),
             None,
         );
