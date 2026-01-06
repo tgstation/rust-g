@@ -117,9 +117,10 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
     }
 
     if let Some(fdir) = Path::new(path).parent()
-        && !fdir.is_dir() {
-            create_dir_all(fdir)?;
-        }
+        && !fdir.is_dir()
+    {
+        create_dir_all(fdir)?;
+    }
 
     let mut encoder = Encoder::new(File::create(path)?, width, height);
     encoder.set_color(png::ColorType::Rgba);
