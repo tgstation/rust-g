@@ -188,9 +188,6 @@ open("rust_g", O_RDONLY|O_CLOEXEC)      = 4
 open("rust_g", O_RDONLY|O_NONBLOCK|O_LARGEFILE|O_DIRECTORY|O_CLOEXEC) = -1 ENOTDIR (Not a directory)
 ```
 
-### Windows 7
-rust-g releases for Windows 7 targets by default and can support building for Windows 7 using the [Tier 3 Windows 7 Rust targets](https://doc.rust-lang.org/rustc/platform-support/win7-windows-msvc.html). You can build for Windows 7 targets by using nightly and building with `cargo +nightly build -Z build-std --target i686-win7-windows-msvc`.
-
 ---
 
 If you're still having problems, ask in the [Coderbus Discord]'s

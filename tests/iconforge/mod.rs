@@ -109,12 +109,11 @@ fn tmp_cleanup() {
         }
     };
     for entry in dir.flatten() {
-        if let Some(file_name) = entry.file_name().to_str() {
-            if (file_name.starts_with("iconforge_") || file_name.starts_with("headless_iconforge_"))
-                && file_name.ends_with(".dmi")
-            {
-                let _ = std::fs::remove_file(entry.path());
-            }
+        if let Some(file_name) = entry.file_name().to_str()
+            && (file_name.starts_with("iconforge_") || file_name.starts_with("headless_iconforge_"))
+            && file_name.ends_with(".dmi")
+        {
+            let _ = std::fs::remove_file(entry.path());
         }
     }
 }
