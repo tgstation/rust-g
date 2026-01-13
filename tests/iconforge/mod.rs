@@ -10,11 +10,16 @@ use std::{
     io::BufReader,
     path::Path,
     sync::{Arc, Mutex},
+    thread,
 };
 
 #[test]
 fn iconforge() {
     tmp_cleanup();
+
+    // Thread test
+    stress_test_dmi_cache("tests/dm/tmp/iconforge_valid_headless.dmi");
+
     // Generate icons for comparison
     run_dm_tests("iconforge", false);
     // Compare said icons
@@ -98,6 +103,28 @@ fn iconforge() {
         println!("no icons differ!");
         tmp_cleanup();
     }
+}
+
+/// Stress-test that the DMI cache (`filepath_to_dmi`) works correctly under multithreading
+fn stress_test_dmi_cache(icon_path: &str) {
+    let mut handles = Vec::new();
+
+    for _ in 0..32 {
+        let path = icon_path.to_string();
+        handles.push(thread::spawn(move || {
+            for _ in 0..1000 {
+                let icon_result = image_cache::filepath_to_dmi(&path);
+                assert!(icon_result.is_ok(), "Failed to load DMI {path:?}");
+                let _icon_clone: Arc<_> = icon_result.unwrap();
+            }
+        }));
+    }
+
+    for h in handles {
+        h.join().expect("Thread panicked during DMI stress test");
+    }
+
+    println!("Stress test passed for {icon_path}");
 }
 
 fn tmp_cleanup() {
@@ -208,7 +235,7 @@ fn compare_states(dm_state: &IconState, rustg_state: &IconState) -> Option<Strin
 
     if dm_state.rewind != rustg_state.rewind {
         differences.push(format!(
-            "REWING FLAG: dm: {} - rustg: {}",
+            "REWIND FLAG: dm: {} - rustg: {}",
             dm_state.rewind, rustg_state.rewind
         ));
     }
