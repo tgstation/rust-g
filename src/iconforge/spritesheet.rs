@@ -599,9 +599,10 @@ pub fn generate_spritesheet(
                 size_id,
                 if generate_dmi { "dmi" } else { "png" }
             ));
-            let size_data: Vec<&str> = size_id.split('x').collect();
-            let base_width = size_data.first().unwrap().parse::<u32>().unwrap();
-            let base_height = size_data.last().unwrap().parse::<u32>().unwrap();
+            let (base_width, base_height) = size_id
+                .split_once('x')
+                .map(|(w, h)| (w.parse::<u32>().unwrap(), h.parse::<u32>().unwrap()))
+                .unwrap();
 
             if generate_dmi {
                 let output_states =
