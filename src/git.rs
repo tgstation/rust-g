@@ -5,7 +5,7 @@ byond_fn!(fn rg_git_revparse(rev) {
     let repository = match gix::open(".") {
         Ok(repo) => repo,
         Err(err) => {
-            return Some(format!("failed to open repository: {}", err));
+            return Some(format!("failed to open repository: {err}"));
         }
     };
     repository.rev_parse_single(rev).ok().map(|object| object.to_string())
@@ -15,7 +15,7 @@ byond_fn!(fn rg_git_commit_date(rev, format) {
     let repository = match gix::open(".") {
         Ok(repo) => repo,
         Err(err) => {
-            return Some(format!("failed to open repository: {}", err));
+            return Some(format!("failed to open repository: {err}"));
         }
     };
     let rev = repository.rev_parse_single(rev).ok()?;

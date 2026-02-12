@@ -252,7 +252,7 @@ pub fn filepath_to_dmi(icon_path: &str) -> Result<Arc<Icon>, String> {
 
         zone!("parse_dmi");
         Ok(Arc::new(Icon::load(reader).map_err(|err| {
-            format!("DMI '{}' failed to parse - {}", icon_path, err)
+            format!("DMI '{icon_path}' failed to parse - {err}")
         })?))
     })
     .cloned()
