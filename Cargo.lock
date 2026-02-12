@@ -2937,7 +2937,6 @@ dependencies = [
  "serde_repr",
  "sha-1",
  "sha2",
- "subprocess",
  "symphonia",
  "thiserror 2.0.18",
  "toml",

@@ -205,6 +205,3 @@ allow_non_32bit = []
 
 [dev-dependencies]
 regex = "1"
-
-[build-dependencies]
-subprocess = "0.2.12"
