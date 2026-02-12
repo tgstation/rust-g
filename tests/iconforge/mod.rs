@@ -109,12 +109,11 @@ fn tmp_cleanup() {
         }
     };
     for entry in dir.flatten() {
-        if let Some(file_name) = entry.file_name().to_str() {
-            if (file_name.starts_with("iconforge_") || file_name.starts_with("headless_iconforge_"))
-                && file_name.ends_with(".dmi")
-            {
-                let _ = std::fs::remove_file(entry.path());
-            }
+        if let Some(file_name) = entry.file_name().to_str()
+            && (file_name.starts_with("iconforge_") || file_name.starts_with("headless_iconforge_"))
+            && file_name.ends_with(".dmi")
+        {
+            let _ = std::fs::remove_file(entry.path());
         }
     }
 }
@@ -209,7 +208,7 @@ fn compare_states(dm_state: &IconState, rustg_state: &IconState) -> Option<Strin
 
     if dm_state.rewind != rustg_state.rewind {
         differences.push(format!(
-            "REWING FLAG: dm: {} - rustg: {}",
+            "REWIND FLAG: dm: {} - rustg: {}",
             dm_state.rewind, rustg_state.rewind
         ));
     }
