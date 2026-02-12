@@ -208,7 +208,7 @@ fn compare_states(dm_state: &IconState, rustg_state: &IconState) -> Option<Strin
 
     if dm_state.rewind != rustg_state.rewind {
         differences.push(format!(
-            "REWING FLAG: dm: {} - rustg: {}",
+            "REWIND FLAG: dm: {} - rustg: {}",
             dm_state.rewind, rustg_state.rewind
         ));
     }
