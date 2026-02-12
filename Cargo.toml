@@ -10,7 +10,7 @@ authors = [
 repository = "https://github.com/tgstation/rust-g"
 license = "MIT"
 description = "Offloaded task library for the /tg/ Space Station 13 codebase"
-rust-version = "1.87" # generally update this when doing a major version to T-6mo ago, update rust.yml
+rust-version = "1.88" # generally update this when doing a major version to T-6mo ago, update rust.yml
 
 [lib]
 crate-type = ["cdylib"]
@@ -76,7 +76,7 @@ cuid2 = { version = "0.1.4", optional = true }
 rand_chacha = { version = "0.9.0", optional = true }
 hmac = { version = "0.12.1", optional = true }
 base32 = { version = "0.5.1", optional = true }
-indexmap = { version = "2.11.4", optional = true, features = [
+indexmap = { version = "2.13.0", optional = true, features = [
     "serde",
     "rayon",
 ] }
@@ -205,3 +205,6 @@ allow_non_32bit = []
 
 [dev-dependencies]
 regex = "1"
+
+[build-dependencies]
+subprocess = "0.2.12"
