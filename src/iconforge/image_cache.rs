@@ -165,7 +165,7 @@ impl UniversalIcon {
             frame_offset = 0;
         }
 
-        let mut images: Vec<RgbaImage> = Vec::new();
+        let mut images: Vec<RgbaImage> = Vec::with_capacity(frames * dirs);
 
         for frame_index in frame_offset..(frame_offset + frames) {
             for dir_offset in dir_index..(dir_index + dirs) {
@@ -239,7 +239,7 @@ pub fn filepath_to_dmi(icon_path: &str) -> Result<Arc<Icon>, String> {
 
     cell.get_or_try_init(|| {
         zone!("open_dmi_file");
-        let icon_file = File::open(&full_path).map_err(|err| {
+        let reader = File::open(&full_path).map(BufReader::new).map_err(|err| {
             format!(
                 "Failed to open DMI '{}' (resolved to '{}') - {}",
                 icon_path,
@@ -248,12 +248,10 @@ pub fn filepath_to_dmi(icon_path: &str) -> Result<Arc<Icon>, String> {
             )
         })?;
 
-        let reader = BufReader::new(icon_file);
-
         zone!("parse_dmi");
-        Ok(Arc::new(Icon::load(reader).map_err(|err| {
-            format!("DMI '{icon_path}' failed to parse - {err}")
-        })?))
+        Icon::load(reader)
+            .map(Arc::new)
+            .map_err(|err| format!("DMI '{icon_path}' failed to parse - {err}"))
     })
     .cloned()
 }

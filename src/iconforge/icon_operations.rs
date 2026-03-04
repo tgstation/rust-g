@@ -897,8 +897,7 @@ impl Transform {
                         "Invalid bounds {x1} {y1} to {x2} {y2} in DrawBox transform"
                     ));
                 }
-                let hex = color.clone().unwrap_or_else(|| String::from("#00000000"));
-                let rgba = hex_to_rgba(&hex)?;
+                let rgba = color.as_ref().map(hex_to_rgba).unwrap_or(Ok([0; 4]))?;
                 images =
                     image_data.map_cloned_images(|image| draw_box(image, rgba, x1, y1, x2, y2));
             }

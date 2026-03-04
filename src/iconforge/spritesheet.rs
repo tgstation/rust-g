@@ -476,7 +476,7 @@ pub fn generate_spritesheet(
                     }
                 };
             let mut no_transforms = Option::<&UniversalIcon>::None;
-            let unique_icons = DashSet::<&UniversalIcon>::new();
+            let unique_icons = DashSet::<&UniversalIcon>::with_capacity(icons.len());
             {
                 zone!("map_unique");
                 icons.iter().for_each(|(_, icon)| {
