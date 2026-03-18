@@ -38,7 +38,7 @@ png = { version = "0.18", optional = true }
 image = { version = "0.25", optional = true, default-features = false, features = [
     "png",
 ] }
-gix = { version = "0.75", optional = true, default-features = false, features = [
+gix = { version = "0.77", optional = true, default-features = false, features = [
     "revision",
     "max-performance-safe",
 ] }
@@ -51,13 +51,13 @@ serde_repr = { version = "0.1", optional = true }
 once_cell = { version = "1.21", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
-zip = { version = "7.0", optional = true }
-rand = { version = "0.9", optional = true }
-toml-dep = { version = "0.9.10", package = "toml", optional = true }
+zip = { version = "7.2", optional = true }
+rand = { version = "0.10", optional = true, features = ["sys_rng"]}
+toml-dep = { version = "0.9.12", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
 rayon = { version = "1.11", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
-pathfinding = { version = "4.14", optional = true }
+pathfinding = { version = "4.15", optional = true }
 num-integer = { version = "0.1.46", optional = true }
 dmi = { version = "0.5.0", optional = true }
 tracy_full = { version = "1.12.0", optional = true }
@@ -67,13 +67,13 @@ fast_poisson = { version = "1.0.2", optional = true, features = [
 ] }
 symphonia = { version = "0.5.5", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
-uuid = { version = "1.19", optional = true, features = [
+uuid = { version = "1.22", optional = true, features = [
     "v4",
     "v7",
     "fast-rng",
 ] }
 cuid2 = { version = "0.1.4", optional = true }
-rand_chacha = { version = "0.9.0", optional = true }
+rand_chacha = { version = "0.10.0", optional = true }
 hmac = { version = "0.12.1", optional = true }
 base32 = { version = "0.5.1", optional = true }
 indexmap = { version = "2.13.0", optional = true, features = [
