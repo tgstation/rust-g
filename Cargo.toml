@@ -38,7 +38,7 @@ png = { version = "0.18", optional = true }
 image = { version = "0.25", optional = true, default-features = false, features = [
     "png",
 ] }
-gix = { version = "0.77", optional = true, default-features = false, features = [
+gix = { version = "0.80", optional = true, default-features = false, features = [
     "revision",
     "max-performance-safe",
 ] }
@@ -51,9 +51,9 @@ serde_repr = { version = "0.1", optional = true }
 once_cell = { version = "1.21", optional = true }
 mysql = { git = "https://github.com/ZeWaka/rust-mysql-simple.git", tag = "v26.0.0", default-features = false, optional = true }
 dashmap = { version = "6.1", optional = true, features = ["rayon", "serde"] }
-zip = { version = "7.2", optional = true }
+zip = { version = "8.2", optional = true }
 rand = { version = "0.10", optional = true, features = ["sys_rng"]}
-toml-dep = { version = "0.9.12", package = "toml", optional = true }
+toml-dep = { version = "1.0.7", package = "toml", optional = true }
 aho-corasick = { version = "1.1", optional = true }
 rayon = { version = "1.11", optional = true }
 dbpnoise = { version = "0.1.2", optional = true }
