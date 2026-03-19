@@ -1,7 +1,7 @@
 use crate::error::Result;
 use core::panic;
 use rand::{
-    Rng,
+    RngExt,
     distr::{Bernoulli, Distribution},
 };
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};

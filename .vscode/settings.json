@@ -2,5 +2,8 @@
     "rust-analyzer.cargo.target": "i686-pc-windows-msvc",
     "rust-analyzer.linkedProjects": [
         ".\\Cargo.toml"
-    ]
+    ],
+    // "rust-analyzer.cargo.features": [
+    //     "all"
+    // ]
 }
