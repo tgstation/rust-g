@@ -1,4 +1,4 @@
-// #![forbid(unsafe_op_in_unsafe_fn)] - see github.com/rust-lang/rust/issues/121483
+#![forbid(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(
     all(windows, not(all(target_vendor = "pc", target_env = "msvc"))),
     allow(clippy::missing_const_for_thread_local)
@@ -22,6 +22,8 @@ pub mod dbpnoise;
 pub mod dice;
 #[cfg(feature = "dmi")]
 pub mod dmi;
+#[cfg(feature = "ed25519")]
+pub mod ed25519;
 #[cfg(feature = "file")]
 pub mod file;
 #[cfg(feature = "git")]

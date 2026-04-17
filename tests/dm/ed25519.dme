@@ -1,0 +1,25 @@
+#include "common.dm"
+
+/test/proc/ed25519_round_trip()
+    var/secret_key = rustg_ed25519_generate_secret_key()
+    var/public_key = rustg_ed25519_derive_public_key(secret_key)
+    if (findtextEx(public_key, "ERROR: "))
+        CRASH("Failed to derive public key: [public_key]")
+
+    var/message = "rust-g test message"
+    var/signature = rustg_ed25519_sign(secret_key, message)
+    if (findtextEx(signature, "ERROR: "))
+        CRASH("Failed to sign message: [signature]")
+
+    var/valid = rustg_ed25519_verify(public_key, message, signature)
+    if (valid != "true")
+        CRASH("Expected valid signature, got: [valid]")
+
+    var/invalid = rustg_ed25519_verify(public_key, "[message]!!!!!", signature)
+    if (invalid != "false")
+        CRASH("Expected invalid signature, got: [invalid]")
+
+/test/proc/ed25519_bad_inputs_error()
+    var/invalid_public = rustg_ed25519_derive_public_key("rust-g")
+    if (!findtextEx(invalid_public, "ERROR: "))
+        CRASH("Expected invalid secret key error, got: [invalid_public]")

@@ -2,10 +2,28 @@ use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};
 
+#[cfg(feature = "dice")]
+#[test]
+fn dice() {
+    run_dm_tests("dice", false);
+}
+
+#[cfg(feature = "ed25519")]
+#[test]
+fn ed25519() {
+    run_dm_tests("ed25519", false);
+}
+
 #[cfg(feature = "git")]
 #[test]
 fn git() {
     run_dm_tests("git", true);
+}
+
+#[cfg(feature = "hash")]
+#[test]
+fn hash() {
+    run_dm_tests("hash", false);
 }
 
 #[cfg(feature = "toml")]
@@ -18,18 +36,6 @@ fn toml() {
 #[test]
 fn url() {
     run_dm_tests("url", false);
-}
-
-#[cfg(feature = "hash")]
-#[test]
-fn hash() {
-    run_dm_tests("hash", false);
-}
-
-#[cfg(feature = "dice")]
-#[test]
-fn dice() {
-    run_dm_tests("dice", false);
 }
 
 #[cfg(feature = "iconforge")]

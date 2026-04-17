@@ -115,6 +115,7 @@ Additional features are:
 * allow_non_32bit: Disables the forced compile errors on non-32bit targets. Only use this if you know exactly what you are doing.
 * batchnoise: Discrete Batched Perlin-like Noise, fast and multi-threaded - sent over once instead of having to query for every tile.
 * dice: Advanced replacement for `roll`, supporting expressive xdy dice notation.
+* ed25519: Ed25519 key generation, public key derivation, signing, and signature verification.
 * poissonnoise: A way to generate a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * redis_reliablequeue: Library for using a reliable queue pattern through Redis.

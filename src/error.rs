@@ -76,8 +76,22 @@ pub enum Error {
     DiceRoll(#[from] caith::RollError),
     #[error(transparent)]
     Formatting(#[from] std::fmt::Error),
+    #[cfg(any(feature = "dmi", feature = "iconforge"))]
     #[error(transparent)]
     Dmi(#[from] dmi::error::DmiError),
+    #[cfg(feature = "ed25519")]
+    #[error(transparent)]
+    Base64Decode(#[from] base64::DecodeError),
+    #[cfg(feature = "ed25519")]
+    #[error(transparent)]
+    Ed25519(#[from] ed25519_dalek::SignatureError),
+    #[cfg(feature = "ed25519")]
+    #[error("Invalid ed25519 {kind} length: expected {expected} bytes, got {actual}.")]
+    InvalidEd25519Length {
+        kind: &'static str,
+        expected: usize,
+        actual: usize,
+    },
     #[error("Panic during function execution: {0}")]
     Panic(String),
 }
