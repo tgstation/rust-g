@@ -85,7 +85,6 @@ struct MSTEdge {
     dist: f64,
 }
 
-// ─── Main Entry Point ─────────────────────────────────────────────────────────
 
 fn generate_dungeon(
     width_str: &str,
@@ -114,7 +113,6 @@ fn generate_dungeon(
     let min_bsp_size = min_bsp_size_str.parse::<usize>().unwrap_or(20);
     let max_ratio    = max_ratio_str.parse::<f64>().unwrap_or(2.5);
     let padding      = padding_str.parse::<usize>().unwrap_or(2);
-    // room_fill_percent maps to JS sizeScale (0..100 → 0.0..1.0)
     let size_scale   = (room_fill_percent_str.parse::<usize>().unwrap_or(80) as f64 / 100.0)
         .clamp(0.0, 1.0);
     let corridor_width  = corridor_width_str.parse::<usize>().unwrap_or(1).max(1);
@@ -149,7 +147,7 @@ fn generate_dungeon(
         leaves.push(BSPNode::new(0, 0, width, height));
     }
 
-    // Step 3: Create rooms (JS formula: random dimensions in [30%..sizeScale%] of available space)
+    // Step 3: Create rooms in each leaf, using a random scale and dimension
     for leaf in &mut leaves {
         leaf.room = generate_room(leaf, padding, size_scale, &mut rng);
     }
@@ -158,7 +156,9 @@ fn generate_dungeon(
     let edges     = build_adjacency_edges(&leaves);
     let mst_edges = kruskal_mst(leaves.len(), &edges, loop_percent, &mut rng);
 
-    // Step 5: Apply rooms to grid as DEF_ALIVE, skipping prefab-fixed cells
+
+
+    // Step 5: Apply rooms to grid as DEF_ALIVE (to prevent them from being eaten by noise), skipping prefab-fixed cells
     for leaf in &leaves {
         if let Some(ref room) = leaf.room {
             for dx in 0..room.w {
@@ -174,7 +174,7 @@ fn generate_dungeon(
         }
     }
 
-    // Step 6: Carve corridors (JS step-by-step, cw×cw brush per step)
+    // Step 6: Carve corridors between rooms along edges, marking them as DEF_ALIVE (this prevents the CA from eating them up later)
     for edge in &mst_edges {
         if let (Some(ra), Some(rb)) = (
             leaves[edge.u].room.as_ref(),
@@ -199,7 +199,7 @@ fn generate_dungeon(
         }
     }
 
-    // Step 8: CA smoothing (bounds-check neighbors, correct >= thresholds matching JS)
+    // Step 8: CA smoothing
     for _ in 0..ca_steps {
         ca_step(&mut grid, width, height, birth_limit, survival_limit);
     }
@@ -209,11 +209,10 @@ fn generate_dungeon(
         flood_fill_island_removal(&mut grid, width, height, start);
     }
 
-    // Output: column-major binary string
-    let grid_string: String = grid
-        .iter()
-        .flat_map(|col| col.iter())
-        .map(|&cell| match cell {
+    // Output: row-ordered string of all the final tiles (0 = wall, 1 = floor)
+    let grid_string: String = (0..height)
+        .flat_map(|y| (0..width).map(move |x| (x, y)))
+        .map(|(x, y)| match grid[x][y] {
             ALIVE | DEF_ALIVE => '1',
             _ => '0',
         })
@@ -222,8 +221,8 @@ fn generate_dungeon(
     Ok(grid_string)
 }
 
-// ─── Prefab Application ───────────────────────────────────────────────────────
 
+//Apply a prefab to the grid. Marking its tiles as either DEF_DEAD or DEF_ALIVE depending on is_enclosed. This lets us either make the ruins spawn covered in walls, or treated as open (which makes the CA carve it out more)
 fn apply_prefab(
     grid: &mut Vec<Vec<u8>>,
     fixed: &mut Vec<Vec<bool>>,
@@ -231,8 +230,10 @@ fn apply_prefab(
     width: usize,
     height: usize,
 ) {
-    let px = (prefab.cx as i32 - prefab.w as i32 / 2).max(0) as usize;
-    let py = (prefab.cy as i32 - prefab.h as i32 / 2).max(0) as usize;
+    let cx0 = prefab.cx.saturating_sub(1);
+    let cy0 = prefab.cy.saturating_sub(1);
+    let px = (cx0 as i32 - prefab.w as i32 / 2).max(0) as usize;
+    let py = (cy0 as i32 - prefab.h as i32 / 2).max(0) as usize;
     let pw = prefab.w.min(width.saturating_sub(px));
     let ph = prefab.h.min(height.saturating_sub(py));
 
@@ -242,12 +243,7 @@ fn apply_prefab(
             let gy = py + dy;
             if gx < width && gy < height {
                 if prefab.is_enclosed {
-                    let is_border = dx == 0 || dy == 0 || dx == pw - 1 || dy == ph - 1;
-                    if is_border {
-                        grid[gx][gy] = DEF_DEAD;
-                    } else if grid[gx][gy] != DEF_DEAD {
-                        grid[gx][gy] = DEF_ALIVE;
-                    }
+                    grid[gx][gy] = DEF_DEAD;
                 } else {
                     grid[gx][gy] = DEF_ALIVE;
                 }
@@ -257,8 +253,7 @@ fn apply_prefab(
     }
 }
 
-// ─── BSP Tree ──────────────────────────────────────────────────────────────────
-
+///BSP behavior
 impl BSPNode {
     fn new(x: usize, y: usize, w: usize, h: usize) -> Self {
         BSPNode { x, y, w, h, left: None, right: None, room: None }
@@ -273,7 +268,7 @@ impl BSPNode {
             return;
         }
 
-        // Match JS: random coin, then aspect-ratio overrides
+        // Random pick which split
         let coin = Bernoulli::new(0.5).unwrap();
         let mut split_horizontal = coin.sample(&mut rng); // true = split by Y
         if self.h > 0 && (self.w as f64 / self.h as f64) >= max_ratio {
@@ -293,7 +288,6 @@ impl BSPNode {
         if !split_horizontal && !can_split_v { return; }
 
         if split_horizontal {
-            // JS: splitY = floor(random(minSize, this.h - minSize))
             let split_y = Uniform::new(min_size, self.h - min_size).unwrap().sample(&mut rng);
             let mut left  = BSPNode::new(self.x, self.y, self.w, split_y);
             let mut right = BSPNode::new(self.x, self.y + split_y, self.w, self.h - split_y);
@@ -302,7 +296,6 @@ impl BSPNode {
             self.left  = Some(Box::new(left));
             self.right = Some(Box::new(right));
         } else {
-            // JS: splitX = floor(random(minSize, this.w - minSize))
             let split_x = Uniform::new(min_size, self.w - min_size).unwrap().sample(&mut rng);
             let mut left  = BSPNode::new(self.x, self.y, split_x, self.h);
             let mut right = BSPNode::new(self.x + split_x, self.y, self.w - split_x, self.h);
@@ -314,7 +307,6 @@ impl BSPNode {
     }
 }
 
-// Visit both subtrees (fixes the previous left-only bug)
 fn collect_leaves(node: &BSPNode, leaves: &mut Vec<BSPNode>) {
     if node.left.is_none() && node.right.is_none() {
         leaves.push(BSPNode::new(node.x, node.y, node.w, node.h));
@@ -328,10 +320,7 @@ fn collect_leaves(node: &BSPNode, leaves: &mut Vec<BSPNode>) {
     }
 }
 
-// ─── Room Generation ───────────────────────────────────────────────────────────
-
-// JS: rw = max(3, floor(random(maxW*0.3, maxW*sizeScale)))
-//     rx = leaf.x + floor(random(pad, w - rw - pad))
+// Generate a room within a BSP leaf. Scales to a % of the leaf size with a random offset
 fn generate_room(leaf: &BSPNode, padding: usize, size_scale: f64, rng: &mut impl Rng) -> Option<Room> {
     let max_w = leaf.w.saturating_sub(padding * 2);
     let max_h = leaf.h.saturating_sub(padding * 2);
@@ -359,7 +348,6 @@ fn generate_room(leaf: &BSPNode, padding: usize, size_scale: f64, rng: &mut impl
     .max(3)
     .min(max_h);
 
-    // JS: rx = leaf.x + floor(random(pad, w - rw - pad))
     let rx = {
         let lo = padding;
         let hi = leaf.w.saturating_sub(rw + padding);
@@ -376,7 +364,6 @@ fn generate_room(leaf: &BSPNode, padding: usize, size_scale: f64, rng: &mut impl
     Some(Room { x: rx, y: ry, w: rw, h: rh, cx: rx + rw / 2, cy: ry + rh / 2 })
 }
 
-// ─── Adjacency & MST ──────────────────────────────────────────────────────────
 
 // Build edges only between BSP-adjacent leaves that both have rooms
 fn build_adjacency_edges(leaves: &[BSPNode]) -> Vec<MSTEdge> {
@@ -449,9 +436,7 @@ fn uf_union(parent: &mut Vec<usize>, a: usize, b: usize) {
     }
 }
 
-// ─── Corridor Carving ─────────────────────────────────────────────────────────
-
-// JS: step one cell at a time along an axis, paint a cw×cw brush each step
+//Step towards the other edge until we reach it
 fn carve_corridor(
     grid: &mut Vec<Vec<u8>>,
     fixed: &mut Vec<Vec<bool>>,
@@ -521,7 +506,7 @@ fn paint_brush(
 
 // ─── Cellular Automata ────────────────────────────────────────────────────────
 
-// Match JS runGlobalCAStep: ALIVE survives if count >= survival; DEAD births if count >= birth
+// Cellular automata except we use def_alive and def_dead to prevent them from flipping, basically nudging the noise a certain way and preventing it from eating up rooms/corridors/prefabs
 fn ca_step(
     grid: &mut Vec<Vec<u8>>,
     width: usize,
@@ -572,10 +557,7 @@ fn count_alive_neighbors(grid: &[Vec<u8>], x: usize, y: usize, width: usize, hei
     count
 }
 
-// ─── Flood-Fill Island Removal ────────────────────────────────────────────────
-
-// JS nukeIslands: BFS (queue), 4-directional, bounds-check (no wrapping),
-// kills unreachable ALIVE/DEF_ALIVE; DEF_DEAD is left untouched.
+// kills unreachable ALIVE; DEF_DEAD/DEF_ALIVE is left untouched.
 fn flood_fill_island_removal(
     grid: &mut Vec<Vec<u8>>,
     width: usize,
@@ -607,10 +589,48 @@ fn flood_fill_island_removal(
         }
     }
 
+    // For each unvisited pocket: if it contains DEF_ALIVE, keep its ALIVE tiles; otherwise kill them. This preserves natural formations around ruin spawns
+    let mut component_visited = vec![vec![false; height]; width];
     for x in 0..width {
         for y in 0..height {
-            if !visited[x][y] && (grid[x][y] == ALIVE || grid[x][y] == DEF_ALIVE) {
-                grid[x][y] = DEAD;
+            if visited[x][y] || component_visited[x][y] {
+                continue;
+            }
+            let cell = grid[x][y];
+            if cell != ALIVE && cell != DEF_ALIVE {
+                continue;
+            }
+            // BFS the pocket
+            let mut alive_cells: Vec<(usize, usize)> = Vec::new();
+            let mut has_def_alive = false;
+            let mut comp_queue: VecDeque<(usize, usize)> = VecDeque::new();
+            component_visited[x][y] = true;
+            comp_queue.push_back((x, y));
+            while let Some((cx, cy)) = comp_queue.pop_front() {
+                match grid[cx][cy] {
+                    DEF_ALIVE => has_def_alive = true,
+                    ALIVE => alive_cells.push((cx, cy)),
+                    _ => {}
+                }
+                for (ddx, ddy) in [(0i32, 1i32), (0, -1), (1, 0), (-1, 0)] {
+                    let nx = cx as i32 + ddx;
+                    let ny = cy as i32 + ddy;
+                    if nx >= 0 && nx < width as i32 && ny >= 0 && ny < height as i32 {
+                        let nx = nx as usize;
+                        let ny = ny as usize;
+                        if !visited[nx][ny] && !component_visited[nx][ny]
+                            && (grid[nx][ny] == ALIVE || grid[nx][ny] == DEF_ALIVE)
+                        {
+                            component_visited[nx][ny] = true;
+                            comp_queue.push_back((nx, ny));
+                        }
+                    }
+                }
+            }
+            if !has_def_alive {
+                for (ax, ay) in alive_cells {
+                    grid[ax][ay] = DEAD;
+                }
             }
         }
     }
