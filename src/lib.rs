@@ -66,6 +66,8 @@ pub mod url;
 pub mod uuid;
 #[cfg(feature = "worleynoise")]
 pub mod worleynoise;
+#[cfg(feature = "lavaland_generator")]
+pub mod lavaland_generator;
 
 #[cfg(all(not(target_pointer_width = "32"), not(feature = "allow_non_32bit")))]
 compile_error!(

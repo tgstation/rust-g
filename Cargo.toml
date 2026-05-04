@@ -98,6 +98,7 @@ default = [
     "http",
     "iconforge",
     "json",
+    "lavaland_generator",
     "log",
     "noise",
     "pathfinder",
@@ -140,6 +141,7 @@ all = [
     "redis_reliablequeue",
     "unzip",
     "worleynoise",
+    "lavaland_generator",
 ]
 
 # default features
@@ -200,6 +202,7 @@ redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
 worleynoise = ["rand", "rayon"]
+lavaland_generator = ["rand", "rayon", "serde", "serde_json"]
 
 # Use the native tls stack for the mysql db
 native_tls = ["mysql/default", "mysql/native-tls"]
