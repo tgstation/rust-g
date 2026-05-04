@@ -209,7 +209,7 @@ fn generate_dungeon(
         flood_fill_island_removal(&mut grid, width, height, start);
     }
 
-    // Output: row-ordered string of all the final tiles (0 = wall, 1 = floor)
+    // Output: row-ordered string of all the final tiles (0 = wall, 1 = floor).
     let grid_string: String = (0..height)
         .flat_map(|y| (0..width).map(move |x| (x, y)))
         .map(|(x, y)| match grid[x][y] {
@@ -504,7 +504,6 @@ fn paint_brush(
     }
 }
 
-// ─── Cellular Automata ────────────────────────────────────────────────────────
 
 // Cellular automata except we use def_alive and def_dead to prevent them from flipping, basically nudging the noise a certain way and preventing it from eating up rooms/corridors/prefabs
 fn ca_step(
