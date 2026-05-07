@@ -41,10 +41,7 @@ fn deserialize_byond_bool<'de, D>(deserializer: D) -> std::result::Result<bool, 
 where
     D: serde::de::Deserializer<'de>,
 {
-    match u8::deserialize(deserializer)? {
-        0 => Ok(false),
-        _ => Ok(true),
-    }
+    u8::deserialize(deserializer)?.map(|x| x != 0)
 }
 
 #[derive(Deserialize)]
@@ -405,7 +402,7 @@ fn kruskal_mst(n: usize, edges: &[MSTEdge], loop_percent: usize, rng: &mut impl 
     sorted.sort_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap());
 
     let mut parent: Vec<usize> = (0..n).collect();
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(sorted.len());
     let loop_coin = Bernoulli::new((loop_percent as f64 / 100.0).clamp(0.0, 1.0)).unwrap();
 
     for edge in &sorted {
