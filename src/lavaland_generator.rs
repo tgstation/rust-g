@@ -41,7 +41,7 @@ fn deserialize_byond_bool<'de, D>(deserializer: D) -> std::result::Result<bool, 
 where
     D: serde::de::Deserializer<'de>,
 {
-    u8::deserialize(deserializer)?.map(|x| x != 0)
+    u8::deserialize(deserializer).map(|x| x != 0)
 }
 
 #[derive(Deserialize)]
