@@ -18,12 +18,13 @@ byond_fn!(fn lavaland_generator_generate(
     noise_percent,
     ca_steps,
     birth_limit,
-    survival_limit
+    survival_limit,
+    edge_is_alive
 ) {
     generate_dungeon(
         width, height, prefabs_json, min_bsp_size, max_ratio,
         padding, room_fill_percent, corridor_width, loop_percent,
-        noise_percent, ca_steps, birth_limit, survival_limit,
+        noise_percent, ca_steps, birth_limit, survival_limit, edge_is_alive,
     )
     .ok()
 });
@@ -97,6 +98,7 @@ fn generate_dungeon(
     ca_steps_str: &str,
     birth_limit_str: &str,
     survival_limit_str: &str,
+    edge_is_alive_str: &str,
 ) -> Result<String> {
     let width = width_str.parse::<usize>()?;
     let height = height_str.parse::<usize>()?;
@@ -118,6 +120,7 @@ fn generate_dungeon(
     let ca_steps        = ca_steps_str.parse::<usize>().unwrap_or(6);
     let birth_limit     = birth_limit_str.parse::<usize>().unwrap_or(5);
     let survival_limit  = survival_limit_str.parse::<usize>().unwrap_or(4);
+    let edge_is_alive   = edge_is_alive_str.parse::<u8>().unwrap_or(0) != 0;
 
     if width == 0 || height == 0 {
         return Ok(String::new());
@@ -198,7 +201,7 @@ fn generate_dungeon(
 
     // Step 8: CA smoothing
     for _ in 0..ca_steps {
-        ca_step(&mut grid, width, height, birth_limit, survival_limit);
+        ca_step(&mut grid, width, height, birth_limit, survival_limit, edge_is_alive);
     }
 
     // Step 9: BFS flood-fill island removal from first room center
@@ -509,6 +512,7 @@ fn ca_step(
     height: usize,
     birth_limit: usize,
     survival_limit: usize,
+    edge_is_alive: bool,
 ) {
     let grid_ref: &Vec<Vec<u8>> = grid;
     let new_grid: Vec<Vec<u8>> = (0..width)
@@ -520,7 +524,7 @@ fn ca_step(
                     if cell == DEF_ALIVE || cell == DEF_DEAD {
                         return cell;
                     }
-                    let count = count_alive_neighbors(grid_ref, x, y, width, height);
+                    let count = count_alive_neighbors(grid_ref, x, y, width, height, edge_is_alive);
                     if cell == ALIVE {
                         if count >= survival_limit { ALIVE } else { DEAD }
                     } else {
@@ -533,7 +537,7 @@ fn ca_step(
     *grid = new_grid;
 }
 
-fn count_alive_neighbors(grid: &[Vec<u8>], x: usize, y: usize, width: usize, height: usize) -> usize {
+fn count_alive_neighbors(grid: &[Vec<u8>], x: usize, y: usize, width: usize, height: usize, edge_is_alive: bool) -> usize {
     let mut count = 0;
     for dx in -1i32..=1 {
         for dy in -1i32..=1 {
@@ -547,6 +551,8 @@ fn count_alive_neighbors(grid: &[Vec<u8>], x: usize, y: usize, width: usize, hei
                 if neighbor == ALIVE || neighbor == DEF_ALIVE {
                     count += 1;
                 }
+            } else if edge_is_alive {
+                count += 1;
             }
         }
     }

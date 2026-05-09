@@ -19,6 +19,7 @@
  * * ca_steps - Cellular Automata smoothing iterations
  * * birth_limit - Neighbors to create floor (>=)
  * * survival_limit - Neighbors to survive as floor (>=)
+ * * edge_is_alive - Whether out-of-bounds cells count as ALIVE (floor) for CA neighbor counts
  */
-#define rustg_lavaland_generator_generate(width, height, prefabs_json, min_bsp_size, max_ratio, padding, room_fill_percent, corridor_width, loop_percent, noise_percent, ca_steps, birth_limit, survival_limit) \
-	RUSTG_CALL(RUST_G, "lavaland_generator_generate")(width, height, prefabs_json, min_bsp_size, max_ratio, padding, room_fill_percent, corridor_width, loop_percent, noise_percent, ca_steps, birth_limit, survival_limit)
+#define rustg_lavaland_generator_generate(width, height, prefabs_json, min_bsp_size, max_ratio, padding, room_fill_percent, corridor_width, loop_percent, noise_percent, ca_steps, birth_limit, survival_limit, edge_is_alive) \
+	RUSTG_CALL(RUST_G, "lavaland_generator_generate")(width, height, prefabs_json, min_bsp_size, max_ratio, padding, room_fill_percent, corridor_width, loop_percent, noise_percent, ca_steps, birth_limit, survival_limit, edge_is_alive)
