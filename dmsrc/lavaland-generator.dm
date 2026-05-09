@@ -8,7 +8,7 @@
  * Arguments:
  * * width - Grid width
  * * height - Grid height
- * * prefabs_json - JSON array of prefab configs: [{"cx":55,"cy":65,"w":10,"h":10,"isEnclosed":true},...] (if none use "[]") cx = center of prefab x, cy = center of prefab y, w = prefab width, h = prefab height, isEnclosed = whether prefab should be treated like its wall or floor by the generation
+ * * prefabs_json - JSON array of prefab configs: [{"x":55,"y":65,"w":10,"h":10,"isEnclosed":true},...] (if none use "[]") x = bottom-left turf x, y = bottom-left turf y, w = prefab width, h = prefab height, isEnclosed = whether prefab should be treated like its wall or floor by the generation
  * * min_bsp_size - Minimum BSP leaf dimension
  * * max_ratio - Maximum aspect ratio for BSP splits
  * * padding - Room edge padding within BSP leaf

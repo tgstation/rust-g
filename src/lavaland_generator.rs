@@ -47,8 +47,8 @@ where
 
 #[derive(Deserialize)]
 struct PrefabConfig {
-    cx: usize,
-    cy: usize,
+    x: usize,
+    y: usize,
     w: usize,
     h: usize,
     #[serde(default, rename = "isEnclosed", deserialize_with = "deserialize_byond_bool")]
@@ -222,7 +222,7 @@ fn generate_dungeon(
 }
 
 
-//Apply a prefab to the grid. Marking its tiles as either DEF_DEAD or DEF_ALIVE depending on is_enclosed. This lets us either make the ruins spawn covered in walls, or treated as open (which makes the CA carve it out more)
+//Apply a prefab to the grid. Marking its tiles as either DEF_DEAD or DEF_ALIVE depending on is_enclosed. This lets us either make the ruins spawn covered in walls, or treated as open (which makes the CA carve it out more). cx/cy are the bottom-left turf (1-indexed).
 fn apply_prefab(
     grid: &mut Vec<Vec<u8>>,
     fixed: &mut Vec<Vec<bool>>,
@@ -230,10 +230,8 @@ fn apply_prefab(
     width: usize,
     height: usize,
 ) {
-    let cx0 = prefab.cx.saturating_sub(1);
-    let cy0 = prefab.cy.saturating_sub(1);
-    let px = (cx0 as i32 - prefab.w as i32 / 2).max(0) as usize;
-    let py = (cy0 as i32 - prefab.h as i32 / 2).max(0) as usize;
+    let px = prefab.x.saturating_sub(1);
+    let py = prefab.y.saturating_sub(1);
     let pw = prefab.w.min(width.saturating_sub(px));
     let ph = prefab.h.min(height.saturating_sub(py));
 
