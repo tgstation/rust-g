@@ -75,7 +75,7 @@ struct Room {
     cy: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct MSTEdge {
     u: usize,
     v: usize,
@@ -156,20 +156,20 @@ fn generate_dungeon(
 
 
     // Step 5: Apply rooms to grid as DEF_ALIVE (to prevent them from being eaten by noise), skipping prefab-fixed cells
-    for leaf in &leaves {
+    leaves.iter().for_each(|leaf| {
         if let Some(ref room) = leaf.room {
-            for dx in 0..room.w {
-                for dy in 0..room.h {
+            (0..room.w).for_each(|dx| {
+                (0..room.h).for_each(|dy| {
                     let gx = room.x + dx;
                     let gy = room.y + dy;
                     if gx < width && gy < height && !fixed[gx][gy] {
                         grid[gx][gy] = DEF_ALIVE;
                         fixed[gx][gy] = true;
                     }
-                }
-            }
+                });
+            });
         }
-    }
+    });
 
     // Step 6: Carve corridors between rooms along edges, marking them as DEF_ALIVE (this prevents the CA from eating them up later)
     for edge in &mst_edges {

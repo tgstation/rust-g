@@ -125,6 +125,7 @@ all = [
     "http",
     "iconforge",
     "json",
+    "lavaland_generator",
     "log",
     "noise",
     "rustls_tls",
@@ -141,7 +142,6 @@ all = [
     "redis_reliablequeue",
     "unzip",
     "worleynoise",
-    "lavaland_generator",
 ]
 
 # default features
@@ -196,13 +196,13 @@ uuid = ["dep:uuid", "cuid2"]
 # additional features
 dice = ["caith"]
 ed25519 = ["base64", "ed25519-dalek", "rand", "zeroize"]
+lavaland_generator = ["rand", "rayon", "serde", "serde_json"]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 poissonnoise = ["fast_poisson"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
 worleynoise = ["rand", "rayon"]
-lavaland_generator = ["rand", "rayon", "serde", "serde_json"]
 
 # Use the native tls stack for the mysql db
 native_tls = ["mysql/default", "mysql/native-tls"]
