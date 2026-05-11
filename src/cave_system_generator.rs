@@ -5,7 +5,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::Deserialize;
 use std::collections::VecDeque;
 
-byond_fn!(fn lavaland_generator_generate(
+byond_fn!(fn cave_system_generator_generate(
     width,
     height,
     prefabs_json,
@@ -21,7 +21,7 @@ byond_fn!(fn lavaland_generator_generate(
     survival_limit,
     edge_is_alive
 ) {
-    generate_dungeon(
+    generate_cave_system(
         width, height, prefabs_json, min_bsp_size, max_ratio,
         padding, room_fill_percent, corridor_width, loop_percent,
         noise_percent, ca_steps, birth_limit, survival_limit, edge_is_alive,
@@ -84,7 +84,7 @@ struct MSTEdge {
 }
 
 
-fn generate_dungeon(
+fn generate_cave_system(
     width_str: &str,
     height_str: &str,
     prefabs_json: &str,

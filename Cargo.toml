@@ -90,6 +90,7 @@ zeroize = { version = "1.8", optional = true }
 default = [
     "acreplace",
     "batchnoise",
+    "cave_system_generator",
     "cellularnoise",
     "dmi",
     "file",
@@ -98,7 +99,6 @@ default = [
     "http",
     "iconforge",
     "json",
-    "lavaland_generator",
     "log",
     "noise",
     "pathfinder",
@@ -115,6 +115,7 @@ default = [
 all = [
     "acreplace",
     "batchnoise",
+    "cave_system_generator",
     "cellularnoise",
     "dmi",
     "dice",
@@ -125,7 +126,6 @@ all = [
     "http",
     "iconforge",
     "json",
-    "lavaland_generator",
     "log",
     "noise",
     "rustls_tls",
@@ -147,6 +147,7 @@ all = [
 # default features
 acreplace = ["aho-corasick"]
 batchnoise = ["dbpnoise"]
+cave_system_generator = ["rand", "rayon", "serde", "serde_json"]
 cellularnoise = ["rand", "rayon"]
 dmi = ["png", "image", "qrcode", "serde_repr"]
 file = []
@@ -196,7 +197,6 @@ uuid = ["dep:uuid", "cuid2"]
 # additional features
 dice = ["caith"]
 ed25519 = ["base64", "ed25519-dalek", "rand", "zeroize"]
-lavaland_generator = ["rand", "rayon", "serde", "serde_json"]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 poissonnoise = ["fast_poisson"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
