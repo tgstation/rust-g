@@ -252,15 +252,14 @@ pub fn scale(image: &mut RgbaImage, target_width: u32, target_height: u32) {
 
             let area = (x1 - x0).max(1) * (y1 - y0).max(1);
 
-            let pixel = if contributing > 0 {
-                Rgba([
-                    (acc_r / contributing) as u8,
-                    (acc_g / contributing) as u8,
-                    (acc_b / contributing) as u8,
+            let pixel = match contributing {
+                0 => Rgba([0, 0, 0, 0]),
+                c => Rgba([
+                    (acc_r / c) as u8,
+                    (acc_g / c) as u8,
+                    (acc_b / c) as u8,
                     (acc_a / area) as u8,
-                ])
-            } else {
-                Rgba([0, 0, 0, 0])
+                ]),
             };
 
             output.put_pixel(tx, ty, pixel);
