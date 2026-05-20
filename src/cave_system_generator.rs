@@ -1,6 +1,6 @@
 use crate::error::Result;
-use rand::distr::{Bernoulli, Distribution, Uniform};
 use rand::Rng;
+use rand::distr::{Bernoulli, Distribution, Uniform};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::Deserialize;
 use std::collections::VecDeque;
@@ -21,20 +21,44 @@ byond_fn!(fn cave_system_generator_generate(
     survival_limit,
     edge_is_alive
 ) {
-    generate_cave_system(
-        width, height, prefabs_json, min_bsp_size, max_ratio,
-        padding, room_fill_percent, corridor_width, loop_percent,
-        noise_percent, ca_steps, birth_limit, survival_limit, edge_is_alive,
-    )
-    .ok()
+    let config = GeneratorConfig {
+        min_bsp_size: min_bsp_size.parse::<usize>().unwrap_or(20),
+        max_ratio:    max_ratio.parse::<f64>().unwrap_or(2.5),
+        padding:      padding.parse::<usize>().unwrap_or(2),
+        size_scale:   (room_fill_percent.parse::<usize>().unwrap_or(80) as f64 / 100.0).clamp(0.0, 1.0),
+        corridor_width: corridor_width.parse::<usize>().unwrap_or(1).max(1),
+        loop_percent:   loop_percent.parse::<usize>().unwrap_or(15),
+        noise_percent:  noise_percent.parse::<usize>().unwrap_or(48),
+        ca_steps:       ca_steps.parse::<usize>().unwrap_or(6),
+        birth_limit:    birth_limit.parse::<usize>().unwrap_or(5),
+        survival_limit: survival_limit.parse::<usize>().unwrap_or(4),
+        edge_is_alive:  edge_is_alive.parse::<u8>().unwrap_or(0) != 0,
+    };
+    generate_cave_system(width, height, prefabs_json, config).ok()
 });
 
 // ─── Cell States ───────────────────────────────────────────────────────────────
 
-const DEAD: u8 = 0;       // Dynamic wall
-const ALIVE: u8 = 1;      // Dynamic floor
-const DEF_ALIVE: u8 = 2;  // Static floor (doesn't change during CA)
-const DEF_DEAD: u8 = 3;   // Static wall/indestructible (doesn't change during CA)
+const DEAD: u8 = 0; // Dynamic wall
+const ALIVE: u8 = 1; // Dynamic floor
+const DEF_ALIVE: u8 = 2; // Static floor (doesn't change during CA)
+const DEF_DEAD: u8 = 3; // Static wall/indestructible (doesn't change during CA)
+
+// ─── Config Structs ───────────────────────────────────────────────────────────
+
+struct GeneratorConfig {
+    min_bsp_size: usize,
+    max_ratio: f64,
+    padding: usize,
+    size_scale: f64,
+    corridor_width: usize,
+    loop_percent: usize,
+    noise_percent: usize,
+    ca_steps: usize,
+    birth_limit: usize,
+    survival_limit: usize,
+    edge_is_alive: bool,
+}
 
 // ─── Input Structs ─────────────────────────────────────────────────────────────
 
@@ -51,7 +75,11 @@ struct PrefabConfig {
     y: usize,
     w: usize,
     h: usize,
-    #[serde(default, rename = "isEnclosed", deserialize_with = "deserialize_byond_bool")]
+    #[serde(
+        default,
+        rename = "isEnclosed",
+        deserialize_with = "deserialize_byond_bool"
+    )]
     is_enclosed: bool,
 }
 
@@ -83,22 +111,11 @@ struct MSTEdge {
     dist: f64,
 }
 
-
 fn generate_cave_system(
     width_str: &str,
     height_str: &str,
     prefabs_json: &str,
-    min_bsp_size_str: &str,
-    max_ratio_str: &str,
-    padding_str: &str,
-    room_fill_percent_str: &str,
-    corridor_width_str: &str,
-    loop_percent_str: &str,
-    noise_percent_str: &str,
-    ca_steps_str: &str,
-    birth_limit_str: &str,
-    survival_limit_str: &str,
-    edge_is_alive_str: &str,
+    cfg: GeneratorConfig,
 ) -> Result<String> {
     let width = width_str.parse::<usize>()?;
     let height = height_str.parse::<usize>()?;
@@ -109,18 +126,19 @@ fn generate_cave_system(
         serde_json::from_str(prefabs_json)?
     };
 
-    let min_bsp_size = min_bsp_size_str.parse::<usize>().unwrap_or(20);
-    let max_ratio    = max_ratio_str.parse::<f64>().unwrap_or(2.5);
-    let padding      = padding_str.parse::<usize>().unwrap_or(2);
-    let size_scale   = (room_fill_percent_str.parse::<usize>().unwrap_or(80) as f64 / 100.0)
-        .clamp(0.0, 1.0);
-    let corridor_width  = corridor_width_str.parse::<usize>().unwrap_or(1).max(1);
-    let loop_percent    = loop_percent_str.parse::<usize>().unwrap_or(15);
-    let noise_percent   = noise_percent_str.parse::<usize>().unwrap_or(48);
-    let ca_steps        = ca_steps_str.parse::<usize>().unwrap_or(6);
-    let birth_limit     = birth_limit_str.parse::<usize>().unwrap_or(5);
-    let survival_limit  = survival_limit_str.parse::<usize>().unwrap_or(4);
-    let edge_is_alive   = edge_is_alive_str.parse::<u8>().unwrap_or(0) != 0;
+    let GeneratorConfig {
+        min_bsp_size,
+        max_ratio,
+        padding,
+        size_scale,
+        corridor_width,
+        loop_percent,
+        noise_percent,
+        ca_steps,
+        birth_limit,
+        survival_limit,
+        edge_is_alive,
+    } = cfg;
 
     if width == 0 || height == 0 {
         return Ok(String::new());
@@ -128,8 +146,8 @@ fn generate_cave_system(
 
     let mut rng = rand::rng();
 
-    // Initialize grids
-    let mut grid: Vec<Vec<u8>>  = vec![vec![DEAD; height]; width];
+    // Initialize our grids
+    let mut grid: Vec<Vec<u8>> = vec![vec![DEAD; height]; width];
     // fixed[x][y] = true → set by prefab/room/corridor; noise must not overwrite it
     let mut fixed: Vec<Vec<bool>> = vec![vec![false; height]; width];
 
@@ -153,10 +171,8 @@ fn generate_cave_system(
     }
 
     // Step 4: Adjacency edges + Kruskal MST
-    let edges     = build_adjacency_edges(&leaves);
+    let edges = build_adjacency_edges(&leaves);
     let mst_edges = kruskal_mst(leaves.len(), &edges, loop_percent, &mut rng);
-
-
 
     // Step 5: Apply rooms to grid as DEF_ALIVE (to prevent them from being eaten by noise), skipping prefab-fixed cells
     leaves.iter().for_each(|leaf| {
@@ -176,14 +192,13 @@ fn generate_cave_system(
 
     // Step 6: Carve corridors between rooms along edges, marking them as DEF_ALIVE (this prevents the CA from eating them up later)
     for edge in &mst_edges {
-        if let (Some(ra), Some(rb)) = (
-            leaves[edge.u].room.as_ref(),
-            leaves[edge.v].room.as_ref(),
-        ) {
+        if let (Some(ra), Some(rb)) = (leaves[edge.u].room.as_ref(), leaves[edge.v].room.as_ref()) {
             carve_corridor(
-                &mut grid, &mut fixed,
-                ra.cx, ra.cy, rb.cx, rb.cy,
-                corridor_width, width, height,
+                &mut grid,
+                &mut fixed,
+                (ra.cx, ra.cy),
+                (rb.cx, rb.cy),
+                corridor_width,
                 &mut rng,
             );
         }
@@ -201,11 +216,21 @@ fn generate_cave_system(
 
     // Step 8: CA smoothing
     for _ in 0..ca_steps {
-        ca_step(&mut grid, width, height, birth_limit, survival_limit, edge_is_alive);
+        ca_step(
+            &mut grid,
+            width,
+            height,
+            birth_limit,
+            survival_limit,
+            edge_is_alive,
+        );
     }
 
     // Step 9: BFS flood-fill island removal from first room center
-    if let Some(start) = leaves.iter().find_map(|l| l.room.as_ref().map(|r| (r.cx, r.cy))) {
+    if let Some(start) = leaves
+        .iter()
+        .find_map(|l| l.room.as_ref().map(|r| (r.cx, r.cy)))
+    {
         flood_fill_island_removal(&mut grid, width, height, start);
     }
 
@@ -221,11 +246,10 @@ fn generate_cave_system(
     Ok(grid_string)
 }
 
-
 //Apply a prefab to the grid. Marking its tiles as either DEF_DEAD or DEF_ALIVE depending on is_enclosed. This lets us either make the ruins spawn covered in walls, or treated as open (which makes the CA carve it out more). cx/cy are the bottom-left turf (1-indexed).
 fn apply_prefab(
-    grid: &mut Vec<Vec<u8>>,
-    fixed: &mut Vec<Vec<bool>>,
+    grid: &mut [Vec<u8>],
+    fixed: &mut [Vec<bool>],
     prefab: &PrefabConfig,
     width: usize,
     height: usize,
@@ -254,7 +278,15 @@ fn apply_prefab(
 ///BSP behavior
 impl BSPNode {
     fn new(x: usize, y: usize, w: usize, h: usize) -> Self {
-        BSPNode { x, y, w, h, left: None, right: None, room: None }
+        BSPNode {
+            x,
+            y,
+            w,
+            h,
+            left: None,
+            right: None,
+            room: None,
+        }
     }
 
     fn split(&mut self, min_size: usize, max_ratio: f64) {
@@ -273,7 +305,7 @@ impl BSPNode {
             split_horizontal = false; // too wide → split vertically (by X)
         }
         if self.w > 0 && (self.h as f64 / self.w as f64) >= max_ratio {
-            split_horizontal = true;  // too tall → split horizontally (by Y)
+            split_horizontal = true; // too tall → split horizontally (by Y)
         }
 
         // Fall back if forced direction isn't valid
@@ -282,24 +314,32 @@ impl BSPNode {
         } else if !split_horizontal && !can_split_v {
             split_horizontal = true;
         }
-        if split_horizontal && !can_split_h { return; }
-        if !split_horizontal && !can_split_v { return; }
+        if split_horizontal && !can_split_h {
+            return;
+        }
+        if !split_horizontal && !can_split_v {
+            return;
+        }
 
         if split_horizontal {
-            let split_y = Uniform::new(min_size, self.h - min_size).unwrap().sample(&mut rng);
-            let mut left  = BSPNode::new(self.x, self.y, self.w, split_y);
+            let split_y = Uniform::new(min_size, self.h - min_size)
+                .unwrap()
+                .sample(&mut rng);
+            let mut left = BSPNode::new(self.x, self.y, self.w, split_y);
             let mut right = BSPNode::new(self.x, self.y + split_y, self.w, self.h - split_y);
             left.split(min_size, max_ratio);
             right.split(min_size, max_ratio);
-            self.left  = Some(Box::new(left));
+            self.left = Some(Box::new(left));
             self.right = Some(Box::new(right));
         } else {
-            let split_x = Uniform::new(min_size, self.w - min_size).unwrap().sample(&mut rng);
-            let mut left  = BSPNode::new(self.x, self.y, split_x, self.h);
+            let split_x = Uniform::new(min_size, self.w - min_size)
+                .unwrap()
+                .sample(&mut rng);
+            let mut left = BSPNode::new(self.x, self.y, split_x, self.h);
             let mut right = BSPNode::new(self.x + split_x, self.y, self.w - split_x, self.h);
             left.split(min_size, max_ratio);
             right.split(min_size, max_ratio);
-            self.left  = Some(Box::new(left));
+            self.left = Some(Box::new(left));
             self.right = Some(Box::new(right));
         }
     }
@@ -319,7 +359,12 @@ fn collect_leaves(node: &BSPNode, leaves: &mut Vec<BSPNode>) {
 }
 
 // Generate a room within a BSP leaf. Scales to a % of the leaf size with a random offset
-fn generate_room(leaf: &BSPNode, padding: usize, size_scale: f64, rng: &mut impl Rng) -> Option<Room> {
+fn generate_room(
+    leaf: &BSPNode,
+    padding: usize,
+    size_scale: f64,
+    rng: &mut impl Rng,
+) -> Option<Room> {
     let max_w = leaf.w.saturating_sub(padding * 2);
     let max_h = leaf.h.saturating_sub(padding * 2);
     if max_w < 3 || max_h < 3 {
@@ -349,19 +394,33 @@ fn generate_room(leaf: &BSPNode, padding: usize, size_scale: f64, rng: &mut impl
     let rx = {
         let lo = padding;
         let hi = leaf.w.saturating_sub(rw + padding);
-        let offset = if hi > lo { Uniform::new(lo, hi).unwrap().sample(rng) } else { lo };
+        let offset = if hi > lo {
+            Uniform::new(lo, hi).unwrap().sample(rng)
+        } else {
+            lo
+        };
         leaf.x + offset
     };
     let ry = {
         let lo = padding;
         let hi = leaf.h.saturating_sub(rh + padding);
-        let offset = if hi > lo { Uniform::new(lo, hi).unwrap().sample(rng) } else { lo };
+        let offset = if hi > lo {
+            Uniform::new(lo, hi).unwrap().sample(rng)
+        } else {
+            lo
+        };
         leaf.y + offset
     };
 
-    Some(Room { x: rx, y: ry, w: rw, h: rh, cx: rx + rw / 2, cy: ry + rh / 2 })
+    Some(Room {
+        x: rx,
+        y: ry,
+        w: rw,
+        h: rh,
+        cx: rx + rw / 2,
+        cy: ry + rh / 2,
+    })
 }
-
 
 // Build edges only between BSP-adjacent leaves that both have rooms
 fn build_adjacency_edges(leaves: &[BSPNode]) -> Vec<MSTEdge> {
@@ -384,9 +443,9 @@ fn build_adjacency_edges(leaves: &[BSPNode]) -> Vec<MSTEdge> {
 }
 
 fn rectangles_adjacent(a: &BSPNode, b: &BSPNode) -> bool {
-    let a_right  = a.x + a.w;
+    let a_right = a.x + a.w;
     let a_bottom = a.y + a.h;
-    let b_right  = b.x + b.w;
+    let b_right = b.x + b.w;
     let b_bottom = b.y + b.h;
     ((a.x == b_right || b.x == a_right) && !(a.y >= b_bottom || b.y >= a_bottom))
         || ((a.y == b_bottom || b.y == a_bottom) && !(a.x >= b_right || b.x >= a_right))
@@ -398,7 +457,12 @@ fn distance(x1: usize, y1: usize, x2: usize, y2: usize) -> f64 {
     (dx * dx + dy * dy).sqrt()
 }
 
-fn kruskal_mst(n: usize, edges: &[MSTEdge], loop_percent: usize, rng: &mut impl Rng) -> Vec<MSTEdge> {
+fn kruskal_mst(
+    n: usize,
+    edges: &[MSTEdge],
+    loop_percent: usize,
+    rng: &mut impl Rng,
+) -> Vec<MSTEdge> {
     let mut sorted = edges.to_vec();
     sorted.sort_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap());
 
@@ -411,9 +475,9 @@ fn kruskal_mst(n: usize, edges: &[MSTEdge], loop_percent: usize, rng: &mut impl 
         let rv = uf_find(&parent, edge.v);
         if ru != rv {
             uf_union(&mut parent, edge.u, edge.v);
-            result.push(edge.clone());
+            result.push(*edge);
         } else if loop_coin.sample(rng) {
-            result.push(edge.clone());
+            result.push(*edge);
         }
     }
     result
@@ -426,7 +490,7 @@ fn uf_find(parent: &[usize], mut x: usize) -> usize {
     x
 }
 
-fn uf_union(parent: &mut Vec<usize>, a: usize, b: usize) {
+fn uf_union(parent: &mut [usize], a: usize, b: usize) {
     let ra = uf_find(parent, a);
     let rb = uf_find(parent, b);
     if ra != rb {
@@ -436,56 +500,45 @@ fn uf_union(parent: &mut Vec<usize>, a: usize, b: usize) {
 
 //Step towards the other edge until we reach it
 fn carve_corridor(
-    grid: &mut Vec<Vec<u8>>,
-    fixed: &mut Vec<Vec<bool>>,
-    x1: usize,
-    y1: usize,
-    x2: usize,
-    y2: usize,
+    grid: &mut [Vec<u8>],
+    fixed: &mut [Vec<bool>],
+    start: (usize, usize),
+    end: (usize, usize),
     cw: usize,
-    width: usize,
-    height: usize,
     rng: &mut impl Rng,
 ) {
     let coin = Bernoulli::new(0.5).unwrap();
     let go_x_first = coin.sample(rng);
-    let mut cx = x1 as i32;
-    let mut cy = y1 as i32;
-    let tx = x2 as i32;
-    let ty = y2 as i32;
+    let mut cx = start.0 as i32;
+    let mut cy = start.1 as i32;
+    let tx = end.0 as i32;
+    let ty = end.1 as i32;
     let cw_i = cw as i32;
 
     if go_x_first {
         while cx != tx {
             cx += (tx - cx).signum();
-            paint_brush(grid, fixed, cx, cy, cw_i, width, height);
+            paint_brush(grid, fixed, cx, cy, cw_i);
         }
         while cy != ty {
             cy += (ty - cy).signum();
-            paint_brush(grid, fixed, cx, cy, cw_i, width, height);
+            paint_brush(grid, fixed, cx, cy, cw_i);
         }
     } else {
         while cy != ty {
             cy += (ty - cy).signum();
-            paint_brush(grid, fixed, cx, cy, cw_i, width, height);
+            paint_brush(grid, fixed, cx, cy, cw_i);
         }
         while cx != tx {
             cx += (tx - cx).signum();
-            paint_brush(grid, fixed, cx, cy, cw_i, width, height);
+            paint_brush(grid, fixed, cx, cy, cw_i);
         }
     }
 }
 
 #[inline]
-fn paint_brush(
-    grid: &mut Vec<Vec<u8>>,
-    fixed: &mut Vec<Vec<bool>>,
-    cx: i32,
-    cy: i32,
-    cw: i32,
-    width: usize,
-    height: usize,
-) {
+fn paint_brush(grid: &mut [Vec<u8>], fixed: &mut [Vec<bool>], cx: i32, cy: i32, cw: i32) {
+    let width = grid.len();
     for i in 0..cw {
         for j in 0..cw {
             let nx = cx + i;
@@ -493,6 +546,7 @@ fn paint_brush(
             if nx >= 0 && ny >= 0 {
                 let nx = nx as usize;
                 let ny = ny as usize;
+                let height = grid.get(nx).map_or(0, |col| col.len());
                 if nx < width && ny < height && grid[nx][ny] != DEF_DEAD {
                     grid[nx][ny] = DEF_ALIVE;
                     fixed[nx][ny] = true;
@@ -501,7 +555,6 @@ fn paint_brush(
         }
     }
 }
-
 
 // Cellular automata except we use def_alive and def_dead to prevent them from flipping, basically nudging the noise a certain way and preventing it from eating up rooms/corridors/prefabs
 fn ca_step(
@@ -525,8 +578,10 @@ fn ca_step(
                     let count = count_alive_neighbors(grid_ref, x, y, width, height, edge_is_alive);
                     if cell == ALIVE {
                         if count >= survival_limit { ALIVE } else { DEAD }
+                    } else if count >= birth_limit {
+                        ALIVE
                     } else {
-                        if count >= birth_limit { ALIVE } else { DEAD }
+                        DEAD
                     }
                 })
                 .collect()
@@ -535,7 +590,14 @@ fn ca_step(
     *grid = new_grid;
 }
 
-fn count_alive_neighbors(grid: &[Vec<u8>], x: usize, y: usize, width: usize, height: usize, edge_is_alive: bool) -> usize {
+fn count_alive_neighbors(
+    grid: &[Vec<u8>],
+    x: usize,
+    y: usize,
+    width: usize,
+    height: usize,
+    edge_is_alive: bool,
+) -> usize {
     let mut count = 0;
     for dx in -1i32..=1 {
         for dy in -1i32..=1 {
@@ -559,7 +621,7 @@ fn count_alive_neighbors(grid: &[Vec<u8>], x: usize, y: usize, width: usize, hei
 
 // kills unreachable ALIVE; DEF_DEAD/DEF_ALIVE is left untouched.
 fn flood_fill_island_removal(
-    grid: &mut Vec<Vec<u8>>,
+    grid: &mut [Vec<u8>],
     width: usize,
     height: usize,
     start: (usize, usize),
@@ -618,7 +680,8 @@ fn flood_fill_island_removal(
                     if nx >= 0 && nx < width as i32 && ny >= 0 && ny < height as i32 {
                         let nx = nx as usize;
                         let ny = ny as usize;
-                        if !visited[nx][ny] && !component_visited[nx][ny]
+                        if !visited[nx][ny]
+                            && !component_visited[nx][ny]
                             && (grid[nx][ny] == ALIVE || grid[nx][ny] == DEF_ALIVE)
                         {
                             component_visited[nx][ny] = true;
