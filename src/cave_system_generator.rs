@@ -151,7 +151,7 @@ fn generate_cave_system(
     // fixed[x][y] = true → set by prefab/room/corridor; noise must not overwrite it
     let mut fixed: Vec<Vec<bool>> = vec![vec![false; height]; width];
 
-    // Step 1: Apply prefabs first (user-defined locations)
+    // Step 1: Apply prefabs first (user-defined locations that are either def alive or def dead)
     for prefab in &prefabs {
         apply_prefab(&mut grid, &mut fixed, prefab, width, height);
     }
