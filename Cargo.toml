@@ -67,7 +67,6 @@ ammonia = { version = "4.1", optional = true }
 fast_poisson = { version = "1.0.2", optional = true, features = [
     "single_precision",
 ] }
-kiddo = { version = "=5.2.4", optional = true }
 symphonia = { version = "0.5.5", optional = true, features = ["all-codecs"] }
 caith = { version = "4.2.4", optional = true }
 uuid = { version = "1.23", optional = true, features = [
@@ -199,7 +198,7 @@ uuid = ["dep:uuid", "cuid2"]
 dice = ["caith"]
 ed25519 = ["base64", "ed25519-dalek", "rand", "zeroize"]
 pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
-poissonnoise = ["fast_poisson", "kiddo"]
+poissonnoise = ["fast_poisson"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
 unzip = ["zip", "jobs"]
