@@ -2365,7 +2365,7 @@ dependencies = [
  "aligned-vec",
  "array-init",
  "az",
- "cmov 0.4.6",
+ "cmov,
  "divrem",
  "fixed",
  "generator",
