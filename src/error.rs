@@ -73,7 +73,7 @@ pub enum Error {
     DiceRoll(#[from] caith::RollError),
     #[error(transparent)]
     Formatting(#[from] std::fmt::Error),
-    #[cfg(any(feature = "dmi"))]
+    #[cfg(feature = "dmi")]
     #[error(transparent)]
     Dmi(#[from] dmi::error::DmiError),
     #[cfg(feature = "ed25519")]
