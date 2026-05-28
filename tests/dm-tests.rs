@@ -81,7 +81,8 @@ where
             .output()
             .unwrap()
     } else {
-        let windows_full = format!("{byond_bin}/{windows}.exe");
+        let path_delim = if byond_bin.contains("\\") { "\\" } else { "/" };
+        let windows_full = format!("{byond_bin}{path_delim}{windows}.exe");
         let path = Path::new(&windows_full);
         if !fs::exists(path).unwrap_or(false) {
             panic!(
