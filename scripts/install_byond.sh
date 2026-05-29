@@ -3,7 +3,9 @@ set -euo pipefail
 
 # Detect OS
 # In GitHub Actions Windows runners with Git Bash, OSTYPE is "msys"
-if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "win32" ]]; then
+# On Windows 2025+ runners, bash may resolve to WSL where OSTYPE is "linux-gnu",
+# but OS=Windows_NT is still inherited from the Windows environment.
+if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "win32" || "${OS:-}" == "Windows_NT" ]]; then
     IS_WINDOWS=1
     BYOND_SUFFIX=""
 else
