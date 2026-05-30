@@ -92,6 +92,7 @@ zeroize = { version = "1.8", optional = true }
 default = [
     "acreplace",
     "batchnoise",
+    "cave_system_generator",
     "cellularnoise",
     "dmi",
     "file",
@@ -116,6 +117,7 @@ default = [
 all = [
     "acreplace",
     "batchnoise",
+    "cave_system_generator",
     "cellularnoise",
     "dmi",
     "dice",
@@ -147,6 +149,7 @@ all = [
 # default features
 acreplace = ["aho-corasick"]
 batchnoise = ["dbpnoise"]
+cave_system_generator = ["rand", "rayon", "serde", "serde_json"]
 cellularnoise = ["rand", "rayon"]
 dmi = ["png", "image", "qrcode", "serde_repr"]
 file = []
