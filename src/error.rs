@@ -68,15 +68,12 @@ pub enum Error {
     #[cfg(feature = "hash")]
     #[error("TOTP may not be more than 8 digits.")]
     BadDigits,
-    #[cfg(feature = "iconforge")]
-    #[error("IconForge error: {0}")]
-    IconForge(String),
     #[cfg(feature = "dice")]
     #[error(transparent)]
     DiceRoll(#[from] caith::RollError),
     #[error(transparent)]
     Formatting(#[from] std::fmt::Error),
-    #[cfg(any(feature = "dmi", feature = "iconforge"))]
+    #[cfg(feature = "dmi")]
     #[error(transparent)]
     Dmi(#[from] dmi::error::DmiError),
     #[cfg(feature = "ed25519")]
