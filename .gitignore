@@ -9,3 +9,4 @@ tests/dm/tmp/
 tests/dm/*.dll
 tests/dm/*.so
 tests/dm/rust_g.dm
+tests/dm/run_*/

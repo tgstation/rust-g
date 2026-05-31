@@ -14,6 +14,8 @@ mod jobs;
 
 #[cfg(feature = "acreplace")]
 pub mod acreplace;
+#[cfg(feature = "cave_system_generator")]
+pub mod cave_system_generator;
 #[cfg(feature = "cellularnoise")]
 pub mod cellularnoise;
 #[cfg(feature = "dbpnoise")]
