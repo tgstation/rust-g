@@ -190,7 +190,12 @@ fn find_and_copy_rustg_lib(test_name: &str) -> (String, &'static str, &'static s
             .map(|_| {
                 println!("Successfully copied rust_g.dm");
             })
-            .map_err(|e| format!("Failed to copy {} to {}: {:?}", rustg_dm_source, rustg_dm_path, e))
+            .map_err(|e| {
+                format!(
+                    "Failed to copy {} to {}: {:?}",
+                    rustg_dm_source, rustg_dm_path, e
+                )
+            })
     });
 
     if let Err(err) = copy_result {
