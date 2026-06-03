@@ -1,6 +1,9 @@
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};
+use std::sync::OnceLock;
+
+static RUST_G_DM_COPY_RESULT: OnceLock<Result<(), String>> = OnceLock::new();
 
 #[cfg(feature = "dice")]
 #[test]
@@ -175,27 +178,23 @@ fn find_and_copy_rustg_lib(test_name: &str) -> (String, &'static str, &'static s
     // rust_g.dm goes in tests/dm/ where the .dme files can #include it
     let rustg_dm_path = "tests/dm/rust_g.dm";
     let rustg_dm_source = "target/rust_g.dm";
-    if !fs::exists(Path::new(rustg_dm_source)).unwrap_or(false) {
-        panic!(
-            "rust_g.dm source file does not exist at: {}",
-            rustg_dm_source
-        );
-    }
-
-    match fs::copy(rustg_dm_source, rustg_dm_path) {
-        Ok(_) => println!("Successfully copied rust_g.dm"),
-        Err(e) => {
-            println!("Copy rust_g.dm failed with error: {:?}", e);
-
-            if fs::exists(Path::new(rustg_dm_path)).unwrap_or(false) {
-                println!("Destination rust_g.dm already exists, will use it");
-            } else {
-                panic!(
-                    "Failed to copy {} to {}: {:?}",
-                    rustg_dm_source, rustg_dm_path, e
-                );
-            }
+    let copy_result = RUST_G_DM_COPY_RESULT.get_or_init(|| {
+        if !fs::exists(Path::new(rustg_dm_source)).unwrap_or(false) {
+            return Err(format!(
+                "rust_g.dm source file does not exist at: {}",
+                rustg_dm_source
+            ));
         }
+
+        fs::copy(rustg_dm_source, rustg_dm_path)
+            .map(|_| {
+                println!("Successfully copied rust_g.dm");
+            })
+            .map_err(|e| format!("Failed to copy {} to {}: {:?}", rustg_dm_source, rustg_dm_path, e))
+    });
+
+    if let Err(err) = copy_result {
+        panic!("{err}");
     }
 
     (rustg_lib_path, rustg_lib_fname, rustg_dm_path)
