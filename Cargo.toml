@@ -38,7 +38,7 @@ png = { version = "0.18", optional = true }
 image = { version = "0.25", optional = true, default-features = false, features = [
     "png",
 ] }
-gix = { version = "0.83", optional = true, default-features = false, features = [
+gix = { version = "0.84", optional = true, default-features = false, features = [
     "revision",
     "max-performance-safe",
     "sha1", # ideally switch to sha256 someday
