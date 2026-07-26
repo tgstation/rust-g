@@ -67,7 +67,7 @@ fn write(data: &str, path: &str) -> Result<usize> {
     Ok(written)
 }
 
-fn write_atomic(data: &str, path: &str) -> Result<usize> {
+fn write_atomic(data: &str, path: &str) -> Result<()> {
     let path: &std::path::Path = path.as_ref();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -77,12 +77,12 @@ fn write_atomic(data: &str, path: &str) -> Result<usize> {
     // write to tmp file first - then rename it to original filename if everything succeeds
     let tmp_path = path.with_extension("tmp");
     let mut file = BufWriter::new(File::create(&tmp_path)?);
-    let written = file.write(data.as_bytes())?;
+    file.write_all(data.as_bytes())?;
     file.flush()?;
     file.into_inner().map_err(|e| e.into_error())?.sync_all()?;
 
     std::fs::rename(&tmp_path, path)?;
-    Ok(written)
+    Ok(())
 }
 
 fn append(data: &str, path: &str) -> Result<usize> {
