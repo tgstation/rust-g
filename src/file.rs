@@ -16,6 +16,10 @@ byond_fn!(fn file_write(data, path) {
     write(data, path).err()
 });
 
+byond_fn!(fn file_write_atomic(data, path) {
+    write_atomic(data, path).err()
+});
+
 byond_fn!(fn file_append(data, path) {
     append(data, path).err()
 });
@@ -58,10 +62,26 @@ fn write(data: &str, path: &str) -> Result<usize> {
     let written = file.write(data.as_bytes())?;
 
     file.flush()?;
-    file.into_inner()
-        .map_err(|e| std::io::Error::new(e.error().kind(), e.error().to_string()))? // This is god-awful, but the compiler REFUSES to let me get an owned copy of `e`
-        .sync_all()?;
+    file.into_inner().map_err(|e| e.into_error())?.sync_all()?;
 
+    Ok(written)
+}
+
+fn write_atomic(data: &str, path: &str) -> Result<usize> {
+    let path: &std::path::Path = path.as_ref();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    // basically, this is just like, in case the filesystem has an issue, we won't nuke the original file if there is one
+    // write to tmp file first - then rename it to original filename if everything succeeds
+    let tmp_path = path.with_extension("tmp");
+    let mut file = BufWriter::new(File::create(&tmp_path)?);
+    let written = file.write(data.as_bytes())?;
+    file.flush()?;
+    file.into_inner().map_err(|e| e.into_error())?.sync_all()?;
+
+    std::fs::rename(&tmp_path, path)?;
     Ok(written)
 }
 
