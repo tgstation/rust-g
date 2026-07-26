@@ -76,7 +76,7 @@ fn write_atomic(data: &str, path: &str) -> Result<()> {
     // basically, this is just like, in case the filesystem has an issue, we won't nuke the original file if there is one
     // write to tmp file first - then rename it to original filename if everything succeeds
     let tmp_path = path.with_extension("tmp");
-    let mut file = BufWriter::new(File::create(&tmp_path)?);
+    let mut file = File::create(&tmp_path).map(BufWriter::new)?;
     file.write_all(data.as_bytes())?;
     file.flush()?;
     file.into_inner().map_err(|e| e.into_error())?.sync_all()?;
