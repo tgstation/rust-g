@@ -16,10 +16,6 @@ byond_fn!(fn file_write(data, path) {
     write(data, path).err()
 });
 
-byond_fn!(fn file_write_atomic(data, path) {
-    write_atomic(data, path).err()
-});
-
 byond_fn!(fn file_append(data, path) {
     append(data, path).err()
 });
@@ -58,21 +54,6 @@ fn write(data: &str, path: &str) -> Result<usize> {
         std::fs::create_dir_all(parent)?;
     }
 
-    let mut file = BufWriter::new(File::create(path)?);
-    let written = file.write(data.as_bytes())?;
-
-    file.flush()?;
-    file.into_inner().map_err(|e| e.into_error())?.sync_all()?;
-
-    Ok(written)
-}
-
-fn write_atomic(data: &str, path: &str) -> Result<()> {
-    let path: &std::path::Path = path.as_ref();
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
     // basically, this is just like, in case the filesystem has an issue, we won't nuke the original file if there is one
     // write to tmp file first - then rename it to original filename if everything succeeds
     let tmp_path = path.with_extension("tmp");
@@ -81,7 +62,7 @@ fn write_atomic(data: &str, path: &str) -> Result<()> {
     file.sync_all()?;
 
     std::fs::rename(&tmp_path, path)?;
-    Ok(())
+    Ok(data.len())
 }
 
 fn append(data: &str, path: &str) -> Result<usize> {
