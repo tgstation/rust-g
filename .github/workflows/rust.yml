@@ -11,16 +11,16 @@ jobs:
     runs-on: windows-latest
     env:
       BYOND_MAJOR: 516
-      BYOND_MINOR: 1667
+      BYOND_MINOR: 1686
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install BYOND
         run: |
           bash scripts/install_byond.sh
           echo "BYOND_BIN=$env:USERPROFILE\BYOND\byond\bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - uses: dtolnay/rust-toolchain@1.89
+      - uses: dtolnay/rust-toolchain@1.93
         with:
           targets: i686-pc-windows-msvc
           components: clippy, rustfmt
@@ -42,7 +42,7 @@ jobs:
       - name: Build (release) (default features)
         run: cargo build --target i686-pc-windows-msvc --locked --release
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: Windows Build
           path: |
@@ -53,9 +53,9 @@ jobs:
   build-windows-x64:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: dtolnay/rust-toolchain@1.89
+      - uses: dtolnay/rust-toolchain@1.93
         with:
           targets: x86_64-pc-windows-msvc
           components: clippy, rustfmt
@@ -76,7 +76,7 @@ jobs:
           Move-Item -Path "target\x86_64-pc-windows-msvc\release\rust_g.dll" -Destination "target\x86_64-pc-windows-msvc\release\rust_g64.dll"
           Move-Item -Path "target\x86_64-pc-windows-msvc\release\rust_g.pdb" -Destination "target\x86_64-pc-windows-msvc\release\rust_g64.pdb"
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: Windows Build x64
           path: |
@@ -88,11 +88,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BYOND_MAJOR: 516
-      BYOND_MINOR: 1667
+      BYOND_MINOR: 1686
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - run: |
           sudo dpkg --add-architecture i386
@@ -100,7 +100,7 @@ jobs:
           sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386 libcurl4:i386
           ./scripts/install_byond.sh
 
-      - uses: dtolnay/rust-toolchain@1.89
+      - uses: dtolnay/rust-toolchain@1.93
         with:
           targets: i686-unknown-linux-gnu, x86_64-unknown-linux-gnu
 
@@ -120,7 +120,7 @@ jobs:
       - name: Build (release) (default features)
         run: cargo build --target i686-unknown-linux-gnu --locked --release
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: Linux Build
           path: |
@@ -131,11 +131,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BYOND_MAJOR: 516
-      BYOND_MINOR: 1667
+      BYOND_MINOR: 1686
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - run: |
           sudo dpkg --add-architecture i386
@@ -143,7 +143,7 @@ jobs:
           sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386 libcurl4:i386
           ./scripts/install_byond.sh
 
-      - uses: dtolnay/rust-toolchain@1.89
+      - uses: dtolnay/rust-toolchain@1.93
         with:
           targets: x86_64-unknown-linux-gnu
 
@@ -161,7 +161,7 @@ jobs:
       - name: Rename x64 artifacts
         run: mv target/x86_64-unknown-linux-gnu/release/librust_g.so target/x86_64-unknown-linux-gnu/release/librust_g64.so
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: Linux Build x64
           path: |
