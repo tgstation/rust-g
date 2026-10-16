@@ -40,14 +40,13 @@ fn write_log(path: &str, data: &str, rest: &[Cow<'_, str>]) -> Option<Error> {
                 let mut iter = data.split('\n');
                 let timezone_string = rest.last().map(|x| &**x).unwrap_or("UTC");
                 if let Some(line) = iter.next() {
-                    if timezone_string == "Local" {
-                        writeln!(file, "[{}] {}", Local::now().format("%F %T%.3f"), line)?;
-                    } else {
+                    let mut timestamp = Local::now().format("%F %T%.3f");
+                    if timezone_string != "Local" {
                         let timezone =
                             chrono_tz::Tz::from_str(timezone_string).unwrap_or(chrono_tz::UTC);
-                        let timestamp = Utc::now().with_timezone(&timezone);
-                        writeln!(file, "[{}] {}", timestamp.format("%F %T%.3f"), line)?;
+                        timestamp = Utc::now().with_timezone(&timezone).format("%F %T%.3f");
                     }
+                    writeln!(file, "[{}] {}", timestamp, line)?;
                 }
 
                 // write remaining lines
