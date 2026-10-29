@@ -4339,14 +4339,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08f4b6d2481c5e266e9def4c10e1680dbdfdd69523ed555a83d6675953a2785e"
 dependencies = [
  "cc",
- "windows-targets 0.53.5",
+ "windows-targets",
 ]
 
 [[package]]
 name = "tracy_full"
-version = "1.14.1"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d57398cf79f0e6e3a8f5ca799897e9a4015e8cda2a7b8df5e7548a6de4ac8f1c"
+checksum = "c7d95ead940b29ae7b88c3ba87af006dee6f6c009aee220f56873f81a979a973"
 dependencies = [
  "once_cell",
  "rustc_version",
