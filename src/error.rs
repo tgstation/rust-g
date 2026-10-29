@@ -89,6 +89,9 @@ pub enum Error {
         expected: usize,
         actual: usize,
     },
+    #[cfg(feature = "log")]
+    #[error("Unknown timezone: {0}")]
+    InvalidTimezone(String),
     #[error("Panic during function execution: {0}")]
     Panic(String),
 }
