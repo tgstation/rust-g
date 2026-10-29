@@ -1,7 +1,4 @@
 use crate::{error::Result, http::HTTP_CLIENT, jobs};
-use std::fs;
-use std::io::Write;
-use std::path::Path;
 use zip::ZipArchive;
 
 struct UnzipPrep {
@@ -27,7 +24,6 @@ byond_fn!(fn unzip_download_async(url, unzip_directory) {
 });
 
 fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
-    let unzip_path = Path::new(&prep.unzip_directory);
     let response = prep.req.send_bytes(&[]).map_err(Box::new)?;
 
     let mut content = Vec::new();
@@ -35,26 +31,8 @@ fn do_unzip_download(prep: UnzipPrep) -> Result<String> {
 
     let reader = std::io::Cursor::new(content);
     let mut archive = ZipArchive::new(reader)?;
-
-    for i in 0..archive.len() {
-        let mut entry = archive.by_index(i)?;
-
-        let file_path = unzip_path.join(entry.name());
-
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent)?
-        }
-
-        let file = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&file_path)?;
-
-        let mut writer = std::io::BufWriter::new(file);
-        std::io::copy(&mut entry, &mut writer)?;
-        writer.flush()?;
-    }
+    // Fails on entries that would land outside the directory.
+    archive.extract(&prep.unzip_directory)?;
 
     Ok("true".to_string())
 }
