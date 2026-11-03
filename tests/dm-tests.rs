@@ -29,6 +29,12 @@ fn hash() {
     run_dm_tests("hash", false);
 }
 
+#[cfg(feature = "sqlite")]
+#[test]
+fn sqlite() {
+    run_dm_tests("sqlite", false);
+}
+
 #[cfg(feature = "toml")]
 #[test]
 fn toml() {
