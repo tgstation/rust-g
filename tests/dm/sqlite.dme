@@ -1,0 +1,61 @@
+#include "common.dm"
+
+/proc/sqlite_expect(json, status = "ok")
+	var/list/result = json_decode(json)
+	if (result["status"] != status)
+		CRASH("expected [status], got [json]")
+	return result
+
+/test/proc/check_read_write()
+	var/list/opened = sqlite_expect(rustg_sqlite_open(":memory:", RUSTG_SQLITE_READ_WRITE))
+	var/handle = opened["handle"]
+	sqlite_expect(rustg_sqlite_execute_batch(handle, "CREATE TABLE people (name TEXT PRIMARY KEY, age INTEGER, photo BLOB)"))
+
+	var/list/queries = list(
+		list("query" = "INSERT INTO people VALUES (?, ?, ?)", "params" = list("alice", 30, list(0, 255))),
+		list("query" = "INSERT INTO people (name, age) VALUES (:name, :age)", "params" = list(":name" = "bob", ":age" = 40)),
+	)
+	sqlite_expect(rustg_sqlite_transaction_blocking(handle, queries))
+
+	// The duplicate name fails the transaction, so carol isn't added either.
+	queries = list(
+		list("query" = "INSERT INTO people (name) VALUES (?)", "params" = list("carol")),
+		list("query" = "INSERT INTO people (name) VALUES (?)", "params" = list("alice")),
+	)
+	sqlite_expect(rustg_sqlite_transaction_blocking(handle, queries), "err")
+
+	// A missing param is an error, not NULL.
+	sqlite_expect(rustg_sqlite_query_blocking(handle, "INSERT INTO people VALUES (?, ?, ?)", list("dave", 50)), "err")
+
+	// Closing doesn't stop a query that's already started.
+	var/job = rustg_sqlite_query_async(handle, "SELECT * FROM people ORDER BY name", null)
+	sqlite_expect(rustg_sqlite_close(handle))
+	var/output
+	do
+		output = rustg_sqlite_check_query(job)
+	while (output == RUSTG_JOB_NO_RESULTS_YET)
+	var/list/result = sqlite_expect(output)
+	if (json_encode(result["rows"]) != @{"[["alice",30,[0,255]],["bob",40,null]]"} || result["affected"] != 0)
+		CRASH("unexpected select result: [output]")
+
+	sqlite_expect(rustg_sqlite_query_blocking(handle, "SELECT 1", null), "err")
+
+/test/proc/check_read_only()
+	// Immutable mode opens the file through a URL-like path where `#` and `%` mean something,
+	// so the odd filename checks that they're escaped and the file is still found.
+	var/path = "sqlite #1%.db"
+	fdel(path)
+	var/list/opened = sqlite_expect(rustg_sqlite_open(path, RUSTG_SQLITE_READ_WRITE))
+	sqlite_expect(rustg_sqlite_execute_batch(opened["handle"], "CREATE TABLE people (name TEXT); INSERT INTO people VALUES ('alice');"))
+	sqlite_expect(rustg_sqlite_close(opened["handle"]))
+
+	for (var/mode in list(RUSTG_SQLITE_READ_ONLY, RUSTG_SQLITE_IMMUTABLE))
+		opened = sqlite_expect(rustg_sqlite_open(path, mode, RUSTG_SQLITE_ROWS_ASSOC))
+		var/list/result = sqlite_expect(rustg_sqlite_query_blocking(opened["handle"], "SELECT name FROM people", null))
+		var/list/rows = result["rows"]
+		var/list/row = rows[1]
+		if (rows.len != 1 || row["name"] != "alice")
+			CRASH("[mode] read: [json_encode(rows)]")
+		sqlite_expect(rustg_sqlite_query_blocking(opened["handle"], "DELETE FROM people", null), "err")
+		sqlite_expect(rustg_sqlite_close(opened["handle"]))
+	fdel(path)

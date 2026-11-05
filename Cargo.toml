@@ -184,7 +184,7 @@ pathfinder = ["num-integer", "pathfinding", "serde", "serde_json"]
 poissonnoise = ["fast_poisson"]
 redis_pubsub = ["flume", "redis", "serde", "serde_json"]
 redis_reliablequeue = ["flume", "redis", "serde", "serde_json"]
-sqlite = ["rusqlite", "serde", "serde_json", "jobs"]
+sqlite = ["rusqlite", "serde", "serde_json", "jobs", "url-dep"]
 unzip = ["zip", "jobs"]
 worleynoise = ["rand", "rayon"]
 
