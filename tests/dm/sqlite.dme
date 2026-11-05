@@ -6,6 +6,13 @@
 		CRASH("expected [status], got [json]")
 	return result
 
+/proc/sqlite_wait(job)
+	var/output
+	do
+		output = rustg_sqlite_check_query(job)
+	while (output == RUSTG_JOB_NO_RESULTS_YET)
+	return output
+
 /test/proc/check_read_write()
 	var/list/opened = sqlite_expect(rustg_sqlite_open(":memory:", RUSTG_SQLITE_READ_WRITE))
 	var/handle = opened["handle"]
@@ -58,4 +65,26 @@
 			CRASH("[mode] read: [json_encode(rows)]")
 		sqlite_expect(rustg_sqlite_query_blocking(opened["handle"], "DELETE FROM people", null), "err")
 		sqlite_expect(rustg_sqlite_close(opened["handle"]))
+	fdel(path)
+
+/test/proc/check_concurrency()
+	var/path = "sqlite concurrency.db"
+	fdel(path)
+	var/list/opened = sqlite_expect(rustg_sqlite_open(path, RUSTG_SQLITE_READ_WRITE))
+	var/handle = opened["handle"]
+	sqlite_expect(rustg_sqlite_execute_batch(handle, "CREATE TABLE events (value TEXT)"))
+
+	var/list/jobs = list()
+	for (var/i in 1 to 8)
+		jobs += list(rustg_sqlite_query_async(handle, "INSERT INTO events VALUES (?)", list("event_[i]")))
+	sqlite_expect(rustg_sqlite_close(handle))
+
+	for (var/job in jobs)
+		sqlite_expect(sqlite_wait(job))
+
+	opened = sqlite_expect(rustg_sqlite_open(path, RUSTG_SQLITE_READ_ONLY))
+	var/list/result = sqlite_expect(rustg_sqlite_query_blocking(opened["handle"], "SELECT count(*) FROM events", null))
+	if (json_encode(result["rows"]) != @{"[[8]]"})
+		CRASH("unexpected concurrent insert count: [json_encode(result["rows"])]")
+	sqlite_expect(rustg_sqlite_close(opened["handle"]))
 	fdel(path)
