@@ -56,6 +56,8 @@ pub mod sanitize;
 pub mod sound_len;
 #[cfg(feature = "sql")]
 pub mod sql;
+#[cfg(feature = "sqlite")]
+pub mod sqlite;
 #[cfg(feature = "time")]
 pub mod time;
 #[cfg(feature = "toml")]

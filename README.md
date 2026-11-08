@@ -120,6 +120,7 @@ Additional features are:
 * poissonnoise: A way to generate a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * redis_reliablequeue: Library for using a reliable queue pattern through Redis.
+* sqlite: Library for reading and writing local SQLite database files.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
 * worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise.
 
