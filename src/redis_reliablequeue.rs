@@ -31,7 +31,7 @@ fn lpush(key: &str, data: serde_json::Value) -> serde_json::Value {
                     // Need to handle the case of `[{}, {}]` and `{}`
                     let result = match data {
                         serde_json::Value::Null => return serde_json::json!(
-                            {"success": false, "content": format!("Failed to perform LPUSH operation: Data sent was null")}
+                            {"success": false, "content": "Failed to perform LPUSH operation: Data sent was null".to_string()}
                         ),
                         serde_json::Value::Bool(_) |
                         serde_json::Value::Number(_) |

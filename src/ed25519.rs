@@ -175,7 +175,9 @@ mod tests {
     fn decode_hex(input: &str) -> Vec<u8> {
         input
             .as_bytes()
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|chunk| u8::from_str_radix(std::str::from_utf8(chunk).unwrap(), 16).unwrap())
             .collect()
     }

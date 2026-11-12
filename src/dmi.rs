@@ -107,7 +107,7 @@ fn create_png(path: &str, width: &str, height: &str, data: &str) -> Result<()> {
         if pixel.len() != 6 && pixel.len() != 8 {
             return Err(Error::InvalidPngData);
         }
-        for channel in pixel.chunks_exact(2) {
+        for channel in pixel.as_chunks::<2>().0 {
             result.push(u8::from_str_radix(std::str::from_utf8(channel)?, 16)?);
         }
         // If only RGB is provided for any pixel we also add alpha
